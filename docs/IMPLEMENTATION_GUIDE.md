@@ -16,7 +16,7 @@ Update the `skills` folder to be standardized "Agent Skills" that leverage Genki
     └── assets/           # Static resources
     ```
 - **Token Limits**:
-    -   **Metadata**: ~100 tokens (Loaded at startup).
+    -   **Metadata**: Approximately 100 tokens (Loaded at startup).
     -   **Instructions (`SKILL.md`)**: < 5000 tokens (Loaded on activation).
     -   **References**: Concise, domain-specific files.
 
