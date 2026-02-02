@@ -8,14 +8,14 @@ This document defines the strategy for objectively evaluating two competing stru
 Determine which documentation strategy enables an AI agent to most accurately and efficiently implement Genkit features. We are measuring the "usability" of the documentation for an LLM.
 
 ## Methodology
-We will use the `evals-app` to perform A/B testing. We will run the same set of developer tasks against two different "contexts" (the guides).
+We will use the `evals-app` to perform A/B testing. We will run the same set of developer tasks against two different "strategies".
 
 ### Test Setup
 -   **Subject**: An AI Agent (Gemini via `evals-app`).
 -   **Variables**:
-    -   **Control (Context A)**: `docs/context_unified_js.md` (Unified Strategy - JS Only).
-    -   **Test (Context B)**: `docs/context_lang_js.md` (Language-Centric Strategy - JS Only).
--   **Task**: "Act as a developer. Using the provided implementation guide as your primary reference, perform the following task..."
+    -   **Control (Strategy: Unified)**: Injects skills from `skills_unified/`.
+    -   **Test (Strategy: Lang)**: Injects skills from `skills_lang/`.
+-   **Task**: "Act as a developer. Use the available skills to perform the following task..."
 
 ### Success Metrics
 1.  **Code Correctness (Compilability)**:
@@ -42,41 +42,34 @@ We will evaluate 6 scenarios covering the core Genkit development lifecycle (Flo
 
 To support this evaluation, the `evals-app` requires the following updates:
 
-### 1. Context Injection Support
-**Goal**: Allow passing a text file (the Guide) to the agent as "System Knowledge".
+### 1. Skill Injection Support
+**Goal**: Provide the agent with the appropriate skills for the selected strategy.
 
 *   **Modify `TestSchema`** (in `src/index.ts`):
     ```typescript
     const TestSchema = z.object({
       name: z.string(),
-      contextFilePath: z.string().optional(), // New field
+      strategy: z.enum(['unified', 'lang']), // New field
       // ... existing fields
     });
     ```
 *   **Update `runAgent`**:
-    *   Read `input.test.contextFilePath`.
-    *   If present, read the file content.
-    *   Prepend to prompt:
-        ```text
-        SYSTEM CONTEXT:
-        The following text is the official Implementation Guide you must follow.
-        
-        [FILE CONTENT]
-        
-        TASK:
-        [USER PROMPT]
-        ```
+    *   Read `input.test.strategy`.
+    *   **Install Skills**: Use `gemini skills install` to install skills from the local repository into the test workspace.
+        *   **Unified**: Install all skills in `skills_unified/`.
+        *   **Lang**: Install `skills_lang/genkit-js`.
+    *   **Prompt Update**: Instruct the agent to "Use the available skills to perform the task".
 
 ### 2. New Evaluators
 **Goal**: Verify file structure existence.
 
-*   **Create `src/evaluators.ts`**:
+*   **Update `src/eval-actions.ts`**:
     *   `fileExistsEval`: Checks if a specific file path exists in the output workspace.
 
 ## Execution Plan
-1.  **Refactor App**: Implement `contextFilePath` support in `evals-app`.
+1.  **Refactor App**: Implement `strategy` support and skill installation in `evals-app`.
 2.  **Create Datasets**:
-    *   `datasets/unified_strategy.json` (pointing to `IMPLEMENTATION_GUIDE.md`).
-    *   `datasets/lang_strategy.json` (pointing to `IMPLEMENTATION_GUIDE_LANGUAGE_VARIANT.md`).
+    *   `datasets/unified_strategy.json` (using `strategy: "unified"`).
+    *   `datasets/lang_strategy.json` (using `strategy: "lang"`).
 3.  **Run Evals**: Execute both datasets.
 4.  **Compare**: Analyze pass rates and output quality.

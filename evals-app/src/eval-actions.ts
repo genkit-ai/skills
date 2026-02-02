@@ -1,6 +1,8 @@
 import { ai } from "./genkit";
 import { BaseEvalDataPoint, EvalStatusEnum } from "genkit/evaluator";
 import { spawn } from "child_process";
+import fs from "fs/promises";
+import path from "path";
 
 /**
  * An evaluator that checks if a TypeScript application compiles successfully.
@@ -70,6 +72,50 @@ export const commandSuccessEval = ai.defineEvaluator(
         score: avg,
         details: {
           reasoning: reasonings.join("\n"),
+        },
+      },
+    };
+  }
+);
+
+/**
+ * An evaluator that checks if a file exists in the workspace.
+ */
+export const fileExistsEval = ai.defineEvaluator(
+  {
+    name: `clix/fileExists`,
+    displayName: "File exists",
+    definition: "Checks if a specific file exists in the workspace",
+    isBilled: false,
+  },
+  async (datapoint: BaseEvalDataPoint) => {
+    const workspaceDir = (datapoint.output as any)?.workspaceDir;
+    const filePath = (datapoint.reference as any)?.filePath;
+
+    if (!filePath) {
+      throw new Error("filePath reference is required for fileExistsEval");
+    }
+
+    const fullPath = path.resolve(workspaceDir, filePath);
+    let exists = false;
+    let message = "";
+
+    try {
+      await fs.access(fullPath);
+      exists = true;
+      message = `File found: ${filePath}`;
+    } catch (e) {
+      exists = false;
+      message = `File not found: ${filePath}`;
+    }
+
+    return {
+      testCaseId: datapoint.testCaseId,
+      evaluation: {
+        score: exists ? 1 : 0,
+        status: exists ? EvalStatusEnum.PASS : EvalStatusEnum.FAIL,
+        details: {
+          reasoning: message,
         },
       },
     };

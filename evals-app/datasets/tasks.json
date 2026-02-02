@@ -1,0 +1,29 @@
+[
+  {
+    "input": {
+      "workspaceDir": "app-genkit",
+      "test": {
+        "name": "Simple Flow",
+        "prompt": "Create a simple flow named 'helloFlow' that returns 'Hello World'."
+      }
+    }
+  },
+  {
+    "input": {
+      "workspaceDir": "app-genkit",
+      "test": {
+        "name": "Streaming Flow",
+        "prompt": "Create a streaming flow named 'streamFlow' that streams 5 numbers."
+      }
+    }
+  },
+  {
+    "input": {
+      "workspaceDir": "app-genkit",
+      "test": {
+        "name": "Model Usage",
+        "prompt": "Create a flow that uses the Gemini model to tell a joke."
+      }
+    }
+  }
+]

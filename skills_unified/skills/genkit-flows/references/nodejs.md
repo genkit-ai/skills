@@ -30,6 +30,17 @@ export const menuSuggestionFlow = ai.defineFlow(
 );
 ```
 
+## Flow Steps
+
+Wrap operations in `ai.run` to create distinct steps in the trace viewer.
+
+```ts
+const menu = await ai.run('retrieve-menu', async () => {
+  // Perform retrieval logic here
+  return "Menu data";
+});
+```
+
 ## Streaming Flows
 
 Flows support streaming partial results using `streamSchema` and the `sendChunk` callback.
