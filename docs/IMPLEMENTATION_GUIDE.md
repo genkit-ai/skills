@@ -28,6 +28,7 @@ Update the `skills` folder to be standardized "Agent Skills" that leverage Genki
 
 - **Language-Based Split**: Since Genkit is an SDK, organizing skills by language (JS, Go, Python) allows all relevant information to be discoverable under a single, focused skill context.
 - **Discovery vs. Documentation**: Skills are not a replacement for documentation. Documentation is volatile, and keeping static references updated is inefficient. Enabling discovery (guiding the agent to authoritative local docs) ensures the agent always uses the most current information.
+- **Unified CLI Strategy**: Since the CLI is shared across languages, we reference a lightweight `cli.md` in each skill to list common tasks, while relying on `genkit --help` for authoritative command details. This avoids duplicating CLI documentation in every language skill.
 
 ## Structural Strategy
 
@@ -41,8 +42,9 @@ We organize skills by **Language** to provide a coherent environment for the age
 genkit-js/
 ├── SKILL.md            # Discovery instructions for Node.js
 └── references/
-    └── best-practices.md # recommended patterns
-    └── common-errors.md # Critical "gotchas" or pitfalls
+    ├── best-practices.md # recommended patterns
+    ├── common-errors.md  # Critical "gotchas" or pitfalls
+    └── cli.md            # Common CLI tasks & workflows
 └── assets/
     └── docs-bundle.json
 ```
@@ -54,7 +56,10 @@ The `SKILL.md` for each language should follow this pattern:
 1.  **Prerequisites**: Check for local docs/tools.
 2.  **Warning**: "Do not trust internal knowledge."
 3.  **Discovery Instructions**: How to find docs in `$HOME/.genkit/docs/<ver>` or via Genkit MCP server. Best if the docs can be bundled directly in the skill (`/assets/` or accessible via the CLI). If bundled directly, discoverability can be updated to to use local tools like `grep` to lookup specific terms in the docs (keyword search).
-4.  **References**: Extra specifications on common pitfalls and best practices.
+4.  **CLI Usage**: Mention the `genkit` CLI is available.
+    - Instruct to use `genkit --help` and `genkit <command> --help`.
+    - Link to `references/cli.md` for a list of common tasks and workflows.
+5.  **References**: Extra specifications on common pitfalls and best practices.
 
 ## Target Skill List
 
