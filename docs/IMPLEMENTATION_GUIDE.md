@@ -53,12 +53,15 @@ genkit-js/
 
 The `SKILL.md` for each language should follow this pattern:
 
-1.  **Prerequisites**: Check for local docs/tools.
+1.  **Prerequisites**: Check for `genkit` CLI availability.
 2.  **Warning**: "Do not trust internal knowledge."
-3.  **Discovery Instructions**: How to find docs in `$HOME/.genkit/docs/<ver>` or via Genkit MCP server. Best if the docs can be bundled directly in the skill (`/assets/` or accessible via the CLI). If bundled directly, discoverability can be updated to to use local tools like `grep` to lookup specific terms in the docs (keyword search).
+3.  **Discovery Instructions**: Use the Genkit CLI to find authoritative documentation.
+    -   `genkit docs:search <query>`: To find relevant topics.
+    -   `genkit docs:read <path>`: To read specific guides.
+    -   `genkit docs:list`: To see all available documentation.
 4.  **CLI Usage**: Mention the `genkit` CLI is available.
-    - Instruct to use `genkit --help` and `genkit <command> --help`.
-    - Link to `references/cli.md` for a list of common tasks and workflows.
+    -   Instruct to use `genkit --help` and `genkit <command> --help`.
+    -   Link to `references/cli.md` for a list of common tasks and workflows.
 5.  **References**: Extra specifications on common pitfalls and best practices.
 
 ## Target Skill List

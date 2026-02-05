@@ -1,3 +1,0 @@
-- Start the Dev UI using `genkit start -- pnpm run dev`
-- Import the dataset under `data/` folder using the Dev UI.
-- Start a new evaluation on the imported dataset against the `runAgent` flow. Select evaluators if needed.

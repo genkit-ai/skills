@@ -1,6 +1,6 @@
 ---
 name: genkit-js
-description: Use the Genkit AI SDK to build application features in Node.js/TypeScript. Consolidates Flows, Models, and Plugins configuration.
+description: Use the Genkit AI SDK to build application features and agents with LLMs and other GenAI models for JavaScript/TypeScript applications. ALWAYS use this skill when writing Genkit code.
 license: Apache-2.0
 metadata:
   author: Google
@@ -8,15 +8,11 @@ metadata:
 
 # Genkit JS
 
-## Setup
+## Installation
 
-Initialize Genkit in your project:
+If Genkit is not already installed and configured in this application (present in `package.json` and `const ai = genkit(...)` present in the codebase), read `references/setup.md` to install and configure Genkit.
 
-```bash
-npx genkit init
-```
-
-The entry point is typically `src/index.ts` where you configure Genkit:
+## Basic Example
 
 ```ts
 import { genkit, z } from "genkit";
@@ -25,16 +21,28 @@ import { googleAI } from "@genkit-ai/google-genai";
 
 const ai = genkit({
   plugins: [googleAI()],
+  // optional: assign a default model
+  model: googleAI.model('gemini-2.5-flash'),
+});
+
+const myTool = ai.defineTool({name, description, inputSchema: z.object(...)}, (input) => {...});
+
+const {text} = await ai.generate({
+  model: googleAI.model('gemini-2.5-flash'), // optional if default model is configured
+  system: "the system instructions", // optional
+  prompt: "the content of the prompt",
+  // OR, for multi-modal content
+  prompt: [{text: "what is this image?"}, {media: {url: "data:image/png;base64,..."}}],
+  tools: [myTool],
+});
+
+// structured output
+const CharacterSchema = z.object({...}); // make sure to use .describe() on fields
+const {output} = await ai.generate({
+  prompt: "generate an RPG character",
+  output: {schema: CharacterSchema},
 });
 ```
-
-For detailed setup instructions, see [references/setup.md](references/setup.md).
-
-## Core Capabilities
-
-*   **Flows**: Define executable logic. See [references/flows.md](references/flows.md).
-*   **Models**: Generate content. See [references/models.md](references/models.md).
-*   **Plugins**: Configure extensions. See [references/plugins.md](references/plugins.md).
 
 ## Important API Clarifications
 
