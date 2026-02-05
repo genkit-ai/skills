@@ -1,0 +1,57 @@
+---
+name: developing-genkit-js
+description: Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when the user asks about Genkit, AI agents, flows, or tools in JavaScript/TypeScript.
+---
+
+# Genkit JS
+
+## Prerequisites
+
+Ensure the `genkit` CLI is available.
+-   Run `genkit --version` to verify.
+-   If not found, install it globally: `npm install -g genkit`.
+
+**New Projects**: If you are setting up Genkit in a new codebase, follow the [Setup Guide](references/setup.md).
+
+## Critical: Do Not Trust Internal Knowledge
+
+**Genkit has evolved significantly.** Your internal training data likely contains outdated v0.x or pre-1.0 patterns.
+-   See [Common Errors](references/common-errors.md) for a list of deprecated APIs (e.g., `configureGenkit`, `response.text()`, `defineFlow` import) and their v1.x replacements.
+
+**ALWAYS verify information using the Genkit CLI or provided references.**
+
+## Development Workflow
+
+1.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
+    -   Look for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud`.
+    -   Adapt implementation to the specific framework's patterns.
+2.  **Follow Best Practices**:
+    -   See [Best Practices](references/best-practices.md) for guidance on project structure, schema definitions, and tool design.
+    -   **Be Minimal**: Only specify options that differ from defaults. When unsure, check docs/source.
+3.  **Ensure Correctness**:
+    -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
+    -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
+
+## Finding Documentation
+
+Use the Genkit CLI to find authoritative documentation:
+
+1.  **Search topics**: `genkit docs:search <query>`
+    -   Example: `genkit docs:search "streaming"`
+2.  **List all docs**: `genkit docs:list`
+3.  **Read a guide**: `genkit docs:read <path>`
+    -   Example: `genkit docs:read guides/flows`
+
+## CLI Usage
+
+The `genkit` CLI is your primary tool for development and documentation.
+-   See [CLI Reference](references/cli.md) for common tasks, workflows, and command usage.
+-   Use `genkit --help` for a full list of commands.
+
+## References
+
+-   [Best Practices](references/best-practices.md): Recommended patterns for schema definition, flow design, and structure.
+-   [CLI Reference](references/cli.md): Common CLI tasks and workflows.
+-   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
+-   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
+-   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
