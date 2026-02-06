@@ -38,16 +38,19 @@ Ensure the `genkit` CLI is available.
 
 ## Development Workflow
 
-1.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
+1.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
+    -   If the user does not specify a provider, default to **Google AI**.
+    -   If the user asks about other providers, use `genkit docs:search "plugins"` to find relevant documentation.
+2.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
     -   Look for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud`.
     -   Adapt implementation to the specific framework's patterns.
-2.  **Follow Best Practices**:
+3.  **Follow Best Practices**:
     -   See [Best Practices](references/best-practices.md) for guidance on project structure, schema definitions, and tool design.
     -   **Be Minimal**: Only specify options that differ from defaults. When unsure, check docs/source.
-3.  **Ensure Correctness**:
+4.  **Ensure Correctness**:
     -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
     -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
-4.  **Handle Errors**:
+5.  **Handle Errors**:
     -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
     -   Match error to documented patterns
     -   Apply documented fixes before attempting alternatives

@@ -4,10 +4,13 @@
 -   **Organized Layout**: Keep flows and tools in separate directories (e.g., `src/flows`, `src/tools`) to maintain a clean codebase.
 -   **Index Exports**: Use `index.ts` files to export flows and tools, making it easier to import them into your main configuration.
 
-## Model Selection
--   **Gemini Models**: ALWAYS use the latest generation (`gemini-3-*` or `gemini-2.5-*`).
+## Model Selection (Google AI)
+-   **Gemini Models**: If using Google AI, ALWAYS use the latest generation (`gemini-3-*` or `gemini-2.5-*`).
     -   **NEVER** use `gemini-2.0-*` or `gemini-1.5-*` series, as they are older generations.
     -   **Recommended**: `gemini-2.5-flash` for general use, `gemini-3-pro-preview` for complex tasks.
+
+## Model Selection (Other Providers)
+-   **Consult Documentation**: For other providers (OpenAI, Anthropic, etc.), refer to the provider's official documentation for the latest recommended model versions.
 
 ## Schema Definition
 -   **Use `z` from `genkit`**: Always import `z` from the `genkit` package to ensure compatibility.

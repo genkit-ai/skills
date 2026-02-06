@@ -2,6 +2,11 @@
 
 This reference contains minimal, reproducible examples (MREs) for common Genkit patterns.
 
+> **Disclaimer**: These examples use **Google AI** models (`googleAI`, `gemini-*`) for demonstration. The patterns apply to **any provider**. To use a different provider:
+> 1. Search the docs for the correct plugin: `genkit docs:search "plugins"`.
+> 2. Install and configure the plugin.
+> 3. Swap the model reference in the code.
+
 ## Basic Text Generation
 
 ```ts
@@ -66,7 +71,7 @@ if (groundingMetadata) {
 ```ts
 // Generate an image
 const { media } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash-image-preview'),
+  model: googleAI.model('gemini-2.5-flash-image'),
   config: { responseModalities: ['TEXT', 'IMAGE'] },
   prompt: "generate a picture of a unicorn wearing a space suit on the moon",
 });
@@ -76,7 +81,7 @@ const { media } = await ai.generate({
 ```ts
 // Edit an image
 const { media } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash-image-preview'),
+  model: googleAI.model('gemini-2.5-flash-image'),
   config: { responseModalities: ['TEXT', 'IMAGE'] },
   prompt: [
     { text: "change the person's outfit to a banana costume" },
