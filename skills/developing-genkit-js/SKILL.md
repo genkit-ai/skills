@@ -1,6 +1,6 @@
 ---
 name: developing-genkit-js
-description: Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when the user asks about Genkit, AI agents, flows, or tools in JavaScript/TypeScript.
+description: Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when the user asks about Genkit, AI agents, flows, or tools in JavaScript/TypeScript, or when encountering Genkit errors, validation issues, type errors, or API problems.
 ---
 
 # Genkit JS
@@ -20,6 +20,22 @@ Ensure the `genkit` CLI is available.
 
 **ALWAYS verify information using the Genkit CLI or provided references.**
 
+## Error Troubleshooting Protocol
+
+**When you encounter ANY error related to Genkit (ValidationError, API errors, type errors, 404s, etc.):**
+
+1. **MANDATORY FIRST STEP**: Read [Common Errors](references/common-errors.md)
+2. Identify if the error matches a known pattern
+3. Apply the documented solution
+4. Only if not found in common-errors.md, then consult other sources (e.g. `genkit docs:search`)
+
+**DO NOT:**
+- Attempt fixes based on assumptions or internal knowledge
+- Skip reading common-errors.md "because you think you know the fix"
+- Rely on patterns from pre-1.0 Genkit
+
+**This protocol is non-negotiable for error handling.**
+
 ## Development Workflow
 
 1.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
@@ -31,6 +47,10 @@ Ensure the `genkit` CLI is available.
 3.  **Ensure Correctness**:
     -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
     -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
+4.  **Handle Errors**:
+    -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
+    -   Match error to documented patterns
+    -   Apply documented fixes before attempting alternatives
 
 ## Finding Documentation
 
