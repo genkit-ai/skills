@@ -23,6 +23,46 @@ const { text } = await ai.generate({
 });
 ```
 
+## Structured Output
+
+```ts
+import { z } from 'genkit';
+
+const JokeSchema = z.object({
+  setup: z.string().describe('The setup of the joke'),
+  punchline: z.string().describe('The punchline'),
+});
+
+const response = await ai.generate({
+  model: googleAI.model('gemini-2.5-flash'),
+  prompt: 'Tell me a joke about developers.',
+  output: { schema: JokeSchema },
+});
+
+// response.output is strongly typed
+const joke = response.output; 
+if (joke) {
+  console.log(`${joke.setup} ... ${joke.punchline}`);
+}
+```
+
+## Streaming
+
+```ts
+const { stream, response } = ai.generateStream({
+  model: googleAI.model('gemini-2.5-flash'),
+  prompt: 'Tell a long story about a developer using Genkit.',
+});
+
+for await (const chunk of stream) {
+  console.log(chunk.text);
+}
+
+// Await the final response
+const finalResponse = await response;
+console.log('Complete:', finalResponse.text);
+```
+
 ## Advanced Configuration
 
 ### Thinking Mode (Gemini 3 Only)
