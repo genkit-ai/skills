@@ -12,7 +12,7 @@ Genkit v1.x introduced significant API changes. This section covers critical syn
 
 - **Correct**: Use plugin-specific model factories or string identifiers (prefaced by plugin name).
   ```ts
-  // Using model factory (v1.x)
+  // Using model factory (v1.x - Preferred)
   await ai.generate({ model: googleAI.model('gemini-2.5-flash'), ... });
 
   // Using string identifier
