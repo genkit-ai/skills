@@ -27,4 +27,5 @@
 -   **Environment Variables**: Store sensitive keys (like API keys) in environment variables or `.env` files. Do not hardcode them.
 
 ## Development
--   **Use Dev Mode**: Run your app with `genkit start` to enable the Developer UI and hot reloading (if configured with a watcher).
+-   **Use Dev Mode**: Run your app with `genkit start -- <start cmd>` to enable the Developer UI.
+-   It is recommended to configure a watcher to auto-reload your app (e.g. `node --watch` or `tsx --watch`)
