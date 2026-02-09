@@ -84,7 +84,8 @@ Genkit v1.x introduced significant API changes. This section covers critical syn
 - **Incorrect (Pre-1.0)**: Importing `defineFlow` globally.
   ```ts
   import { defineFlow } from "@genkit-ai/flow"; // INCORRECT
-  ```
+
+You should never import `@genkit-ai/flow`, `@genkit-ai/ai` or `@genkit-ai/core` packages directly.
 
 ## Zod & Schema Errors
 
@@ -104,7 +105,7 @@ Genkit v1.x introduced significant API changes. This section covers critical syn
 - **Missing responseModalities**: When using image generation models (like `gemini-2.5-flash-image`), you **MUST** specify the response modalities in the config.
   ```ts
   config: {
-    responseModalities: ["TEXT", "IMAGE"];
+    responseModalities: ["TEXT", "IMAGE"]
   }
   ```
   Failure to do so will result in errors or incorrect output format.

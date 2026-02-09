@@ -6,8 +6,8 @@
 
 ## Model Selection (Google AI)
 -   **Gemini Models**: If using Google AI, ALWAYS use the latest generation (`gemini-3-*` or `gemini-2.5-*`).
-    -   **NEVER** use `gemini-2.0-*` or `gemini-1.5-*` series, as they are older generations.
-    -   **Recommended**: `gemini-2.5-flash` for general use, `gemini-3-pro-preview` for complex tasks.
+    -   **NEVER** use `gemini-2.0-*` or `gemini-1.5-*` series, as they are decommissioned and won't work.
+    -   **Recommended**: `gemini-2.5-flash` or `gemini-3-flash-preview` for general use, `gemini-3-pro-preview` for complex tasks.
 
 ## Model Selection (Other Providers)
 -   **Consult Documentation**: For other providers (OpenAI, Anthropic, etc.), refer to the provider's official documentation for the latest recommended model versions.
@@ -27,4 +27,5 @@
 -   **Environment Variables**: Store sensitive keys (like API keys) in environment variables or `.env` files. Do not hardcode them.
 
 ## Development
--   **Use Dev Mode**: Run your app with `genkit start` to enable the Developer UI and hot reloading (if configured with a watcher).
+-   **Use Dev Mode**: Run your app with `genkit start -- <start cmd>` to enable the Developer UI.
+-   It is recommended to configure a watcher to auto-reload your app (e.g. `node --watch` or `tsx --watch`)
