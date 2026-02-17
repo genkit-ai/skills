@@ -1,4 +1,4 @@
-# Genkit CLI Common Tasks
+# Genkit Documentation & CLI
 
 This reference lists common tasks and workflows using the `genkit` CLI. For authoritative command details, always run `genkit --help` or `genkit <command> --help`.
 
@@ -55,4 +55,3 @@ This reference lists common tasks and workflows using the `genkit` CLI. For auth
     -   **Example**:
         ```bash
         genkit eval:run dataset.json --output results.json
-        ```

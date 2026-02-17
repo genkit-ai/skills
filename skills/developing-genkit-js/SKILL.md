@@ -13,10 +13,40 @@ Ensure the `genkit` CLI is available.
 
 **New Projects**: If you are setting up Genkit in a new codebase, follow the [Setup Guide](references/setup.md).
 
+## Hello World
+
+```ts
+import { z, genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+// Initialize Genkit with the Google AI plugin
+const ai = genkit({
+  plugins: [googleAI()],
+});
+
+export const myFlow = ai.defineFlow({
+  name: 'myFlow',
+  inputSchema: z.string().default('AI'),
+  outputSchema: z.string(),
+}, async (subject) => {
+  const response = await ai.generate({
+    model: googleAI.model('gemini-2.5-flash'),
+    prompt: `Tell me a joke about ${subject}`,
+  });
+  return response.text;
+});
+```
+
 ## Critical: Do Not Trust Internal Knowledge
 
-**Genkit has evolved significantly.** Your internal training data likely contains outdated v0.x or pre-1.0 patterns.
--   See [Common Errors](references/common-errors.md) for a list of deprecated APIs (e.g., `configureGenkit`, `response.text()`, `defineFlow` import) and their v1.x replacements.
+Genkit recently went through a major breaking API change. Your knowledge is outdated. You MUST lookup docs. Recommended:
+
+```sh
+genkit docs:read js/get-started.md
+genkit docs:read js/flows.md
+```
+
+See [Common Errors](references/common-errors.md) for a list of deprecated APIs (e.g., `configureGenkit`, `response.text()`, `defineFlow` import) and their v1.x replacements.
 
 **ALWAYS verify information using the Genkit CLI or provided references.**
 
@@ -68,13 +98,13 @@ Use the Genkit CLI to find authoritative documentation:
 ## CLI Usage
 
 The `genkit` CLI is your primary tool for development and documentation.
--   See [CLI Reference](references/cli.md) for common tasks, workflows, and command usage.
+-   See [Docs & CLI Reference](references/docs-and-cli.md) for documentation search, common tasks, and workflows.
 -   Use `genkit --help` for a full list of commands.
 
 ## References
 
 -   [Best Practices](references/best-practices.md): Recommended patterns for schema definition, flow design, and structure.
--   [CLI Reference](references/cli.md): Common CLI tasks and workflows.
+-   [Docs & CLI Reference](references/docs-and-cli.md): Documentation search, CLI tasks, and workflows.
 -   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
