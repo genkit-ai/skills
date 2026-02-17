@@ -98,7 +98,7 @@ Use the Genkit CLI to find authoritative documentation:
 ## CLI Usage
 
 The `genkit` CLI is your primary tool for development and documentation.
--   See [Docs & CLI Reference](references/docs-and-cli.md) for documentation search, common tasks, and workflows.
+-   See [CLI Reference](references/docs-and-cli.md) for common tasks, workflows, and command usage.
 -   Use `genkit --help` for a full list of commands.
 
 ## References
