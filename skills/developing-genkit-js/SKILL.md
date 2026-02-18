@@ -9,7 +9,7 @@ description: Develop AI-powered applications using Genkit in Node.js/TypeScript.
 
 Ensure the `genkit` CLI is available.
 -   Run `genkit --version` to verify.
--   If not found, install it globally: `npm install -g genkit`.
+-   If not found, install it globally: `npm install -g genkit-cli`.
 
 **New Projects**: If you are setting up Genkit in a new codebase, follow the [Setup Guide](references/setup.md).
 
@@ -93,7 +93,7 @@ Use the Genkit CLI to find authoritative documentation:
     -   Example: `genkit docs:search "streaming"`
 2.  **List all docs**: `genkit docs:list`
 3.  **Read a guide**: `genkit docs:read <path>`
-    -   Example: `genkit docs:read guides/flows`
+    -   Example: `genkit docs:read js/flows.md`
 
 ## CLI Usage
 
