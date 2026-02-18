@@ -8,6 +8,20 @@
 
 Genkit v1.x introduced significant API changes. This section covers critical syntax updates.
 
+### Package Imports
+
+- **Correct (v1.x)**: Import core functionality (zod, genkit) from the main `genkit` package and plugins from their specific packages.
+  ```ts
+  import { z, genkit } from 'genkit';
+  import { googleAI } from '@genkit-ai/google-genai';
+  ```
+
+- **Incorrect (Pre-1.0)**: Importing from `@genkit-ai/ai`, `@genkit-ai/core`, or `@genkit-ai/flow`. These packages are internal/deprecated for direct use.
+  ```ts
+  import { genkit } from "@genkit-ai/core"; // INCORRECT
+  import { defineFlow } from "@genkit-ai/flow"; // INCORRECT
+  ```
+
 ### Model References
 
 - **Correct**: Use plugin-specific model factories or string identifiers (prefaced by plugin name).

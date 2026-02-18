@@ -41,6 +41,6 @@ import './genkit.js';
 
 ## Next Steps & Troubleshooting
 
-- **Documentation**: Use the [CLI](cli.md) to access documentation (e.g., `genkit docs:search`).
+- **Documentation**: Use the [CLI](docs-and-cli.md) to access documentation (e.g., `genkit docs:search`).
 - **Building Flows**: See [examples.md](examples.md) for patterns on creating flows, adding tools, and advanced configuration.
 - **Troubleshooting**: If you encounter issues during setup or initialization, check [common-errors.md](common-errors.md) for solutions.
