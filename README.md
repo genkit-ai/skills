@@ -10,7 +10,7 @@ This repository contains "Agent Skills" designed to teach AI agents how to build
 
 You can install skills in various ways (in your project workspace):
 
-### Using [skills.sh](http://skills.sh) (Recommended) 
+### Using [skills.sh](https://skills.sh) (Recommended) 
 
 ```bash
 npx skills add genkit-ai/skills
