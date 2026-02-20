@@ -2,6 +2,10 @@
 
 This reference lists common tasks and workflows using the `genkit` CLI. For authoritative command details, always run `genkit --help` or `genkit <command> --help`.
 
+## Prerequisites:
+
+Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, update the Genkit CLI version or use `npx genkit-cli@^1.29.0` for the following commands. 
+
 ## Documentation
 
 -   **Search docs**: `genkit docs:search <query>`
