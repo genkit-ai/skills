@@ -8,8 +8,8 @@ description: Develop AI-powered applications using Genkit in Node.js/TypeScript.
 ## Prerequisites
 
 Ensure the `genkit` CLI is available.
--   Run `genkit --version` to verify.
--   If not found, install it globally: `npm install -g genkit-cli`.
+-   Run `genkit --version` to verify. Minimum Genkit version needed: **1.29.0**
+-   If not found, install it globally: `npm install -g genkit-cli@^1.29.0`.
 
 **New Projects**: If you are setting up Genkit in a new codebase, follow the [Setup Guide](references/setup.md).
 
