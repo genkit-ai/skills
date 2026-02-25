@@ -1,6 +1,6 @@
 ---
-name: schemantic
-description: Instructions and guidelines for using the Schemantic library for type-safe data classes and schemas in Dart.
+name: using-schemantic
+description: Instructions for defining type-safe data classes and schemas in Dart using the Schemantic library. Use when defining data models, JSON serialization, structured outputs, or when genkit-dart requires schema definitions.
 ---
 
 # Schemantic
@@ -14,6 +14,14 @@ Always use `schemantic` when strongly typed JSON parsing or programmatic schema 
 - Annotate your abstract classes with `@Schematic()`.
 - Use the `$` prefix for abstract schema class names (e.g., `abstract class $User`).
 - Always run `dart run build_runner build` to generate the `.g.dart` schema files.
+
+## Installation
+
+Add dependencies:
+
+```bash
+dart pub add schemantic
+```
 
 ## Basic Usage
 
