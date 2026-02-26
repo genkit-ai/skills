@@ -4,24 +4,41 @@ This repository contains "Agent Skills" designed to teach AI agents how to build
 
 ## Available Skills
 
--   **[developing-genkit-js](skills/developing-genkit-js/SKILL.md)**: For developing Genkit applications with Node.js and TypeScript.
+- **[developing-genkit-js](skills/developing-genkit-js/SKILL.md)**: For developing Genkit applications with Node.js and TypeScript.
+- **[developing-genkit-dart](skills/developing-genkit-dart/SKILL.md)**: For developing Genkit applications with Dart.
 
 ## Installation
 
 You can install skills in various ways (in your project workspace):
 
-### Using [skills.sh](https://skills.sh) (Recommended) 
+### Using [skills.sh](https://skills.sh) (Recommended)
+
+**For Node.js / TypeScript:**
 
 ```bash
-npx skills add genkit-ai/skills
+npx skills add genkit-ai/skills --skill developing-genkit-js
+```
+
+**For Dart:**
+
+```bash
+npx skills add genkit-ai/skills --skill developing-genkit-dart
 ```
 
 ### Using tool-specific command
 
 For example (if using [Gemini CLI](https://geminicli.com/docs/cli/skills/#from-the-terminal)):
 
+**For Node.js / TypeScript:**
+
 ```bash
 gemini skills install https://github.com/genkit-ai/skills.git --path skills/developing-genkit-js
+```
+
+**For Dart:**
+
+```bash
+gemini skills install https://github.com/genkit-ai/skills.git --path skills/developing-genkit-dart
 ```
 
 ### Manual Installation
