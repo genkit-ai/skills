@@ -1,8 +1,3 @@
----
-name: using-schemantic
-description: Instructions for defining type-safe data classes and schemas in Dart using the Schemantic library. Use when defining data models, JSON serialization, structured outputs, or when genkit-dart requires schema definitions.
----
-
 # Schemantic
 
 Schemantic is a general-purpose Dart library used for defining strongly typed data classes that automatically bind to reusable runtime JSON schemas. It is standard for the `genkit-dart` framework but works independently as well.
