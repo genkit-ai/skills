@@ -152,6 +152,6 @@ const { media } = await ai.generate({
 
 // The response contains raw PCM data in media.url (base64 encoded).
 // CAUTION: This is NOT an MP3/WAV file. It requires conversion (e.g., PCM to WAV).
-// DO NOT GUESS. Run `genkit docs:search "speech"` or `genkit docs:search "audio"`
-// to find the correct conversion code for your provider.
+// DO NOT GUESS. Run `genkit docs:search "speech audio"` to find the correct
+// conversion code for your provider.
 ```
