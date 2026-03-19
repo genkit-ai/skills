@@ -31,7 +31,7 @@ abstract class $User {
   @IntegerField(minimum: 0, description: 'Age of the user')
   int get age;
   
-  $Address? get address; // Nested schema reference
+  $Address? get address; // Nullable = Optional in JSON
 }
 
 @Schema()
@@ -107,10 +107,36 @@ abstract class $Poly {
   @AnyOf([int, String])
   Object? get id;
 }
+```
 
-// Usage
-final p1 = Poly(id: PolyId.int(123));
-final p2 = Poly(id: PolyId.string('abc'));
+Schemantic generates a specific helper class (e.g., `PolyId`) to handle the values:
+
+```dart
+final poly1 = Poly(id: PolyId.int(123));
+final poly2 = Poly(id: PolyId.string('abc'));
+```
+
+### Field Annotations
+
+You can use specialized annotations for more validation boundaries:
+
+```dart
+@Schema()
+abstract class $User {
+  @IntegerField(
+    name: 'years_old', // Change JSON key
+    description: 'Age of the user',
+    minimum: 0,
+    defaultValue: 18,
+  )
+  int? get age;
+
+  @StringField(
+    minLength: 2,
+    enumValues: ['user', 'admin'], 
+  )
+  String get role;
+}
 ```
 
 ### Recursive Schemas
@@ -123,3 +149,4 @@ abstract class $Node {
   List<$Node>? get children;
 }
 ```
+*Note*: `Node.$schema.jsonSchema(useRefs: true)` generates schemas with JSON Schema `$ref`.
