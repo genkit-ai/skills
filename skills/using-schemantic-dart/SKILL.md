@@ -13,7 +13,7 @@ Always use `schemantic` when strongly typed JSON parsing or programmatic schema 
 
 - Annotate your abstract classes with `@Schema()`.
 - Use the `$` prefix for abstract schema class names (e.g., `abstract class $User`).
-- Always run `dart run build_runner build` to generate the `.g.dart` schema files.
+- Always run `dart run build_runner build` to generate the `.g.dart` schema files. During development, you can use `dart run build_runner watch` to automatically regenerate files on changes.
 
 ## Usage Patterns
 
