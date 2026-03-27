@@ -6,7 +6,7 @@ Simplest form. Returns a string.
 
 ```go
 text, err := genkit.GenerateText(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Tell me a joke about %s", topic),
 )
 ```
@@ -17,7 +17,7 @@ Returns a full `*ModelResponse` with metadata, usage stats, and history.
 
 ```go
 resp, err := genkit.Generate(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithSystem("You are a helpful assistant."),
 	ai.WithPrompt("Explain %s", topic),
 )
@@ -37,7 +37,7 @@ type Joke struct {
 }
 
 joke, resp, err := genkit.GenerateData[Joke](ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Tell me a joke about %s", topic),
 )
 // joke is *Joke, resp is *ModelResponse
@@ -51,7 +51,7 @@ Returns an iterator. Each value has `.Done`, `.Chunk`, and `.Response`.
 
 ```go
 stream := genkit.GenerateStream(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Tell me a long story about %s", topic),
 )
 for result, err := range stream {
@@ -72,7 +72,7 @@ Streams typed partial objects as they arrive.
 
 ```go
 stream := genkit.GenerateDataStream[Joke](ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Tell me a joke about %s", topic),
 )
 for result, err := range stream {
@@ -93,7 +93,7 @@ Use `ai.WithStreaming` with `Generate` for callback-style streaming. The callbac
 
 ```go
 resp, err := genkit.Generate(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Tell me a story"),
 	ai.WithStreaming(func(ctx context.Context, chunk *ai.ModelResponseChunk) error {
 		fmt.Print(chunk.Text()) // extract text from chunk
@@ -107,8 +107,8 @@ resp, err := genkit.Generate(ctx, g,
 
 ```go
 // Model selection
-ai.WithModel(googlegenai.ModelRef("googleai/gemini-3-flash-preview", nil))  // model reference
-ai.WithModelName("googleai/gemini-3-flash-preview")                         // by name string
+ai.WithModel(googlegenai.ModelRef("googleai/gemini-flash-latest", nil))  // model reference
+ai.WithModelName("googleai/gemini-flash-latest")                         // by name string
 
 // Content
 ai.WithPrompt("Tell me about %s", topic)    // user message (supports fmt verbs)

@@ -6,7 +6,7 @@ Define a reusable prompt in code with a default model and template.
 
 ```go
 jokePrompt := genkit.DefinePrompt(g, "joke",
-	ai.WithModel(googlegenai.ModelRef("googleai/gemini-3-flash-preview", nil)),
+	ai.WithModel(googlegenai.ModelRef("googleai/gemini-flash-latest", nil)),
 	ai.WithInputType(JokeRequest{Topic: "example"}),
 	ai.WithPrompt("Tell me a joke about {{topic}}."),
 )
@@ -39,7 +39,7 @@ for result, err := range stream {
 ```go
 resp, err := jokePrompt.Execute(ctx,
 	ai.WithInput(map[string]any{"topic": "cats"}),
-	ai.WithModelName("googleai/gemini-3.1-pro-preview"),  // override model
+	ai.WithModelName("googleai/gemini-pro-latest"),  // override model
 	ai.WithConfig(map[string]any{"temperature": 0.9}),
 	ai.WithTools(myTool),
 )
@@ -60,7 +60,7 @@ type Joke struct {
 }
 
 jokePrompt := genkit.DefineDataPrompt[JokeRequest, *Joke](g, "structured-joke",
-	ai.WithModel(googlegenai.ModelRef("googleai/gemini-3-flash-preview", nil)),
+	ai.WithModel(googlegenai.ModelRef("googleai/gemini-flash-latest", nil)),
 	ai.WithPrompt("Tell me a joke about {{topic}}."),
 )
 ```
@@ -95,7 +95,7 @@ Define prompts in separate files with YAML frontmatter and Handlebars templates.
 `prompts/joke.prompt`:
 ```
 ---
-model: googleai/gemini-3-flash-preview
+model: googleai/gemini-flash-latest
 input:
   schema:
     topic: string
@@ -118,7 +118,7 @@ resp, err := jokePrompt.Execute(ctx,
 `prompts/structured-joke.prompt`:
 ```
 ---
-model: googleai/gemini-3-flash-preview
+model: googleai/gemini-flash-latest
 config:
   thinkingConfig:
     thinkingBudget: 0
@@ -152,7 +152,7 @@ resp, err := prompt.Execute(ctx)
 **Multi-message prompts with roles:**
 ```
 ---
-model: googleai/gemini-3-flash-preview
+model: googleai/gemini-flash-latest
 input:
   schema:
     question: string
@@ -167,7 +167,7 @@ You are a helpful assistant.
 **Media in prompts:**
 ```
 ---
-model: googleai/gemini-3-flash-preview
+model: googleai/gemini-flash-latest
 input:
   schema:
     videoUrl: string
@@ -195,7 +195,7 @@ Dietary restrictions: {{#each dietaryRestrictions}}{{this}}{{#unless @last}}, {{
 **Inline schema in .prompt file:**
 ```
 ---
-model: googleai/gemini-3-flash-preview
+model: googleai/gemini-flash-latest
 input:
   schema:
     topic: string

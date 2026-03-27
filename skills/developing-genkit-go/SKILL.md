@@ -30,7 +30,7 @@ func main() {
 
 	genkit.DefineFlow(g, "jokeFlow", func(ctx context.Context, topic string) (string, error) {
 		return genkit.GenerateText(ctx, g,
-			ai.WithModelName("googleai/gemini-3-flash-preview"),
+			ai.WithModelName("googleai/gemini-flash-latest"),
 			ai.WithPrompt("Tell me a joke about %s", topic),
 		)
 	})
@@ -65,18 +65,31 @@ Check if installed: `genkit --version`
 curl -sL cli.genkit.dev | bash
 ```
 
-**Usage:**
+**Key commands:**
+
 ```bash
+# Start app with Developer UI (tracing, flow testing) at http://localhost:4000
 genkit start -- go run .
+genkit start -o -- go run .   # also opens browser
+
+# Run a flow directly from the CLI
+genkit flow:run myFlow '{"data": "input"}'
+genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
+genkit flow:run myFlow '{"data": "input"}' --wait      # wait for completion
+
+# Look up Genkit documentation
+genkit docs:search "streaming" go
+genkit docs:list go
+genkit docs:read go/flows.md
 ```
 
-This launches the Genkit developer UI with tracing at `http://localhost:4000`.
+See [references/getting-started.md](references/getting-started.md) for full CLI and Developer UI details.
 
-## Best Practices
+## Key Guidance
 
-- Always pass the `*Genkit` instance (`g`) to Genkit functions; do not use globals.
-- Use `genkit.DefineSchemaFor[T](g)` to register Go types for use in `.prompt` files.
-- Use `jsonschema:"description=..."` struct tags to give the model field-level guidance.
-- Prefer `GenerateText` for simple text, `GenerateData[T]` for structured output, and `Generate` only when you need the full `*ModelResponse`.
-- Use flows to wrap AI logic for observability, tracing, and HTTP deployment.
-- Run `go vet ./...` after making changes to catch issues early.
+- **Pass `g` explicitly.** The `*Genkit` instance returned by `genkit.Init` is the central registry. Pass it to all Genkit functions rather than storing it as a global. This is a core pattern throughout the SDK.
+- **Wrap AI logic in flows.** Flows give you tracing, observability, HTTP deployment via `genkit.Handler`, and the ability to test from the Developer UI and CLI. Any generation call worth keeping should live in a flow.
+- **Use `jsonschema:"description=..."` struct tags on output types.** The model uses these descriptions to understand what each field should contain. Without them, structured output quality drops significantly.
+- **Write good tool descriptions.** The model decides which tools to call based on their description string. Vague descriptions lead to missed or incorrect tool calls.
+- **Use `.prompt` files for complex prompts.** They separate prompt content from Go code, support Handlebars templating, and can be iterated on without recompilation. Code-defined prompts are better for simple, single-line cases.
+- **Look up the latest model IDs.** Model names change frequently. Check provider documentation for current model IDs rather than relying on hardcoded names. See [references/providers.md](references/providers.md).

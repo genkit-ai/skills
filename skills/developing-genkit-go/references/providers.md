@@ -14,17 +14,17 @@ Model names follow the format `googleai/<model-id>`. Look up the latest model ID
 
 ```go
 // By name string
-ai.WithModelName("googleai/gemini-3-flash-preview")
+ai.WithModelName("googleai/gemini-flash-latest")
 
 // Model ref with provider-specific config
-ai.WithModel(googlegenai.ModelRef("googleai/gemini-3-flash-preview", &genai.GenerateContentConfig{
+ai.WithModel(googlegenai.ModelRef("googleai/gemini-flash-latest", &genai.GenerateContentConfig{
 	ThinkingConfig: &genai.ThinkingConfig{
 		ThinkingBudget: genai.Ptr[int32](0), // disable thinking
 	},
 }))
 
 // Lookup a model instance
-m := googlegenai.GoogleAIModel(g, "gemini-3-flash-preview")
+m := googlegenai.GoogleAIModel(g, "gemini-flash-latest")
 ```
 
 ## Vertex AI
@@ -42,7 +42,7 @@ Uses Application Default Credentials (`gcloud auth application-default login`).
 Model names follow the format `vertexai/<model-id>`. Same model IDs as Google AI.
 
 ```go
-ai.WithModelName("vertexai/gemini-3-flash-preview")
+ai.WithModelName("vertexai/gemini-flash-latest")
 ```
 
 ## Anthropic (Claude)
@@ -141,12 +141,12 @@ g := genkit.Init(ctx,
 		&googlegenai.GoogleAI{},
 		&ant.Anthropic{},
 	),
-	genkit.WithDefaultModel("googleai/gemini-3-flash-preview"),
+	genkit.WithDefaultModel("googleai/gemini-flash-latest"),
 )
 
 // Use different models per call
 text1, _ := genkit.GenerateText(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Hello from Gemini"),
 )
 

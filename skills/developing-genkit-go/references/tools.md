@@ -29,7 +29,7 @@ Pass tools to `Generate`, `GenerateText`, or prompts:
 
 ```go
 resp, err := genkit.Generate(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("What's the weather in San Francisco?"),
 	ai.WithTools(weatherTool),
 )
@@ -115,7 +115,7 @@ transferTool := genkit.DefineTool(g, "transferMoney",
 
 ```go
 resp, err := genkit.Generate(ctx, g,
-	ai.WithModelName("googleai/gemini-3-flash-preview"),
+	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithTools(transferTool),
 	ai.WithPrompt(userRequest),
 )

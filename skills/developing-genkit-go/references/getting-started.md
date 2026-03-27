@@ -60,7 +60,7 @@ g := genkit.Init(ctx,
 	genkit.WithPlugins(&googlegenai.GoogleAI{}, &anthropic.Anthropic{}),
 
 	// Set a default model (used when no model is specified)
-	genkit.WithDefaultModel("googleai/gemini-3-flash-preview"),
+	genkit.WithDefaultModel("googleai/gemini-flash-latest"),
 
 	// Set directory for .prompt files (default: "prompts")
 	genkit.WithPromptDir("my-prompts"),

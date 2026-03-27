@@ -8,7 +8,7 @@ Wrap AI logic in a flow for observability, tracing, and HTTP deployment.
 jokeFlow := genkit.DefineFlow(g, "jokeFlow",
 	func(ctx context.Context, topic string) (string, error) {
 		return genkit.GenerateText(ctx, g,
-			ai.WithModelName("googleai/gemini-3-flash-preview"),
+			ai.WithModelName("googleai/gemini-flash-latest"),
 			ai.WithPrompt("Tell me a joke about %s", topic),
 		)
 	},
@@ -33,7 +33,7 @@ Pass the stream callback directly through to `WithStreaming`. The callback type 
 genkit.DefineStreamingFlow(g, "streamingJokeFlow",
 	func(ctx context.Context, topic string, sendChunk ai.ModelStreamCallback) (string, error) {
 		resp, err := genkit.Generate(ctx, g,
-			ai.WithModelName("googleai/gemini-3-flash-preview"),
+			ai.WithModelName("googleai/gemini-flash-latest"),
 			ai.WithPrompt("Tell me a long joke about %s", topic),
 			ai.WithStreaming(sendChunk), // passthrough
 		)
@@ -53,7 +53,7 @@ Use `core.StreamCallback[string]` to stream extracted text:
 genkit.DefineStreamingFlow(g, "streamingJokeFlow",
 	func(ctx context.Context, topic string, sendChunk core.StreamCallback[string]) (string, error) {
 		stream := genkit.GenerateStream(ctx, g,
-			ai.WithModelName("googleai/gemini-3-flash-preview"),
+			ai.WithModelName("googleai/gemini-flash-latest"),
 			ai.WithPrompt("Tell me a long joke about %s", topic),
 		)
 		for result, err := range stream {
@@ -78,7 +78,7 @@ Use `core.StreamCallback[T]` with `GenerateDataStream` for typed chunks:
 genkit.DefineStreamingFlow(g, "structuredStream",
 	func(ctx context.Context, input JokeRequest, sendChunk core.StreamCallback[*Joke]) (*Joke, error) {
 		stream := genkit.GenerateDataStream[*Joke](ctx, g,
-			ai.WithModelName("googleai/gemini-3-flash-preview"),
+			ai.WithModelName("googleai/gemini-flash-latest"),
 			ai.WithPrompt("Tell me a joke about %s", input.Topic),
 		)
 		for result, err := range stream {
