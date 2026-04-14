@@ -1,25 +1,23 @@
 # Setup — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## New project
 
 ```bash
 mkdir my-app && cd my-app
-uv venv --python 3.12 .venv
-uv pip install "genkit @ git+https://github.com/firebase/genkit.git#subdirectory=py/packages/genkit"
-uv pip install "genkit-plugin-google-genai @ git+https://github.com/firebase/genkit.git#subdirectory=py/plugins/google-genai"
+uv init
+uv add genkit genkit-plugin-google-genai
 export GEMINI_API_KEY=your_key_here
 ```
 
 ## Plugin naming pattern
 
-All plugins follow `genkit-plugin-*`:
+All plugins follow `genkit-plugin-*` and are published on PyPI, for example:
 - `genkit-plugin-google-genai` — Google AI (Gemini API key)
 - `genkit-plugin-vertex-ai` — Vertex AI (GCP credentials)
 - `genkit-plugin-anthropic` — Anthropic
 - `genkit-plugin-fastapi` — FastAPI HTTP server
 
-None are on PyPI yet. Install from git using `#subdirectory=py/plugins/<plugin-dir>`.
+Install any of them with `uv add genkit-plugin-<name>` (or `pip install genkit-plugin-<name>`).
 
 ## pyproject.toml
 
@@ -27,13 +25,13 @@ None are on PyPI yet. Install from git using `#subdirectory=py/plugins/<plugin-d
 [project]
 name = "my-app"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
-    "genkit>=0.5",
-    "genkit-plugin-google-genai>=0.5",
+    "genkit",
+    "genkit-plugin-google-genai",
 ]
 ```
 
 ## Python version
 
-Requires Python 3.12+. Use `uv venv --python 3.12` to ensure correct version.
+Requires Python 3.14+. Use `uv python pin 3.14` or `uv venv --python 3.14 .venv` if you need a specific interpreter.

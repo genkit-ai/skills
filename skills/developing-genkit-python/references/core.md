@@ -1,5 +1,4 @@
 # Core APIs — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## Public API imports only
 
@@ -36,7 +35,7 @@ from pydantic import BaseModel
 from genkit import Genkit
 from genkit.plugins.google_genai import GoogleAI
 
-ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-2.0-flash')
+ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-3-flash')
 
 class CityInfo(BaseModel):
     name: str
@@ -76,6 +75,23 @@ async for chunk in sr.stream:
     if chunk.text:
         print(chunk.text, end='', flush=True)
 final = await sr.response
+```
+
+---
+
+## Text and media on the final response
+
+Streamed text arrives on each `chunk.text`. After the stream ends, `await sr.response` gives a `ModelResponse` with `.text` and `.media`: non-text parts (for example images) are exposed on **`final.media`** as `Media` objects (`url`, `content_type`).
+
+```python
+sr = ai.generate_stream(prompt='Describe this concept and output an image if supported.')
+async for chunk in sr.stream:
+    if chunk.text:
+        print(chunk.text, end='', flush=True)
+final = await sr.response
+for media in final.media:
+    # Often a data URI or URL; inspect content_type (e.g. image/png)
+    _ = media.url
 ```
 
 ---
@@ -175,7 +191,7 @@ Embed a single string or document:
 from genkit import Genkit
 from genkit.plugins.google_genai import GoogleAI, GeminiEmbeddingModels, EmbeddingTaskType
 
-ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-2.0-flash')
+ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-3-flash')
 
 # Single embed
 embeddings = await ai.embed(

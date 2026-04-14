@@ -1,5 +1,4 @@
 # Dotprompt — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## What it is
 
@@ -9,7 +8,7 @@
 
 ```yaml
 ---
-model: googleai/gemini-2.0-flash
+model: googleai/gemini-3-flash
 input:
   schema:
     food: string
@@ -38,7 +37,7 @@ from genkit.plugins.google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
-    model='googleai/gemini-2.0-flash',
+    model='googleai/gemini-3-flash',
     prompt_dir=Path(__file__).resolve().parent.parent / 'prompts',
 )
 
@@ -83,7 +82,7 @@ Note: `.stream(input={...})` not `ai.generate_stream(...)` — different call sh
 
 ```python
 rendered = await ai.prompt('my_prompt').render(input={'key': 'value'})
-response = await ai.generate(model='googleai/gemini-2.5-pro', messages=rendered.messages)
+response = await ai.generate(model='googleai/gemini-3-flash', messages=rendered.messages)
 ```
 
 ## Helpers

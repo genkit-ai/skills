@@ -1,11 +1,9 @@
 # FastAPI — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## Install
 
 ```bash
-uv pip install \
-  genkit-plugin-fastapi fastapi uvicorn
+uv add genkit-plugin-fastapi fastapi uvicorn
 ```
 
 ---
@@ -54,7 +52,7 @@ from genkit import ActionRunContext
 from genkit.plugins.fastapi import genkit_fastapi_handler
 from genkit.plugins.google_genai import GoogleAI
 
-ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-2.0-flash')
+ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-3-flash')
 app = FastAPI()
 
 class ChatInput(BaseModel):
@@ -81,7 +79,9 @@ Without `ctx.send_chunk`, the flow runs but streams nothing — client waits for
 
 ---
 
-## Nested flows with streaming (the real-world pattern)
+## Advanced Use Cases
+
+### Fine-grained control over flow streaming
 
 Complex apps chain flows — a parent orchestrates children. Chunks propagate upward by **passing `ctx` to child flows**.
 
@@ -135,14 +135,35 @@ async def report(input: ReportInput, ctx: ActionRunContext) -> str:
 - Non-streaming child flows don't need `ctx` — just `await` them normally
 - A child that doesn't call `ctx.send_chunk` contributes nothing to the stream (fine for parallel data fetching)
 
----
-
-## Parallel flows (non-streaming children)
+### Executing flows in parallel
 
 Use `asyncio.gather` to run multiple flows concurrently. Only makes sense when children don't need to stream.
 
+When you run flows in parallel this way and use **`genkit start`** with the Dev UI, traces for each branch show up as those flows complete — open **Traces** and use the live trace stream so you can watch concurrent executions update without waiting for the slowest branch.
+
 ```python
 import asyncio
+
+class AnalysisInput(BaseModel):
+    text: str
+
+class CheckResult(BaseModel):
+    issues: list[str]
+
+class CombinedAnalysis(BaseModel):
+    issues: list[str]
+
+@ai.flow()
+async def check_security(input: AnalysisInput) -> CheckResult:
+    return CheckResult(issues=[])
+
+@ai.flow()
+async def check_bugs(input: AnalysisInput) -> CheckResult:
+    return CheckResult(issues=[])
+
+@ai.flow()
+async def check_style(input: AnalysisInput) -> CheckResult:
+    return CheckResult(issues=[])
 
 @app.post('/flow/analyze', response_model=None)
 @genkit_fastapi_handler(ai)

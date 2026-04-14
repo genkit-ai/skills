@@ -1,5 +1,4 @@
 # Evals — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## Two types of evaluators
 
@@ -9,7 +8,7 @@
 ## Install
 
 ```bash
-uv pip install genkit-plugin-evaluators
+uv add genkit-plugin-evaluators
 ```
 
 ## Dataset format
@@ -72,7 +71,7 @@ Core pattern:
 async def llm_eval(datapoint: BaseDataPoint, _options: dict | None = None) -> EvalFnResponse:
     prompt = ai.prompt('my_judge_prompt')
     rendered = await prompt.render(input={'output': str(datapoint.output), 'reference': str(datapoint.reference)})
-    response = await ai.generate(model='googleai/gemini-2.5-pro', messages=rendered.messages)
+    response = await ai.generate(model='googleai/gemini-3-flash', messages=rendered.messages)
     score = float(response.text.strip())
     return EvalFnResponse(
         test_case_id=datapoint.test_case_id or '',

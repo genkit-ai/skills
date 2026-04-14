@@ -1,6 +1,5 @@
 ---
 name: developing-genkit-python
-version: py-skill-2026-04-13-iter-1
 description: Develop AI-powered applications using Genkit in Python. Use when the user asks about Genkit, AI agents, flows, or tools in Python, or when encountering Genkit errors, import issues, or API problems.
 ---
 
@@ -15,8 +14,9 @@ When you hit an error, read [Common Errors](references/common-errors.md) first �
 ## Install
 
 ```bash
-uv venv --python 3.12 .venv
-uv pip install genkit genkit-plugin-google-genai
+mkdir my-app && cd my-app
+uv init
+uv add genkit genkit-plugin-google-genai
 ```
 
 Plugin packages follow the `genkit-plugin-*` pattern: `genkit-plugin-google-genai`, `genkit-plugin-vertex-ai`, `genkit-plugin-fastapi`, etc.
@@ -29,7 +29,7 @@ from genkit.plugins.google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],               # reads GEMINI_API_KEY from env
-    model='googleai/gemini-2.0-flash',  # always prefix with "googleai/"
+    model='googleai/gemini-3-flash',    # always prefix with "googleai/"
 )
 
 async def main():
@@ -47,7 +47,7 @@ For detailed, verified examples covering flows, structured output, streaming, an
 ## Development Workflow
 
 1. **Select provider**: Default to Google AI (`GoogleAI()`). Requires `GEMINI_API_KEY` in env.
-2. **Model IDs**: Always prefix with plugin name — `'googleai/gemini-2.0-flash'`. Never bare model names.
+2. **Model IDs**: Always prefix with plugin name — `'googleai/gemini-3-flash'`. Never bare model names.
 3. **Run scripts**: Use `ai.run_main(main())`, never `asyncio.run()`.
 4. **After generating code**: Follow [Dev Workflow](references/dev-workflow.md) — give the developer the full run checklist and offer to run it for them.
 5. **Errors**: Read [Common Errors](references/common-errors.md) before doing anything else.

@@ -1,5 +1,4 @@
 # Dev Workflow — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## Agent responsibility
 
@@ -39,9 +38,10 @@ Replace `/path/to/your-project` with the actual full path to the project (e.g. `
 
 ```bash
 cd /path/to/your-project
-uv venv --python 3.12 .venv
-uv pip install genkit genkit-plugin-google-genai
+uv add genkit genkit-plugin-google-genai
 ```
+
+(Requires a project with `pyproject.toml` — run `uv init` in an empty directory first if needed.)
 
 ---
 

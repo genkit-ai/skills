@@ -1,5 +1,4 @@
 # Common Errors — Genkit Python
-<!-- version: py-skill-2026-04-13-iter-1 -->
 
 ## Before anything else: read this file when you hit any error.
 
@@ -9,9 +8,9 @@
 
 **Cause:** Plugin package not installed.
 
-**Fix:** Install from git:
+**Fix:** Add dependencies from PyPI:
 ```bash
-uv pip install genkit genkit-plugin-google-genai
+uv add genkit genkit-plugin-google-genai
 ```
 
 ---
@@ -22,11 +21,13 @@ uv pip install genkit genkit-plugin-google-genai
 
 **Fix:** Wrap parameters in a Pydantic BaseModel:
 ```python
-# ❌ Wrong
+from pydantic import BaseModel
+
+# Wrong
 @ai.tool()
 async def get_weather(city: str) -> str: ...
 
-# ✅ Right
+# Right
 class WeatherInput(BaseModel):
     city: str
 
@@ -46,17 +47,17 @@ async def get_weather(input: WeatherInput) -> str: ...
 
 ## RuntimeError / event loop errors when using asyncio.run()
 
-**Cause:** Genkit manages its own event loop via uvloop.
+**Cause:** For apps you start with **`genkit start`**, Genkit runs your entrypoint with an event loop suited to the framework (including uvloop where used). There is no “default” loop for you to manage in that mode.
 
-**Fix:** Always use `ai.run_main(main())` instead of `asyncio.run(main())`.
+**Fix:** For long-running Genkit apps (servers, flows served under `genkit start`), use **`ai.run_main(main())`** as your entrypoint instead of `asyncio.run(main())`. For one-off scripts that exit when done, using `asyncio.run()` can still be appropriate when you are not using `genkit start`.
 
 ---
 
 ## Wrong model ID (no plugin prefix)
 
-**Cause:** `model='gemini-2.0-flash'` — missing plugin prefix.
+**Cause:** `model='gemini-3-flash'` — missing plugin prefix.
 
-**Fix:** `model='googleai/gemini-2.0-flash'`
+**Fix:** `model='googleai/gemini-3-flash'`
 
 ---
 
