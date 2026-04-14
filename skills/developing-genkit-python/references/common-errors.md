@@ -28,6 +28,8 @@ from pydantic import BaseModel
 async def get_weather(city: str) -> str: ...
 
 # Right
+from pydantic import BaseModel
+
 class WeatherInput(BaseModel):
     city: str
 
