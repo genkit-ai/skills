@@ -139,7 +139,7 @@ async def report(input: ReportInput, ctx: ActionRunContext) -> str:
 
 Use `asyncio.gather` to run multiple flows concurrently. Only makes sense when children don't need to stream.
 
-When you run flows in parallel this way and use **`genkit start`** with the Dev UI, traces for each branch show up as those flows complete — open **Traces** and use the live trace stream so you can watch concurrent executions update without waiting for the slowest branch.
+When you run flows in parallel under **`genkit start`**, the Dev UI records **one trace per flow invocation**. Child flows finish at different times, but each trace appears **as that flow completes** (you do not have to wait for `asyncio.gather` to return before you see individual runs). Open **Traces**, pick a run, and step through the model calls for each branch in real time while siblings are still executing.
 
 ```python
 import asyncio
@@ -155,15 +155,33 @@ class CombinedAnalysis(BaseModel):
 
 @ai.flow()
 async def check_security(input: AnalysisInput) -> CheckResult:
-    return CheckResult(issues=[])
+    # LLM pass: surface possible security concerns from the snippet
+    r = await ai.generate(
+        prompt=f'List security concerns as a short comma-separated line (or "none"): {input.text[:2000]}',
+    )
+    raw = (r.text or '').strip()
+    issues = [s.strip() for s in raw.split(',') if s.strip() and s.strip().lower() != 'none']
+    return CheckResult(issues=issues)
 
 @ai.flow()
 async def check_bugs(input: AnalysisInput) -> CheckResult:
-    return CheckResult(issues=[])
+    # LLM pass: rough bug / correctness scan
+    r = await ai.generate(
+        prompt=f'List likely bugs or correctness issues as a short comma-separated line (or "none"): {input.text[:2000]}',
+    )
+    raw = (r.text or '').strip()
+    issues = [s.strip() for s in raw.split(',') if s.strip() and s.strip().lower() != 'none']
+    return CheckResult(issues=issues)
 
 @ai.flow()
 async def check_style(input: AnalysisInput) -> CheckResult:
-    return CheckResult(issues=[])
+    # LLM pass: style / clarity feedback
+    r = await ai.generate(
+        prompt=f'List style or clarity issues as a short comma-separated line (or "none"): {input.text[:2000]}',
+    )
+    raw = (r.text or '').strip()
+    issues = [s.strip() for s in raw.split(',') if s.strip() and s.strip().lower() != 'none']
+    return CheckResult(issues=issues)
 
 @app.post('/flow/analyze', response_model=None)
 @genkit_fastapi_handler(ai)
@@ -219,15 +237,16 @@ async def chat(input: ChatInput, ctx: ActionRunContext) -> str:
 
 ## Run with Dev UI
 
-```bash
-GEMINI_API_KEY=your-key genkit start -- uv run src/main.py \
-  > /tmp/genkit-dev-ui.log 2>&1 &
+Start your app through Genkit so tracing and the Tools UI attach to the same process:
 
-# Poll until ready
-for i in $(seq 1 15); do
-  curl -s http://localhost:8080/docs > /dev/null && echo "API ready at http://localhost:8080" && break
-  sleep 1
-done
+```bash
+GEMINI_API_KEY=your-key genkit start -- uv run src/main.py
 ```
 
-Dev UI at **http://localhost:4000** — test flows interactively without curl.
+Leave this process running. In the terminal you should see a line like:
+
+```
+Genkit Tools UI: http://localhost:4000
+```
+
+When that URL appears, open it in your browser and use **Run** / **Traces** there. Wait for this line rather than polling your API port — the UI URL is the signal that the dev environment is ready.

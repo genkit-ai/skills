@@ -9,17 +9,11 @@ uv add genkit genkit-plugin-google-genai
 export GEMINI_API_KEY=your_key_here
 ```
 
-## Plugin naming pattern
-
-All plugins follow `genkit-plugin-*` and are published on PyPI, for example:
-- `genkit-plugin-google-genai` — Google AI (Gemini API key)
-- `genkit-plugin-vertex-ai` — Vertex AI (GCP credentials)
-- `genkit-plugin-anthropic` — Anthropic
-- `genkit-plugin-fastapi` — FastAPI HTTP server
-
-Install any of them with `uv add genkit-plugin-<name>` (or `pip install genkit-plugin-<name>`).
+`uv init` creates `pyproject.toml`. Add your app under something like `src/main.py` (or match whatever layout `uv` generated) and point `genkit start` at that entrypoint.
 
 ## pyproject.toml
+
+Minimal `[project]` block with unpinned Genkit deps (resolver picks compatible releases):
 
 ```toml
 [project]
@@ -32,6 +26,10 @@ dependencies = [
 ]
 ```
 
+## Plugins
+
+Packages are **`genkit-plugin-*`** on PyPI, e.g. `genkit-plugin-google-genai`, `genkit-plugin-vertex-ai`, `genkit-plugin-anthropic`, `genkit-plugin-fastapi`. Install with `uv add genkit-plugin-<name>`.
+
 ## Python version
 
-Requires Python 3.14+. Use `uv python pin 3.14` or `uv venv --python 3.14 .venv` if you need a specific interpreter.
+**3.14+**. Use `uv python pin 3.14` or `uv venv --python 3.14 .venv` if you need a fixed interpreter.
