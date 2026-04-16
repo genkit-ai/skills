@@ -139,8 +139,6 @@ async def report(input: ReportInput, ctx: ActionRunContext) -> str:
 
 Use `asyncio.gather` to run multiple flows concurrently. Only makes sense when children don't need to stream.
 
-When you run flows in parallel under **`genkit start`**, the Dev UI records **one trace per flow invocation**. Child flows finish at different times, but each trace appears **as that flow completes** (you do not have to wait for `asyncio.gather` to return before you see individual runs). Open **Traces**, pick a run, and step through the model calls for each branch in real time while siblings are still executing.
-
 ```python
 import asyncio
 
@@ -155,7 +153,7 @@ class CombinedAnalysis(BaseModel):
 
 @ai.flow()
 async def check_security(input: AnalysisInput) -> CheckResult:
-    # LLM pass: surface possible security concerns from the snippet
+    # Here the model reviews the text; replace with your real prompt/schema as needed.
     r = await ai.generate(
         prompt=f'List security concerns as a short comma-separated line (or "none"): {input.text[:2000]}',
     )
@@ -165,7 +163,7 @@ async def check_security(input: AnalysisInput) -> CheckResult:
 
 @ai.flow()
 async def check_bugs(input: AnalysisInput) -> CheckResult:
-    # LLM pass: rough bug / correctness scan
+    # Model lists possible bugs; tune prompt for your codebase.
     r = await ai.generate(
         prompt=f'List likely bugs or correctness issues as a short comma-separated line (or "none"): {input.text[:2000]}',
     )
@@ -175,7 +173,7 @@ async def check_bugs(input: AnalysisInput) -> CheckResult:
 
 @ai.flow()
 async def check_style(input: AnalysisInput) -> CheckResult:
-    # LLM pass: style / clarity feedback
+    # Model suggests style/clarity issues; optional: use output_schema for structured rows.
     r = await ai.generate(
         prompt=f'List style or clarity issues as a short comma-separated line (or "none"): {input.text[:2000]}',
     )
@@ -237,16 +235,14 @@ async def chat(input: ChatInput, ctx: ActionRunContext) -> str:
 
 ## Run with Dev UI
 
-Start your app through Genkit so tracing and the Tools UI attach to the same process:
-
 ```bash
 GEMINI_API_KEY=your-key genkit start -- uv run src/main.py
 ```
 
-Leave this process running. In the terminal you should see a line like:
+Leave the process running until the CLI prints something like:
 
 ```
-Genkit Tools UI: http://localhost:4000
+Genkit Developer UI: http://localhost:4000
 ```
 
-When that URL appears, open it in your browser and use **Run** / **Traces** there. Wait for this line rather than polling your API port — the UI URL is the signal that the dev environment is ready.
+Open that URL. Port may differ if 4000 is busy.

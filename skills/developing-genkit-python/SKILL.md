@@ -35,14 +35,6 @@ if __name__ == '__main__':
 
 The Python SDK changes often — verify imports and APIs against the references here or upstream docs. On **any** error, read [Common Errors](references/common-errors.md) first.
 
-## Error Troubleshooting
-
-1. Open [Common Errors](references/common-errors.md).
-2. Match the message to a documented fix.
-3. Only then try other sources.
-
-Do not guess from memory.
-
 ## Development Workflow
 
 1. Default provider: **Google AI** (`GoogleAI()`), **`GEMINI_API_KEY`** in the environment.

@@ -4,7 +4,7 @@ Minimal patterns for common Genkit APIs. Examples use **Google AI** (`GoogleAI`,
 
 ## Public imports
 
-Use **`genkit`** and **`genkit.plugins.*`** only — not internal packages (`genkit._core`, etc.).
+Use **`genkit`**, **`genkit.plugins.*`**, **`genkit.embedder`**, **`genkit.evaluator`**, and **`genkit.model`** (and similar public modules) only — not internal packages (`genkit._core`, etc.).
 
 ```python
 from genkit import Genkit, ActionRunContext
@@ -47,8 +47,6 @@ Output formats: `'text'`, `'json'`, `'array'`, `'enum'`, `'jsonl'`.
 
 ## Streaming (text)
 
-`generate_stream` is not awaited — use `async for` on `.stream`, then `await sr.response` for the final `ModelResponse`.
-
 ```python
 sr = ai.generate_stream(prompt='Tell me a story.')
 async for chunk in sr.stream:
@@ -59,9 +57,7 @@ final = await sr.response  # final.text
 
 ---
 
-## Text and media
-
-`ModelResponse` exposes **`.text`** and **`.media`** (list of **`Media`**; empty if the reply is text-only). Same shape for **`await ai.generate(...)`** and **`await sr.response`** after streaming.
+## Text and media parts
 
 ```python
 # Non-streaming

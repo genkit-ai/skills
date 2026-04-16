@@ -2,9 +2,14 @@
 
 ## New project
 
+**Always use a virtual environment** — never install Genkit into the system interpreter. With **uv**, the project’s **`.venv`** is created and used by `uv sync` / `uv run` automatically once you add dependencies.
+
 ```bash
 mkdir my-app && cd my-app
 uv init
+uv venv --python 3.14 .venv
+# Unix: source .venv/bin/activate
+# Windows: .venv\Scripts\activate
 uv add genkit genkit-plugin-google-genai
 export GEMINI_API_KEY=your_key_here
 ```
@@ -32,4 +37,4 @@ Packages are **`genkit-plugin-*`** on PyPI, e.g. `genkit-plugin-google-genai`, `
 
 ## Python version
 
-**3.14+**. Use `uv python pin 3.14` or `uv venv --python 3.14 .venv` if you need a fixed interpreter.
+**3.14+**. Always use a `venv` using `uv venv --python 3.14 .venv` when creating the environment before you run any commands.
