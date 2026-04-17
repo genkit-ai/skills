@@ -20,7 +20,7 @@ from genkit.plugins.google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
-    model='googleai/gemini-3-flash',
+    model='googleai/gemini-flash-latest',
 )
 
 async def main():
@@ -38,7 +38,7 @@ The Python SDK changes often — verify imports and APIs against the references 
 ## Development Workflow
 
 1. Default provider: **Google AI** (`GoogleAI()`), **`GEMINI_API_KEY`** in the environment.
-2. Model IDs: always prefixed, e.g. **`googleai/gemini-3-flash`**.
+2. Model IDs: always prefixed, e.g. **`googleai/gemini-flash-latest`** (always-on-latest Flash alias; same pattern as other skills).
 3. Entrypoint: **`ai.run_main(main())`** for Genkit-driven apps (not `asyncio.run()` for long-lived servers started with `genkit start` — see [Common Errors](references/common-errors.md)).
 4. After generating code, follow [Dev Workflow](references/dev-workflow.md) for `genkit start` and the Dev UI.
 5. On errors: step 1 is always [Common Errors](references/common-errors.md).

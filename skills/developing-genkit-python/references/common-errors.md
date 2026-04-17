@@ -57,9 +57,9 @@ async def get_weather(input: WeatherInput) -> str: ...
 
 ## Wrong model ID (no plugin prefix)
 
-**Cause:** `model='gemini-3-flash'` — missing plugin prefix.
+**Cause:** `model='gemini-flash-latest'` — missing plugin prefix.
 
-**Fix:** `model='googleai/gemini-3-flash'`
+**Fix:** `model='googleai/gemini-flash-latest'`
 
 ---
 

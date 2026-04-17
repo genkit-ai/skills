@@ -71,7 +71,7 @@ Core pattern:
 async def llm_eval(datapoint: BaseDataPoint, _options: dict | None = None) -> EvalFnResponse:
     prompt = ai.prompt('my_judge_prompt')
     rendered = await prompt.render(input={'output': str(datapoint.output), 'reference': str(datapoint.reference)})
-    response = await ai.generate(model='googleai/gemini-3-flash', messages=rendered.messages)
+    response = await ai.generate(model='googleai/gemini-flash-latest', messages=rendered.messages)
     score = float(response.text.strip())
     return EvalFnResponse(
         test_case_id=datapoint.test_case_id or '',

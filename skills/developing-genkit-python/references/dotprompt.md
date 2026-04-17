@@ -8,7 +8,7 @@
 
 ```yaml
 ---
-model: googleai/gemini-3-flash
+model: googleai/gemini-flash-latest
 input:
   schema:
     food: string
@@ -37,7 +37,7 @@ from genkit.plugins.google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
-    model='googleai/gemini-3-flash',
+    model='googleai/gemini-flash-latest',
     prompt_dir=Path(__file__).resolve().parent.parent / 'prompts',
 )
 
@@ -82,7 +82,7 @@ Note: `.stream(input={...})` not `ai.generate_stream(...)` — different call sh
 
 ```python
 rendered = await ai.prompt('my_prompt').render(input={'key': 'value'})
-response = await ai.generate(model='googleai/gemini-3-flash', messages=rendered.messages)
+response = await ai.generate(model='googleai/gemini-flash-latest', messages=rendered.messages)
 ```
 
 ## Helpers
