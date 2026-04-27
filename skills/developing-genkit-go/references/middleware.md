@@ -181,7 +181,7 @@ Use `genkit.DefineMiddleware` to register a middleware your application owns dir
 genkit.DefineMiddleware(g, "logs model call latency", Logger{out: os.Stderr})
 
 // Lookup by name (mostly for inspection / cross-runtime dispatch).
-desc := genkit.LookupMiddleware(g, "logger")
+desc := genkit.LookupMiddleware(g, "mine/logger")
 ```
 
 For application code, `DefineMiddleware` is the typical entry point. For plugin authors, `ai.NewMiddleware` (no registration) plus `MiddlewarePlugin.Middlewares()` is the typical entry point. `genkit.Init` registers the returned descriptors automatically.
