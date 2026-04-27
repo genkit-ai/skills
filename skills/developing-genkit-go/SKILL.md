@@ -18,10 +18,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/firebase/genkit/go/ai"
-	"github.com/firebase/genkit/go/genkit"
-	"github.com/firebase/genkit/go/plugins/googlegenai"
-	"github.com/firebase/genkit/go/plugins/server"
+	"github.com/genkit-ai/genkit/go/ai"
+	"github.com/genkit-ai/genkit/go/genkit"
+	"github.com/genkit-ai/genkit/go/plugins/googlegenai"
+	"github.com/genkit-ai/genkit/go/plugins/server"
 )
 
 func main() {

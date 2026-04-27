@@ -191,7 +191,7 @@ For application code, `DefineMiddleware` is the typical entry point. For plugin 
 The `plugins/middleware` package bundles five production-ready implementations. Register the plugin once during `Init` to make them visible to the Dev UI:
 
 ```go
-import "github.com/firebase/genkit/go/plugins/middleware"
+import "github.com/genkit-ai/genkit/go/plugins/middleware"
 
 g := genkit.Init(ctx, genkit.WithPlugins(
     &googlegenai.GoogleAI{},

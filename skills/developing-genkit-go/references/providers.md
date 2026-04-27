@@ -3,7 +3,7 @@
 ## Google AI (Gemini)
 
 ```go
-import "github.com/firebase/genkit/go/plugins/googlegenai"
+import "github.com/genkit-ai/genkit/go/plugins/googlegenai"
 
 g := genkit.Init(ctx, genkit.WithPlugins(&googlegenai.GoogleAI{}))
 ```
@@ -30,7 +30,7 @@ m := googlegenai.GoogleAIModel(g, "gemini-flash-latest")
 ## Vertex AI
 
 ```go
-import "github.com/firebase/genkit/go/plugins/googlegenai"
+import "github.com/genkit-ai/genkit/go/plugins/googlegenai"
 
 g := genkit.Init(ctx, genkit.WithPlugins(&googlegenai.VertexAI{}))
 ```
@@ -50,7 +50,7 @@ ai.WithModelName("vertexai/gemini-flash-latest")
 ```go
 import (
 	"github.com/anthropics/anthropic-sdk-go"          // Anthropic SDK types
-	ant "github.com/firebase/genkit/go/plugins/anthropic" // Genkit plugin
+	ant "github.com/genkit-ai/genkit/go/plugins/anthropic" // Genkit plugin
 )
 
 g := genkit.Init(ctx, genkit.WithPlugins(&ant.Anthropic{}))
@@ -81,7 +81,7 @@ ai.WithConfig(&anthropic.MessageNewParams{
 Works with any OpenAI-compatible API: OpenAI, DeepSeek, xAI, etc.
 
 ```go
-import "github.com/firebase/genkit/go/plugins/compat_oai"
+import "github.com/genkit-ai/genkit/go/plugins/compat_oai"
 
 openaiPlugin := &compat_oai.OpenAICompatible{
 	Provider: "openai",   // unique identifier
@@ -105,7 +105,7 @@ ai.WithModel(model)
 ## Ollama (Local Models)
 
 ```go
-import "github.com/firebase/genkit/go/plugins/ollama"
+import "github.com/genkit-ai/genkit/go/plugins/ollama"
 
 ollamaPlugin := &ollama.Ollama{
 	ServerAddress: "http://localhost:11434",
