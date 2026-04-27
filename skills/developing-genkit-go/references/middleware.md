@@ -224,8 +224,8 @@ Tries alternative models when the primary fails with a fallback-eligible status.
 ```go
 ai.WithUse(&middleware.Fallback{
     Models: []ai.ModelRef{
-        googlegenai.ModelRef("googleai/gemini-2.5-flash", nil),
-        googlegenai.ModelRef("vertexai/gemini-2.5-flash", nil),
+        googlegenai.ModelRef("googleai/gemini-flash-latest", nil),
+        googlegenai.ModelRef("vertexai/gemini-flash-latest", nil),
     },
     // default Statuses: UNAVAILABLE, DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED,
     // ABORTED, INTERNAL, NOT_FOUND, UNIMPLEMENTED
