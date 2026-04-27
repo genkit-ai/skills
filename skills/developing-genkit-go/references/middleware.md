@@ -181,7 +181,7 @@ Use `genkit.DefineMiddleware` to register a middleware your application owns dir
 genkit.DefineMiddleware(g, "logs model call latency", Logger{out: os.Stderr})
 
 // Lookup by name (mostly for inspection / cross-runtime dispatch).
-desc := genkit.LookupMiddleware(g, "logger")
+desc := genkit.LookupMiddleware(g, "mine/logger")
 ```
 
 For application code, `DefineMiddleware` is the typical entry point. For plugin authors, `ai.NewMiddleware` (no registration) plus `MiddlewarePlugin.Middlewares()` is the typical entry point. `genkit.Init` registers the returned descriptors automatically.
@@ -224,8 +224,8 @@ Tries alternative models when the primary fails with a fallback-eligible status.
 ```go
 ai.WithUse(&middleware.Fallback{
     Models: []ai.ModelRef{
-        googlegenai.ModelRef("googleai/gemini-2.5-flash", nil),
-        googlegenai.ModelRef("vertexai/gemini-2.5-flash", nil),
+        googlegenai.ModelRef("googleai/gemini-flash-latest", nil),
+        googlegenai.ModelRef("vertexai/gemini-flash-latest", nil),
     },
     // default Statuses: UNAVAILABLE, DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED,
     // ABORTED, INTERNAL, NOT_FOUND, UNIMPLEMENTED
