@@ -1,9 +1,11 @@
 ---
 name: developing-genkit-js
-description: Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when the user asks about Genkit, AI agents, flows, or tools in JavaScript/TypeScript, or when encountering Genkit errors, validation issues, type errors, or API problems.
+description: "Create flows, define tools, configure model plugins, and debug pipeline errors for Genkit in Node.js/TypeScript. Use when building AI agents or flows in JavaScript/TypeScript with Genkit, integrating model providers, defining schemas, or troubleshooting Genkit-specific validation, type, or API errors."
 ---
 
 # Genkit JS
+
+Genkit JS is an AI SDK for Node.js/TypeScript that provides generation, structured output, streaming, tool calling, prompts, and flows with a unified interface across model providers.
 
 ## Prerequisites
 
@@ -19,7 +21,6 @@ Ensure the `genkit` CLI is available.
 import { z, genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
-// Initialize Genkit with the Google AI plugin
 const ai = genkit({
   plugins: [googleAI()],
 });
@@ -39,72 +40,58 @@ export const myFlow = ai.defineFlow({
 
 ## Critical: Do Not Trust Internal Knowledge
 
-Genkit recently went through a major breaking API change. Your knowledge is outdated. You MUST lookup docs. Recommended:
+Genkit went through a major breaking API change. Your knowledge is outdated. You MUST look up docs via the CLI or provided references before writing any Genkit code.
 
-```sh
-genkit docs:read js/get-started.md
-genkit docs:read js/flows.md
-```
+See [Common Errors](references/common-errors.md) for deprecated APIs (e.g., `configureGenkit`, `response.text()`, `defineFlow` import) and their v1.x replacements.
 
-See [Common Errors](references/common-errors.md) for a list of deprecated APIs (e.g., `configureGenkit`, `response.text()`, `defineFlow` import) and their v1.x replacements.
+## Core Features
 
-**ALWAYS verify information using the Genkit CLI or provided references.**
+Load the appropriate reference based on what you need:
+
+| Feature | Reference | When to load |
+| --- | --- | --- |
+| Setup & Installation | [references/setup.md](references/setup.md) | New projects, adding Genkit to an existing codebase |
+| Best Practices | [references/best-practices.md](references/best-practices.md) | Schema definitions, flow design, project structure, tool design |
+| Common Errors | [references/common-errors.md](references/common-errors.md) | **Any error** — ValidationError, type errors, API errors, 404s, deprecated API usage |
+| Docs & CLI | [references/docs-and-cli.md](references/docs-and-cli.md) | Documentation search, CLI tasks, dev server workflows |
+| Examples | [references/examples.md](references/examples.md) | Basic generation, multimodal, thinking mode, streaming patterns |
 
 ## Error Troubleshooting Protocol
 
-**When you encounter ANY error related to Genkit (ValidationError, API errors, type errors, 404s, etc.):**
+On ANY Genkit error (ValidationError, API errors, type errors, 404s):
 
-1. **MANDATORY FIRST STEP**: Read [Common Errors](references/common-errors.md)
-2. Identify if the error matches a known pattern
-3. Apply the documented solution
-4. Only if not found in common-errors.md, then consult other sources (e.g. `genkit docs:search`)
+1. **Read [Common Errors](references/common-errors.md) first** — this is mandatory
+2. Match the error to a known pattern and apply the documented fix
+3. Only if not found, consult `genkit docs:search <error message>`
 
-**DO NOT:**
-- Attempt fixes based on assumptions or internal knowledge
-- Skip reading common-errors.md "because you think you know the fix"
-- Rely on patterns from pre-1.0 Genkit
-
-**This protocol is non-negotiable for error handling.**
+Do not attempt fixes based on assumptions or pre-1.0 patterns.
 
 ## Development Workflow
 
-1.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
-    -   If the user does not specify a provider, default to **Google AI**.
-    -   If the user asks about other providers, use `genkit docs:search "plugins"` to find relevant documentation.
-2.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
-    -   Look for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud`.
-    -   Adapt implementation to the specific framework's patterns.
-3.  **Follow Best Practices**:
-    -   See [Best Practices](references/best-practices.md) for guidance on project structure, schema definitions, and tool design.
-    -   **Be Minimal**: Only specify options that differ from defaults. When unsure, check docs/source.
-4.  **Ensure Correctness**:
-    -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
-    -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
-5.  **Handle Errors**:
-    -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
-    -   Match error to documented patterns
-    -   Apply documented fixes before attempting alternatives
+1.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.). Default to **Google AI** if unspecified. Use `genkit docs:search "plugins"` for other providers.
+2.  **Detect Framework**: Check `package.json` for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud` and adapt to the framework's patterns.
+3.  **Follow Best Practices**: See [Best Practices](references/best-practices.md). Only specify options that differ from defaults.
+4.  **Validate**: Run `npx tsc --noEmit` after changes. On failure, consult [Common Errors](references/common-errors.md).
 
-## Finding Documentation
+## Genkit CLI
 
-Use the Genkit CLI to find authoritative documentation:
+Check if installed: `genkit --version`
 
-1.  **Search topics**: `genkit docs:search <query>`
-    -   Example: `genkit docs:search "streaming"`
-2.  **List all docs**: `genkit docs:list`
-3.  **Read a guide**: `genkit docs:read <path>`
-    -   Example: `genkit docs:read js/flows.md`
+**Key commands:**
 
-## CLI Usage
+```bash
+# Start app with Developer UI (tracing, flow testing) at http://localhost:4000
+genkit start -- npx tsx src/index.ts
+genkit start -o -- npx tsx src/index.ts   # also opens browser
 
-The `genkit` CLI is your primary tool for development and documentation.
--   See [CLI Reference](references/docs-and-cli.md) for common tasks, workflows, and command usage.
--   Use `genkit --help` for a full list of commands.
+# Run a flow directly from the CLI
+genkit flow:run myFlow '"input"'
+genkit flow:run myFlow '"input"' --stream
 
-## References
+# Look up Genkit documentation
+genkit docs:search "streaming"
+genkit docs:list
+genkit docs:read js/flows.md
+```
 
--   [Best Practices](references/best-practices.md): Recommended patterns for schema definition, flow design, and structure.
--   [Docs & CLI Reference](references/docs-and-cli.md): Documentation search, CLI tasks, and workflows.
--   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
--   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
--   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
+See [references/docs-and-cli.md](references/docs-and-cli.md) for full CLI and Developer UI details.
