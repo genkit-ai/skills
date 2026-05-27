@@ -40,8 +40,8 @@ genkit trace:list                 # list recent traces to find trace IDs
 genkit trace:get <traceId>        # view trace details (useful for debugging)
 
 # Documentation
-genkit docs:search "streaming"
-genkit docs:list
+genkit docs:search "streaming" dart
+genkit docs:list dart
 genkit docs:read dart/flows.md
 ```
 

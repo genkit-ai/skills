@@ -98,8 +98,8 @@ genkit trace:list                 # list recent traces to find trace IDs
 genkit trace:get <traceId>        # view trace details (useful for debugging)
 
 # Documentation
-genkit docs:search "streaming"
-genkit docs:list
+genkit docs:search "streaming" python
+genkit docs:list python
 genkit docs:read python/flows.md
 ```
 
