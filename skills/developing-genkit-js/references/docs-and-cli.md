@@ -40,6 +40,10 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
         ```bash
         genkit flow:run generateStory '{"subject": "robot", "genre": "sci-fi"}'
         ```
+    -   **Single Command (spin up runtime & run flow)**:
+        ```bash
+        genkit flow:run tellJoke '"chicken"' -- npx tsx src/index.ts
+        ```
 
 ## Evaluation
 
@@ -52,6 +56,10 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
     -   **Example (Batch Input)**:
         ```bash
         genkit eval:flow answerQuestion --input inputs.json
+        ```
+    -   **Single Command (spin up runtime & evaluate flow)**:
+        ```bash
+        genkit eval:flow answerQuestion --input inputs.json -- npx tsx src/index.ts
         ```
 
 -   **Run Evaluation**: `genkit eval:run <dataset>`

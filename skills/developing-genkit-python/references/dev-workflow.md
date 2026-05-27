@@ -90,6 +90,9 @@ genkit start -- uv run src/main.py
 # Run a flow directly from the CLI
 genkit flow:run myFlow '{"data": "input"}'
 
+# Or run the flow and spin up the runtime in a single command
+genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
+
 # Tracing
 genkit trace:list                 # list recent traces to find trace IDs
 genkit trace:get <traceId>        # view trace details (useful for debugging)
