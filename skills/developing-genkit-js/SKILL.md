@@ -1,6 +1,6 @@
 ---
 name: developing-genkit-js
-description: "Create flows, define tools, configure model plugins, and debug pipeline errors for Genkit in Node.js/TypeScript. Use when building AI agents or flows in JavaScript/TypeScript with Genkit, integrating model providers, defining schemas, or troubleshooting Genkit-specific validation, type, or API errors."
+description: "Develop AI-powered applications using Genkit in Node.js/TypeScript. Use when building AI-powered features, AI agents or workflows in JavaScript/TypeScript with Genkit, integrating model providers, defining schemas, or troubleshooting Genkit-specific validation, type, or API errors."
 ---
 
 # Genkit JS
@@ -81,8 +81,8 @@ Check if installed: `genkit --version`
 
 ```bash
 # Start app with Developer UI (tracing, flow testing) at http://localhost:4000
-genkit start -- npx tsx src/index.ts
-genkit start -o -- npx tsx src/index.ts   # also opens browser
+npx genkit-cli start -- npx tsx --watch src/index.ts
+npx genkit-cli start -o -- npx tsx --watch src/index.ts   # also opens browser
 
 # Run a flow directly from the CLI
 genkit flow:run myFlow '"input"'
