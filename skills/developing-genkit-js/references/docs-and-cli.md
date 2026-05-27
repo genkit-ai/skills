@@ -40,6 +40,10 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
         ```bash
         genkit flow:run generateStory '{"subject": "robot", "genre": "sci-fi"}'
         ```
+    -   **Single Command (spin up runtime & run flow)**:
+        ```bash
+        genkit flow:run tellJoke '"chicken"' -- npx tsx src/index.ts
+        ```
 
 ## Evaluation
 
@@ -53,6 +57,10 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
         ```bash
         genkit eval:flow answerQuestion --input inputs.json
         ```
+    -   **Single Command (spin up runtime & evaluate flow)**:
+        ```bash
+        genkit eval:flow answerQuestion --input inputs.json -- npx tsx src/index.ts
+        ```
 
 -   **Run Evaluation**: `genkit eval:run <dataset>`
     -   Evaluates a dataset against configured evaluators.
@@ -60,3 +68,10 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
         ```bash
         genkit eval:run dataset.json --output results.json
         ```
+
+## Tracing
+
+-   **Get a trace**: `genkit trace:get <traceId>`
+    -   Retrieves detailed information for a specific trace by its ID. This is particularly useful for debugging failed model calls, inspecting tool execution, or analyzing the exact inputs and outputs of a specific step in your flow.
+-   **List traces**: `genkit trace:list [options]`
+    -   Lists recent traces. Use this to find trace IDs from recent executions.

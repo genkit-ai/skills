@@ -78,10 +78,17 @@ genkit flow:run myFlow '{"data": "input"}'
 genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
 genkit flow:run myFlow '{"data": "input"}' --wait      # wait for completion
 
+# Or run the flow and spin up the runtime in a single command
+genkit flow:run myFlow '{"data": "input"}' -- go run .
+
 # Look up Genkit documentation
 genkit docs:search "streaming" go
 genkit docs:list go
 genkit docs:read go/flows.md
+
+# Inspect traces
+genkit trace:list                 # list recent traces to find trace IDs
+genkit trace:get <traceId>        # view trace details (useful for debugging)
 ```
 
 See [references/getting-started.md](references/getting-started.md) for full CLI and Developer UI details.

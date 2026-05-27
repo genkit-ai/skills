@@ -28,6 +28,21 @@ npm install -g genkit-cli # Via npm
 Wrap your run command with `genkit start` to attach the Genkit developer UI and tracing:
 ```bash
 genkit start -- dart run main.dart
+
+# Run a flow directly from the CLI
+genkit flow:run myFlow '{"data": "input"}'
+
+# Or run the flow and spin up the runtime in a single command
+genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
+
+# Tracing
+genkit trace:list                 # list recent traces to find trace IDs
+genkit trace:get <traceId>        # view trace details (useful for debugging)
+
+# Documentation
+genkit docs:search "streaming" dart
+genkit docs:list dart
+genkit docs:read dart/flows.md
 ```
 
 ## Plugin Ecosystem

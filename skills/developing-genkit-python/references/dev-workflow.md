@@ -79,6 +79,30 @@ To stop it: press `Ctrl+C` in the terminal.
 
 ---
 
+## CLI Commands
+
+You can interact with Genkit flows, docs, and traces directly from the command line:
+
+```bash
+# Start the app with Developer UI
+genkit start -- uv run src/main.py
+
+# Run a flow directly from the CLI
+genkit flow:run myFlow '{"data": "input"}'
+
+# Or run the flow and spin up the runtime in a single command
+genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
+
+# Tracing
+genkit trace:list                 # list recent traces to find trace IDs
+genkit trace:get <traceId>        # view trace details (useful for debugging)
+
+# Documentation
+genkit docs:search "streaming" python
+genkit docs:list python
+genkit docs:read python/flows.md
+```
+
 ## Troubleshooting
 
 | Problem | Fix |
