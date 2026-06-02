@@ -18,7 +18,7 @@ const ai = genkit({
 });
 
 const { text } = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-flash-latest'),
   prompt: 'Tell me a story in a pirate accent',
 });
 ```
@@ -34,7 +34,7 @@ const JokeSchema = z.object({
 });
 
 const response = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-flash-latest'),
   prompt: 'Tell me a joke about developers.',
   output: { schema: JokeSchema },
 });
@@ -50,7 +50,7 @@ if (joke) {
 
 ```ts
 const { stream, response } = ai.generateStream({
-  model: googleAI.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-flash-latest'),
   prompt: 'Tell a long story about a developer using Genkit.',
 });
 
@@ -65,13 +65,13 @@ console.log('Complete:', finalResponse.text);
 
 ## Advanced Configuration
 
-### Thinking Mode (Gemini 3 Only)
+### Thinking Mode
 
 Enable "thinking" process for complex reasoning tasks.
 
 ```ts
 const response = await ai.generate({
-  model: googleAI.model('gemini-3.1-pro-preview'),
+  model: googleAI.model('gemini-pro-latest'),
   prompt: 'what is heavier, one kilo of steel or one kilo of feathers',
   config: {
     thinkingConfig: {
@@ -88,7 +88,7 @@ Enable models to access current information via Google Search.
 
 ```ts
 const response = await ai.generate({
-  model: googleAI.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-flash-latest'),
   prompt: 'What are the top tech news stories this week?',
   config: {
     googleSearchRetrieval: true,

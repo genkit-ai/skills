@@ -14,7 +14,7 @@ void main() async {
 
   // Generate text
   final response = await ai.generate(
-    model: googleAI.gemini('gemini-2.5-flash'),
+    model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Tell me a joke about a developer.',
   );
 
