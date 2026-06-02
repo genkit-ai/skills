@@ -34,7 +34,7 @@ void main() async {
   
   // ...or by specifying the exact tool name
   final exactResponse = await ai.generate(
-    model: 'gemini-flash-latest',
+    model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Read README.md',
     toolNames: ['my-host:tool/fs/read_file'],
   );
