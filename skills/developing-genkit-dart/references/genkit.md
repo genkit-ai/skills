@@ -18,7 +18,7 @@ void main() async {
 
 ```dart
 final response = await ai.generate(
-  model: googleAI.gemini('gemini-2.5-flash'), // Needs a model reference from a plugin
+  model: googleAI.gemini('gemini-flash-latest'), // Needs a model reference from a plugin
   prompt: 'Explain quantum computing in simple terms.',
 );
 
@@ -28,7 +28,7 @@ print(response.text);
 ## Stream Responses
 ```dart
 final stream = ai.generateStream(
-  model: googleAI.gemini('gemini-2.5-flash'),
+  model: googleAI.gemini('gemini-flash-latest'),
   prompt: 'Write a short story about a robot learning to paint.',
 );
 
@@ -72,7 +72,7 @@ final weatherTool = ai.defineTool(
 );
 
 final response = await ai.generate(
-  model: googleAI.gemini('gemini-2.5-flash'),
+  model: googleAI.gemini('gemini-flash-latest'),
   prompt: 'What\'s the weather like in San Francisco?',
   toolNames: ['getWeather'], // Use the tools
 );
@@ -92,7 +92,7 @@ abstract class $Person {
 // ... inside main ...
 
 final response = await ai.generate(
-  model: googleAI.gemini('gemini-2.5-flash'),
+  model: googleAI.gemini('gemini-flash-latest'),
   prompt: 'Generate a person named John Doe, age 30',
   outputSchema: Person.$schema, // Force the model to return this schema
 );
@@ -111,7 +111,7 @@ final jokeFlow = ai.defineFlow(
   outputSchema: .string(),
   fn: (topic, _) async {
     final response = await ai.generate(
-      model: googleAI.gemini('gemini-2.5-flash'),
+      model: googleAI.gemini('gemini-flash-latest'),
       prompt: 'Tell me a joke about $topic',
     );
     return response.text; // Value return
@@ -133,7 +133,7 @@ final streamStory = ai.defineFlow(
   streamSchema: .string(),
   fn: (topic, context) async {
     final stream = ai.generateStream(
-      model: googleAI.gemini('gemini-2.5-flash'),
+      model: googleAI.gemini('gemini-flash-latest'),
       prompt: 'Write a story about $topic',
     );
 

@@ -27,28 +27,28 @@ Genkit v1.x introduced significant API changes. This section covers critical syn
 - **Correct**: Use plugin-specific model factories or string identifiers (prefaced by plugin name).
   ```ts
   // Using model factory (v1.x - Preferred)
-  await ai.generate({ model: googleAI.model('gemini-2.5-flash'), ... });
+  await ai.generate({ model: googleAI.model('gemini-flash-latest'), ... });
 
   // Using string identifier
-  await ai.generate({ model: 'googleai/gemini-2.5-flash', ...});
+  await ai.generate({ model: 'googleai/gemini-flash-latest', ...});
   // Or
-  await ai.generate({ model: 'vertexai/gemini-2.5-flash', ...});
+  await ai.generate({ model: 'vertexai/gemini-flash-latest', ...});
   ```
 - **Incorrect**: Using imported model objects directly or string identifiers without plugin name.
   ```ts
   await ai.generate({ model: gemini15Pro, ... }); // INCORRECT (Pre-1.0)
-  await ai.generate({ model: 'gemini-2.5-flash', ... }); // INCORRECT (No plugin prefix)
+  await ai.generate({ model: 'gemini-flash-latest', ... }); // INCORRECT (No plugin prefix)
   ```
 
 ### Model Selection (Gemini)
 
-- **Preferred**: Use `gemini-2.5-*` models for best performance and features.
+- **Preferred**: Use latest model aliases (e.g. `gemini-flash-latest`) for best performance and features.
   ```ts
-  model: googleAI.model('gemini-2.5-flash') // PREFERRED
+  model: googleAI.model('gemini-flash-latest') // PREFERRED
   ```
-- **DEPRECATED**: `gemini-1.5-*` models are deprecated and will throw errors.
+- **DEPRECATED**: Versioned legacy models (like `gemini-1.5-flash` or `gemini-2.5-flash`) should be updated to latest aliases.
   ```ts
-  model: googleAI.model('gemini-1.5-flash') // ERROR (Deprecated)
+  model: googleAI.model('gemini-1.5-flash') // DEPRECATED (Use gemini-flash-latest instead)
   ```
 
 ### Response Access
