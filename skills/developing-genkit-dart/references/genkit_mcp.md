@@ -67,7 +67,7 @@ void main() async {
   final tools = await client.getActiveTools(ai);
   
   final response = await ai.generate(
-    model: 'gemini-flash-latest',
+    model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Read the contents of README.md',
     tools: tools,
   );
