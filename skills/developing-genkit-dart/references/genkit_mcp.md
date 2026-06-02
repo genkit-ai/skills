@@ -27,7 +27,7 @@ void main() async {
 
   // Tools can be discovered and executed dynamically using a wildcard...
   final response = await ai.generate(
-    model: 'gemini-flash-latest',
+    model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Summarize the contents of README.md',
     toolNames: ['my-host:tool/fs/*'],
   );
