@@ -7,6 +7,7 @@ This repository contains "Agent Skills" designed to teach AI agents how to build
 - **[developing-genkit-js](skills/developing-genkit-js/SKILL.md)**: For developing Genkit applications with Node.js and TypeScript.
 - **[developing-genkit-dart](skills/developing-genkit-dart/SKILL.md)**: For developing Genkit applications with Dart.
 - **[developing-genkit-go](skills/developing-genkit-go/SKILL.md)**: For developing Genkit applications with Go.
+- **[developing-genkit-python](skills/developing-genkit-python/SKILL.md)**: For developing Genkit applications with Python.
 
 ## Installation
 
