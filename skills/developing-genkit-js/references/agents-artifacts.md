@@ -11,9 +11,10 @@ name) and are returned in `res.artifacts` / tracked on the client's
 
 ## Give the model artifact tools
 
-The `artifacts()` middleware adds `write_artifact` and `read_artifact` tools and
-injects an `<artifacts>` listing into the system prompt each turn (names + sizes,
-not full content). No custom tool code needed.
+The `artifacts()` middleware (see [using middleware](middleware.md)) adds
+`write_artifact` and `read_artifact` tools and injects an `<artifacts>` listing
+into the system prompt each turn (names + sizes, not full content). No custom
+tool code needed.
 
 ```ts
 import { artifacts } from '@genkit-ai/middleware';

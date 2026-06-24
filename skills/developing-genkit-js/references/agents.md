@@ -79,6 +79,47 @@ Common `defineAgent` options:
   `State` is inferred and validated at load time.
 - `input` / `inputSchema`: input variables for the prompt template.
 
+## Agents and middleware go hand in hand
+
+Agents and [middleware](middleware.md) are built for each other: the `use: [...]`
+array is where you layer in sophisticated behavior without writing it yourself.
+Most agent capabilities — sub-agent delegation, artifacts, filesystem access,
+skill loading, tool approval, retries — are just middleware you drop in.
+
+For example, a full coding assistant is mostly configuration:
+
+```ts
+import { filesystem, retry, skills, toolApproval } from '@genkit-ai/middleware';
+import { FileSessionStore } from 'genkit/beta';
+import { ai } from './genkit.js';
+
+export const codingAgent = ai.defineAgent({
+  name: 'codingAgent',
+  system: 'You are an expert AI coding assistant working in a sandboxed workspace.',
+  tools: [runShell, askUser], // your own custom tools/interrupts
+  use: [
+    // Require user approval (interrupt) before risky tools; reads auto-approved.
+    // Order matters: keep toolApproval before filesystem.
+    toolApproval({
+      approved: ['list_files', 'read_file', 'use_skill', 'run_shell', 'ask_user'],
+    }),
+    // list_files / read_file / write_file / search_and_replace, sandboxed.
+    filesystem({ rootDirectory: WORKSPACE_DIR, allowWriteAccess: true }),
+    // Load coding conventions on demand via a use_skill tool.
+    skills({ skillPaths: [SKILLS_DIR] }),
+    // Automatic retry on transient model errors.
+    retry(),
+  ],
+  store: new FileSessionStore('./.snapshots-coding'), // needed for tool approval
+  maxTurns: 30,
+});
+```
+
+That single `use` array gives the agent filesystem tools, an on-demand skills
+library, human-in-the-loop approval for writes, and retries — each is one line.
+See [using middleware](middleware.md) for the full catalog and
+[building custom middleware](middleware-custom.md) to write your own.
+
 ## Chat with an agent (server-side)
 
 `agent.chat()` opens a conversation. A single `chat` carries state forward

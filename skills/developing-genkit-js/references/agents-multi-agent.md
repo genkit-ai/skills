@@ -115,7 +115,8 @@ controls how they reach the orchestrator:
 
 `@genkit-ai/middleware` also exports `retry`, `fallback`, `filesystem`,
 `skills`, and `toolApproval`. They attach the same way via `use: [...]` on an
-agent (or on `ai.generate`). `retry()` is commonly paired with delegation:
+agent (or on `ai.generate`) — see [using middleware](middleware.md). `retry()`
+is commonly paired with delegation:
 
 ```ts
 import { retry } from '@genkit-ai/middleware';

@@ -57,6 +57,15 @@ For more details see:
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP (multiple agents, CORS, web UI, other frameworks).
 
+## Middleware
+
+Middleware wraps generation (retries, fallback, extra tools, request/response
+transforms) and attaches via the `use: [...]` array on `ai.generate`, prompts,
+and agents.
+
+-   [Using middleware](references/middleware.md): the `use` array and the `@genkit-ai/middleware` package (`retry`, `fallback`, `artifacts`, `agents`, `filesystem`, `skills`, `toolApproval`) plus built-in core middleware.
+-   [Building custom middleware](references/middleware-custom.md): simple `ModelMiddleware` and configurable `generateMiddleware`.
+
 ## Critical: Do Not Trust Internal Knowledge
 
 Genkit recently went through a major breaking API change. Your knowledge is outdated. You MUST lookup docs. Recommended:
@@ -129,3 +138,4 @@ The `genkit` CLI is your primary tool for development and documentation.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
 -   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md), [state](references/agents-state.md), [artifacts](references/agents-artifacts.md), [multi-agent](references/agents-multi-agent.md), [custom agents](references/agents-custom.md), [deployment](references/agents-deployment.md).
+-   [Middleware](references/middleware.md): using middleware and the `@genkit-ai/middleware` package. See also [building custom middleware](references/middleware-custom.md).
