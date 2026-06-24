@@ -25,6 +25,7 @@ Progressive disclosure — read the file for the level you need:
 - [Artifacts](agents-artifacts.md): producing/reading named deliverables.
 - [Multi-agent orchestration](agents-multi-agent.md): delegating to sub-agents.
 - [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
+- [Deploying agents](agents-deployment.md): serving multiple agents over HTTP, CORS, web UI, other frameworks.
 
 ## Setup
 
@@ -131,6 +132,10 @@ app.post(
 
 app.listen(8080);
 ```
+
+For serving multiple agents, CORS/streaming headers for browser clients, a static
+web UI, and other host frameworks (Next.js, Firebase), see
+[Deploying agents](agents-deployment.md).
 
 ## Consume an agent from a client (`remoteAgent`)
 
