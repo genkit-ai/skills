@@ -37,6 +37,21 @@ export const myFlow = ai.defineFlow({
 });
 ```
 
+## Agents (Beta)
+
+Genkit has a preview **agent** API for persistent, multi-turn conversations
+(sessions, snapshots, interrupts, branching, background execution). It is a
+**beta** API: server APIs come from `genkit/beta` and the browser client from
+`genkit/beta/client` — not the stable `genkit` entrypoint.
+
+For more details see:
+
+-   [Agents](references/agents.md): defining/serving an agent and client-managed state (start here).
+-   [Sessions & persistence](references/agents-sessions.md): session stores (`InMemory`/`File`/`Firestore`).
+-   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
+-   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
+-   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+
 ## Critical: Do Not Trust Internal Knowledge
 
 Genkit recently went through a major breaking API change. Your knowledge is outdated. You MUST lookup docs. Recommended:
@@ -108,3 +123,4 @@ The `genkit` CLI is your primary tool for development and documentation.
 -   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
+-   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md).
