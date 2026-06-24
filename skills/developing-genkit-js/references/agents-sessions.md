@@ -74,8 +74,11 @@ export const profileAgent = ai.defineAgent({
   stateSchema: Profile,
 });
 
-// Seed custom state when opening the chat:
-const chat = profileAgent.chat({ state: { name: 'Ada', tier: 'pro' } });
+// Seed custom state when opening the chat. Custom state lives under `.custom`
+// of the `SessionState` (that's what `stateSchema` validates).
+const chat = profileAgent.chat({
+  state: { custom: { name: 'Ada', tier: 'pro' } },
+});
 ```
 
 ## Interrupts (human-in-the-loop)

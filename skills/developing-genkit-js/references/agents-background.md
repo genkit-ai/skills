@@ -6,8 +6,8 @@
 
 Detaching runs a turn in the background: the server saves a `pending` snapshot
 and returns a `snapshotId` **immediately**, keeps processing, then updates the
-snapshot to a terminal status (`done` / `failed` / `aborted`). The client polls
-for completion and can abort.
+snapshot to a terminal status (`completed` / `failed` / `aborted` / `expired`).
+The client polls for completion and can abort.
 
 ## Define the agent (store required)
 
@@ -50,7 +50,7 @@ const task = await chat.detach('Write a report on renewable energy trends');
 console.log(task.snapshotId); // available immediately
 
 const snapshot = await task.wait({ intervalMs: 2000 });
-console.log(snapshot?.status); // 'done' | 'failed' | 'aborted'
+console.log(snapshot?.status); // 'completed' | 'failed' | 'aborted' | 'expired'
 ```
 
 ## Client-side: detach + poll + abort
@@ -70,7 +70,7 @@ console.log(task.snapshotId);
 
 // Poll until a terminal status.
 for await (const snap of task.poll({ intervalMs: 2000 })) {
-  if (snap.status === 'done') {
+  if (snap.status === 'completed') {
     const messages: MessageData[] = snap.state?.messages ?? [];
     const lastModel = messages.filter((m) => m.role === 'model').at(-1);
     const text = (lastModel?.content ?? [])
@@ -98,7 +98,7 @@ await task.abort();
 ## Status values
 
 - `pending` — still processing.
-- `done` — completed successfully (read the result from `snapshot.state.messages`).
+- `completed` — completed successfully (read the result from `snapshot.state.messages`).
 - `failed` — error during processing.
 - `aborted` — cancelled by the client via `abort()`.
 - `expired` — the background worker stopped responding (e.g. server restart);
