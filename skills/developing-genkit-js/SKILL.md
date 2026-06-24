@@ -51,6 +51,10 @@ For more details see:
 -   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
 -   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
 -   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+-   [Working with state](references/agents-state.md): typed custom session state, auto-synced to the client.
+-   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents.
+-   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
 
 ## Critical: Do Not Trust Internal Knowledge
 
@@ -123,4 +127,4 @@ The `genkit` CLI is your primary tool for development and documentation.
 -   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
--   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md).
+-   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md), [state](references/agents-state.md), [artifacts](references/agents-artifacts.md), [multi-agent](references/agents-multi-agent.md), [custom agents](references/agents-custom.md).

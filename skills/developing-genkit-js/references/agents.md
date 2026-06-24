@@ -21,6 +21,10 @@ Progressive disclosure — read the file for the level you need:
 - [Human-in-the-loop / interrupts](agents-human-in-the-loop.md): pausing for approval/input and resuming.
 - [Branching](agents-branching.md): forking a conversation from a snapshot.
 - [Background agents](agents-background.md): detaching long-running turns and polling.
+- [Working with state](agents-state.md): typed custom session state and client auto-sync.
+- [Artifacts](agents-artifacts.md): producing/reading named deliverables.
+- [Multi-agent orchestration](agents-multi-agent.md): delegating to sub-agents.
+- [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
 
 ## Setup
 
