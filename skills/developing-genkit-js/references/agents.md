@@ -3,6 +3,8 @@
 > **Beta / preview API.** Agents are not yet stable. Server APIs come from
 > `genkit/beta`; the browser client comes from `genkit/beta/client`. Import paths
 > and signatures may change. Always use `genkit/beta`, not `genkit`, for agents.
+>
+> **Requires `genkit` >= 1.39.0.**
 
 An **agent** is a persistent, multi-turn conversation primitive built on top of
 prompts + tools. Compared to a bare `ai.generate`/`ai.definePrompt` loop, an

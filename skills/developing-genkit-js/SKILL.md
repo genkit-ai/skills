@@ -42,7 +42,8 @@ export const myFlow = ai.defineFlow({
 Genkit has a preview **agent** API for persistent, multi-turn conversations
 (sessions, snapshots, interrupts, branching, background execution). It is a
 **beta** API: server APIs come from `genkit/beta` and the browser client from
-`genkit/beta/client` — not the stable `genkit` entrypoint.
+`genkit/beta/client` — not the stable `genkit` entrypoint. **Requires `genkit`
+>= 1.39.0.**
 
 For more details see:
 
@@ -64,7 +65,7 @@ transforms) and attaches via the `use: [...]` array on `ai.generate`, prompts,
 and agents.
 
 -   [Using middleware](references/middleware.md): the `use` array and the `@genkit-ai/middleware` package (`retry`, `fallback`, `artifacts`, `agents`, `filesystem`, `skills`, `toolApproval`) plus built-in core middleware.
--   [Building custom middleware](references/middleware-custom.md): simple `ModelMiddleware` and configurable `generateMiddleware`.
+-   [Building custom middleware](references/middleware-custom.md): writing your own with `generateMiddleware` and registering it via `.plugin()`.
 
 ## Critical: Do Not Trust Internal Knowledge
 
