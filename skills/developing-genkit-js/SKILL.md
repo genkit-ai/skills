@@ -37,6 +37,36 @@ export const myFlow = ai.defineFlow({
 });
 ```
 
+## Agents (Beta)
+
+Genkit has a preview **agent** API for persistent, multi-turn conversations
+(sessions, snapshots, interrupts, branching, background execution). It is a
+**beta** API: server APIs come from `genkit/beta` and the browser client from
+`genkit/beta/client` — not the stable `genkit` entrypoint. **Requires `genkit`
+>= 1.39.0.**
+
+For more details see:
+
+-   [Agents](references/agents.md): defining/serving an agent and client-managed state (start here).
+-   [Sessions & persistence](references/agents-sessions.md): session stores (`InMemory`/`File`/`Firestore`).
+-   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
+-   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
+-   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+-   [Working with state](references/agents-state.md): typed custom session state, auto-synced to the client.
+-   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents.
+-   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
+-   [Deploying agents](references/agents-deployment.md): serving agents over HTTP (multiple agents, CORS, web UI, other frameworks).
+
+## Middleware
+
+Middleware wraps generation (retries, fallback, extra tools, request/response
+transforms) and attaches via the `use: [...]` array on `ai.generate`, prompts,
+and agents.
+
+-   [Using middleware](references/middleware.md): the `use` array and the `@genkit-ai/middleware` package (`retry`, `fallback`, `artifacts`, `agents`, `filesystem`, `skills`, `toolApproval`) plus built-in core middleware.
+-   [Building custom middleware](references/middleware-custom.md): writing your own with `generateMiddleware` and registering it via `.plugin()`.
+
 ## Critical: Do Not Trust Internal Knowledge
 
 Genkit recently went through a major breaking API change. Your knowledge is outdated. You MUST lookup docs. Recommended:
@@ -108,3 +138,5 @@ The `genkit` CLI is your primary tool for development and documentation.
 -   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
+-   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md), [state](references/agents-state.md), [artifacts](references/agents-artifacts.md), [multi-agent](references/agents-multi-agent.md), [custom agents](references/agents-custom.md), [deployment](references/agents-deployment.md).
+-   [Middleware](references/middleware.md): using middleware and the `@genkit-ai/middleware` package. See also [building custom middleware](references/middleware-custom.md).
