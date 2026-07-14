@@ -216,6 +216,11 @@ The browser/Dart client lives in `package:genkit/client.dart`. `remoteAgent`
 returns a typed HTTP client; `getSnapshotUrl`/`abortUrl` default to
 `${url}/getSnapshot` and `${url}/abort`.
 
+`remoteAgent` talks to any Genkit agent endpoint over HTTP, so the **backend is
+fully interchangeable** — the agent can be implemented in Dart, JS/TypeScript, or
+Go. The wire protocol is the same; point `url` at whatever server hosts the
+agent.
+
 ```dart
 import 'package:genkit/client.dart';
 
@@ -239,6 +244,81 @@ try {
   if (err is AgentError) print(err.status);
 }
 ```
+
+## Using from Flutter
+
+There is nothing Flutter-specific about the client: a Flutter app uses the same
+`remoteAgent` from `package:genkit/client.dart` as any other Dart program. Two
+things matter in a real app — **auth headers** and **lifecycle**.
+
+Pass `headers` to attach per-request auth (e.g. a Firebase/OAuth bearer token).
+It's a `FutureOr<Map<String, String>?> Function()`, so it can be async and is
+called on every request:
+
+```dart
+final agent = remoteAgent(
+  url: 'https://your-backend.example.com/api/weatherAgent',
+  headers: () async => {
+    'Authorization': 'Bearer ${await getIdToken()}',
+  },
+);
+```
+
+Create the agent once (e.g. in `initState`, or a provider/singleton) and
+`close()` it when done to release the underlying HTTP client. To own the client
+yourself, pass `httpClient:` — then it stays caller-owned and `close()` leaves it
+open.
+
+A minimal streaming chat widget — pump `turn.stream` into the UI with
+`setState`, then await `turn.response`:
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:genkit/client.dart';
+
+class ChatView extends StatefulWidget {
+  const ChatView({super.key});
+  @override
+  State<ChatView> createState() => _ChatViewState();
+}
+
+class _ChatViewState extends State<ChatView> {
+  late final AgentApi _agent = remoteAgent(
+    url: 'http://localhost:8080/api/weatherAgent',
+  );
+  late final _chat = _agent.chat();
+  var _reply = '';
+
+  @override
+  void dispose() {
+    _agent.close(); // release the HTTP client
+    super.dispose();
+  }
+
+  Future<void> _send(String text) async {
+    setState(() => _reply = '');
+    final turn = _chat.sendTextStream(text);
+    await for (final chunk in turn.stream) {
+      setState(() => _reply += chunk.text); // append tokens live
+    }
+    await turn.response; // final AgentResponse (state already tracked on _chat)
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      Expanded(child: SingleChildScrollView(child: Text(_reply))),
+      TextField(onSubmitted: _send),
+    ],
+  );
+}
+```
+
+The `_chat` instance carries conversation state forward automatically across
+turns (`_chat.state`, `_chat.messages`, `_chat.snapshotId`), exactly as on the
+server. [Interrupts](agents-human-in-the-loop.md),
+[custom state](agents-state.md), and [artifacts](agents-artifacts.md) all work
+the same way from Flutter.
 
 ## Client-managed state (no server store)
 
