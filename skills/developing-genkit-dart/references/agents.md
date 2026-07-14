@@ -1,0 +1,279 @@
+# Agents
+
+> Server APIs come from `package:genkit/genkit.dart`; the browser/HTTP client
+> comes from `package:genkit/client.dart`.
+
+An **agent** is a persistent, multi-turn conversation primitive built on top of
+prompts + tools. Compared to a bare `ai.generate`/`ai.definePrompt` loop, an
+agent adds:
+
+- **Sessions**: multi-turn history tracked as immutable **snapshots**.
+- **State**: typed session state (messages + custom data + artifacts).
+- **Interrupts**: human-in-the-loop pause/resume.
+- **Branching**: fork a conversation from any snapshot.
+- **Detaching**: run a turn in the background and poll for the result.
+
+Progressive disclosure — read the file for the level you need:
+
+- This file: defining an agent, serving it, and **client-managed state** (no store).
+- [Sessions & persistence](agents-sessions.md): `SessionStore`, `InMemorySessionStore`, `FileSessionStore`, `FirestoreSessionStore`.
+- [Human-in-the-loop / interrupts](agents-human-in-the-loop.md): pausing for approval/input and resuming.
+- [Branching](agents-branching.md): forking a conversation from a snapshot.
+- [Background agents](agents-background.md): detaching long-running turns and polling.
+- [Working with state](agents-state.md): typed custom session state and client auto-sync.
+- [Artifacts](agents-artifacts.md): producing/reading named deliverables.
+- [Multi-agent orchestration](agents-multi-agent.md): delegating to sub-agents.
+- [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
+- [Deploying agents](agents-deployment.md): serving multiple agents over HTTP with `genkit_shelf`, CORS, other frameworks.
+
+## Setup
+
+Register the plugins your agents need on a shared `Genkit` instance. `retry` and
+`RetryPlugin` ship with the core `package:genkit/genkit.dart`; the other agentic
+middleware (`agents`, `filesystem`, `skills`, `toolApproval`) come from
+`package:genkit_middleware`.
+
+```dart
+// genkit.dart — shared instance + model refs.
+import 'package:genkit/genkit.dart';
+import 'package:genkit_google_genai/genkit_google_genai.dart';
+
+/// The default (capable) model used by most agents.
+final ModelRef defaultModel = googleAI.gemini('gemini-flash-latest');
+
+/// A fast/cheap model for auxiliary tasks.
+final ModelRef liteModel = googleAI.gemini('gemini-flash-lite-latest');
+
+final Genkit ai = Genkit(
+  plugins: [
+    googleAI(),
+    RetryPlugin(),
+  ],
+  model: defaultModel,
+);
+```
+
+## Define an agent
+
+`ai.defineAgent` combines prompt + tool config + (optional) session store into a
+single registered action.
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:schemantic/schemantic.dart';
+
+import 'genkit.dart';
+
+part 'weather_agent.g.dart';
+
+@Schema()
+abstract class $GetWeatherInput {
+  String get location;
+}
+
+@Schema()
+abstract class $GetWeatherOutput {
+  String get weather;
+  String get temperature;
+}
+
+final getWeather = ai.defineTool(
+  name: 'getWeather',
+  description: 'Get the current weather for a given location.',
+  inputSchema: GetWeatherInput.$schema,
+  outputSchema: GetWeatherOutput.$schema,
+  fn: (input, _) async => GetWeatherOutput(
+    weather: 'Sunny in ${input.location}',
+    temperature: '71F',
+  ),
+);
+
+final weatherAgent = ai.defineAgent(
+  name: 'weatherAgent',
+  system: 'You are a helpful weather assistant. Use the getWeather tool. '
+      'Be concise.',
+  tools: [getWeather],
+  use: [retry()],
+  store: InMemorySessionStore(),
+);
+```
+
+Common `defineAgent` options:
+
+- `name` (required): action name.
+- `description`: shown to an orchestrator that delegates to this agent (see
+  [multi-agent](agents-multi-agent.md)).
+- `system` / `prompt`: the prompt template (same as `definePrompt`).
+- `tools`: tools and interrupt-tools available to the agent.
+- `model`: override the default model (e.g. `model: liteModel`).
+- `use`: middleware layered on the turn (`retry()`, `filesystem(...)`, etc.).
+- `store`: a `SessionStore` for server-side persistence. See [sessions](agents-sessions.md).
+- `stateSchema`: a `SchemanticType<State>` describing custom session state.
+- `maxTurns`: cap the tool-calling loop (e.g. `maxTurns: 30`).
+
+> Schemas use the **schemantic** library (`@Schema()`, `.$schema`, `$`-prefixed
+> abstract classes with a generated `.g.dart` part). See
+> [references/schemantic.md](schemantic.md).
+
+## Agents and middleware go hand in hand
+
+Agents and [middleware](genkit_middleware.md) are built for each other: the
+`use: [...]` array is where you layer in sophisticated behavior without writing
+it yourself — sub-agent delegation, filesystem access, skill loading, tool
+approval, retries — each is one line.
+
+```dart
+import 'package:genkit/genkit.dart';
+import 'package:genkit_middleware/filesystem.dart';
+import 'package:genkit_middleware/skills.dart';
+import 'package:genkit_middleware/tool_approval.dart';
+
+import 'genkit.dart';
+
+final codingAgent = ai.defineAgent(
+  name: 'codingAgent',
+  system: 'You are an expert AI coding assistant working in a sandboxed '
+      'workspace.',
+  tools: [runShell, askUser], // your own custom tools/interrupts
+  use: [
+    // Require user approval (interrupt) before risky tools; reads/run auto-approved.
+    // Order matters: keep toolApproval before filesystem.
+    toolApproval(
+      approved: ['list_files', 'read_file', 'use_skill', 'run_shell', 'ask_user'],
+    ),
+    // list_files / read_file / write_file / search_and_replace, sandboxed.
+    filesystem(rootDirectory: workspaceDir),
+    // Load coding conventions on demand via a use_skill tool.
+    skills(skillPaths: [skillsDir]),
+    // Automatic retry on transient model errors.
+    retry(),
+  ],
+  store: InMemorySessionStore(), // needed for tool approval
+  maxTurns: 30,
+);
+```
+
+Register the corresponding plugins (`FilesystemPlugin()`, `SkillsPlugin()`,
+`ToolApprovalPlugin()`, and `RetryPlugin()`) on the `Genkit` instance so the
+`use: [...]` refs resolve at runtime. See [using middleware](genkit_middleware.md).
+
+## Chat with an agent (server-side)
+
+`agent.chat()` opens a conversation. A single `chat` carries state forward
+automatically across turns.
+
+```dart
+final chat = weatherAgent.chat();
+
+// Non-streaming turn:
+final res = await chat.sendText('Weather in Tokyo?');
+print(res.text);
+print(res.snapshotId); // immutable checkpoint id for this turn
+
+// Follow-up turn — history is carried automatically:
+final res2 = await chat.sendText('What about Paris?');
+
+// Streaming turn:
+final turn = chat.sendTextStream('And London?');
+await for (final chunk in turn.stream) {
+  stdout.write(chunk.text);
+}
+final finalRes = await turn.response;
+```
+
+## Serve an agent over HTTP
+
+Use `shelfHandler` from `package:genkit_shelf`. Expose the main turn action, plus
+the companion `getSnapshotDataAction` (state lookup/restore) and
+`abortAgentAction` (background aborts) where needed.
+
+```dart
+import 'package:genkit_shelf/genkit_shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+
+final router = Router();
+
+// Main turn endpoint:
+router.post('/api/weatherAgent', shelfHandler(weatherAgent.action));
+
+// Optional companions (snapshot restore / branching / background):
+router.post(
+  '/api/weatherAgent/getSnapshot',
+  shelfHandler(weatherAgent.getSnapshotDataAction),
+);
+router.post(
+  '/api/weatherAgent/abort',
+  shelfHandler(weatherAgent.abortAgentAction),
+);
+```
+
+For serving multiple agents, CORS/streaming headers for browser clients, and a
+full server, see [Deploying agents](agents-deployment.md).
+
+## Consume an agent from a client (`remoteAgent`)
+
+The browser/Dart client lives in `package:genkit/client.dart`. `remoteAgent`
+returns a typed HTTP client; `getSnapshotUrl`/`abortUrl` default to
+`${url}/getSnapshot` and `${url}/abort`.
+
+```dart
+import 'package:genkit/client.dart';
+
+final weather = remoteAgent(url: 'http://localhost:8080/api/weatherAgent');
+
+final chat = weather.chat();
+final turn = chat.sendTextStream('Weather in Tokyo?');
+await for (final chunk in turn.stream) {
+  stdout.write(chunk.text);
+}
+final res = await turn.response;
+print('${res.snapshotId} ${chat.snapshotId} ${chat.state}');
+
+// Multi-turn — the client carries state forward automatically:
+await chat.sendText('What about Paris?');
+
+// Errors surface as AgentError with an HTTP-ish status:
+try {
+  await remoteAgent(url: '$base/api/nope').chat().sendText('hi');
+} catch (err) {
+  if (err is AgentError) print(err.status);
+}
+```
+
+## Client-managed state (no server store)
+
+If the agent has **no `store`**, the server is fully stateless and the session
+state blob (messages + custom + artifacts) is owned by the caller. The
+`remoteAgent` client tracks it and round-trips it on every turn automatically —
+no `SessionStore`, no snapshot ids to manage.
+
+```dart
+// Server: no `store` → stateless. Client owns the state blob.
+final weatherAgentStateless = ai.defineAgent(
+  name: 'weatherAgentStateless',
+  system: 'You are a helpful weather assistant. Use the getWeather tool. '
+      'Be concise.',
+  tools: [getWeather],
+  use: [retry()],
+);
+```
+
+```dart
+// Client: reuse one `chat` and the state threads automatically.
+import 'package:genkit/client.dart';
+
+final agent = remoteAgent(url: '$base/api/weatherAgentStateless');
+final chat = agent.chat();
+
+await chat.sendText('Weather in London?');
+await chat.sendText('Is it sunny in Tokyo?'); // remembers prior turns
+
+// The tracked state is available after each turn:
+print(chat.state);
+print(chat.messages.length);
+```
+
+Use client-managed state when you don't want to run server-side storage. Use a
+[session store](agents-sessions.md) when the server should own history, or when
+you need branching or background execution.
+([Interrupts](agents-human-in-the-loop.md) work either way.)
