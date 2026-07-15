@@ -24,18 +24,18 @@ final assistant = ai.defineAgent(
 );
 
 final root = assistant.chat();
-final res1 = await root.sendText('Hello!');
+final res1 = await root.send(text: 'Hello!');
 final checkpoint = res1.snapshotId; // branch point
 
 // Branch A — forks from `checkpoint`.
 final branchA = assistant.chat(snapshotId: checkpoint);
-await branchA.sendText('My name is Bob.');
-final resA = await branchA.sendText('What is my name?'); // -> Bob
+await branchA.send(text: 'My name is Bob.');
+final resA = await branchA.send(text: 'What is my name?'); // -> Bob
 
 // Branch B — forks from the SAME `checkpoint`, fully independent.
 final branchB = assistant.chat(snapshotId: checkpoint);
-await branchB.sendText('My name is John.');
-final resB = await branchB.sendText('What is my name?'); // -> John
+await branchB.send(text: 'My name is John.');
+final resB = await branchB.send(text: 'What is my name?'); // -> John
 ```
 
 ## Client-side branching ("pick a variant")
@@ -56,8 +56,8 @@ Future<(AgentResponse, AgentResponse)> twoVariants(String text) async {
       snapshotId != null ? agent.chat(snapshotId: snapshotId) : agent.chat();
 
   final results = await Future.wait([
-    makeChat().sendText(text),
-    makeChat().sendText(text),
+    makeChat().send(text: text),
+    makeChat().send(text: text),
   ]);
   // results[0].snapshotId != results[1].snapshotId — both branch from the
   // same point.

@@ -18,7 +18,7 @@ agent uses a [session store](agents-sessions.md) or
 resume on the same `chat` (or, for raw calls, carry the returned state/snapshot
 back into the resume).
 
-Flow: `chat.sendText(...)` → response has `res.interrupts` → collect human input
+Flow: `chat.send(text: ...)` → response has `res.interrupts` → collect human input
 → `chat.resume(respond: [...])`.
 
 ## Define an interrupt (a tool that interrupts)
@@ -104,7 +104,7 @@ passing `respond` / `restart` entries directly:
 
 ```dart
 final chat = bankingAgent.chat();
-var res = await chat.sendText('Transfer \$500 to my savings account.');
+var res = await chat.send(text: 'Transfer \$500 to my savings account.');
 
 final approval =
     res.interrupts.where((i) => i.name == 'userApproval').firstOrNull;
@@ -156,7 +156,7 @@ final agent = remoteAgent(url: '/api/bankingAgent');
 final chat = agent.chat();
 
 // 1. Send and detect the pause.
-final res = await chat.sendText('Transfer \$500 to savings.');
+final res = await chat.send(text: 'Transfer \$500 to savings.');
 final pending =
     res.interrupts.where((i) => i.name == 'userApproval').firstOrNull;
 

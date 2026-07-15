@@ -97,7 +97,7 @@ Run it; artifacts are produced via the tool and returned in the response:
 
 ```dart
 final chat = workspaceAgent.chat();
-final res = await chat.sendText('Write poem.txt with a poem about Genkit');
+final res = await chat.send(text: 'Write poem.txt with a poem about Genkit');
 print(res.artifacts); // List<Artifact>
 ```
 
@@ -142,7 +142,7 @@ import 'package:genkit/client.dart';
 final agent = remoteAgent(url: '/api/workspaceAgent');
 final chat = agent.chat();
 
-final turn = chat.sendTextStream('Create index.html and styles.css');
+final turn = chat.sendStream(text: 'Create index.html and styles.css');
 await for (final chunk in turn.stream) {
   final artifact = chunk.artifact;
   if (artifact != null) {

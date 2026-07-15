@@ -182,7 +182,7 @@ final chat = researchAgent.chat(
     artifacts: [],
   ),
 );
-final turn = chat.sendTextStream('Impacts of electric vehicles?');
+final turn = chat.sendStream(text: 'Impacts of electric vehicles?');
 await for (final chunk in turn.stream) {
   // chunk.text for model output; chunk.custom['status'] for live progress
 }

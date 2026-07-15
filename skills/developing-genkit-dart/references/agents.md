@@ -166,15 +166,15 @@ automatically across turns.
 final chat = weatherAgent.chat();
 
 // Non-streaming turn:
-final res = await chat.sendText('Weather in Tokyo?');
+final res = await chat.send(text: 'Weather in Tokyo?');
 print(res.text);
 print(res.snapshotId); // immutable checkpoint id for this turn
 
 // Follow-up turn — history is carried automatically:
-final res2 = await chat.sendText('What about Paris?');
+final res2 = await chat.send(text: 'What about Paris?');
 
 // Streaming turn:
-final turn = chat.sendTextStream('And London?');
+final turn = chat.sendStream(text: 'And London?');
 await for (final chunk in turn.stream) {
   stdout.write(chunk.text);
 }
@@ -183,14 +183,13 @@ final finalRes = await turn.response;
 
 ### Per-turn ambient context
 
-`send`, `sendText`, `sendStream`, `sendTextStream`, `detach`, and `detachText`
-all accept an optional `context` map — ambient per-turn data (auth, request
-metadata, etc.) that tools can read via `ctx.context` (and custom agents via
-`options.context`).
+`send`, `sendStream`, and `detach` all accept an optional `context` map —
+ambient per-turn data (auth, request metadata, etc.) that tools can read via
+`ctx.context` (and custom agents via `options.context`).
 
 ```dart
-final res = await chat.sendText(
-  'What can I do?',
+final res = await chat.send(
+  text: 'What can I do?',
   context: {
     'auth': {'name': 'Ada', 'tier': 'pro'},
   },
@@ -248,7 +247,7 @@ import 'package:genkit/client.dart';
 final weather = remoteAgent(url: 'http://localhost:8080/api/weatherAgent');
 
 final chat = weather.chat();
-final turn = chat.sendTextStream('Weather in Tokyo?');
+final turn = chat.sendStream(text: 'Weather in Tokyo?');
 await for (final chunk in turn.stream) {
   stdout.write(chunk.text);
 }
@@ -256,11 +255,11 @@ final res = await turn.response;
 print('${res.snapshotId} ${chat.snapshotId} ${chat.state}');
 
 // Multi-turn — the client carries state forward automatically:
-await chat.sendText('What about Paris?');
+await chat.send(text: 'What about Paris?');
 
 // Errors surface as AgentError with an HTTP-ish status:
 try {
-  await remoteAgent(url: '$base/api/nope').chat().sendText('hi');
+  await remoteAgent(url: '$base/api/nope').chat().send(text: 'hi');
 } catch (err) {
   if (err is AgentError) print(err.status);
 }
@@ -318,7 +317,7 @@ class _ChatViewState extends State<ChatView> {
 
   Future<void> _send(String text) async {
     setState(() => _reply = '');
-    final turn = _chat.sendTextStream(text);
+    final turn = _chat.sendStream(text: text);
     await for (final chunk in turn.stream) {
       setState(() => _reply += chunk.text); // append tokens live
     }
@@ -366,8 +365,8 @@ import 'package:genkit/client.dart';
 final agent = remoteAgent(url: '$base/api/weatherAgentStateless');
 final chat = agent.chat();
 
-await chat.sendText('Weather in London?');
-await chat.sendText('Is it sunny in Tokyo?'); // remembers prior turns
+await chat.send(text: 'Weather in London?');
+await chat.send(text: 'Is it sunny in Tokyo?'); // remembers prior turns
 
 // The tracked state is available after each turn:
 print(chat.state);

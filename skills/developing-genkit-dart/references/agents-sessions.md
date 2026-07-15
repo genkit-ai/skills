@@ -44,8 +44,8 @@ automatically:
 
 ```dart
 final chat = logbookAgent.chat();
-final res1 = await chat.sendText('Log this: I started studying Genkit today.');
-final res2 = await chat.sendText('What did I study today?'); // remembers turn 1
+final res1 = await chat.send(text: 'Log this: I started studying Genkit today.');
+final res2 = await chat.send(text: 'What did I study today?'); // remembers turn 1
 print('${res1.snapshotId} ${res2.snapshotId}');
 ```
 
@@ -54,7 +54,7 @@ Resume a prior conversation by snapshot id (server-side):
 ```dart
 // Continue an existing session from a snapshot, restoring its history.
 final resumed = await logbookAgent.loadChat(snapshotId: res2.snapshotId);
-await resumed.sendText('Add another note.');
+await resumed.send(text: 'Add another note.');
 ```
 
 `agent.chat(snapshotId: ...)` opens a new chat that **branches** from a snapshot

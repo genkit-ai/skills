@@ -44,7 +44,7 @@ router.post(
 
 ## Client-side: detach + poll + abort
 
-On the client (`package:genkit/client.dart`), `chat.detachText(...)` (or
+On the client (`package:genkit/client.dart`), `chat.detach(text: ...)` (or
 `chat.detach(...)`) resolves immediately with a `DetachedTask` carrying the
 `snapshotId`. `task.poll(...)` yields `AgentSnapshot`s until a terminal status;
 `task.abort()` cancels the background work. Each `AgentSnapshot` surfaces
@@ -56,7 +56,7 @@ import 'package:genkit/client.dart';
 final agent = remoteAgent(url: '/api/backgroundAgent');
 
 // Submit — resolves immediately with a handle.
-final task = await agent.chat().detachText('Quantum computing impact');
+final task = await agent.chat().detach(text: 'Quantum computing impact');
 print(task.snapshotId);
 
 // Poll until a terminal status.
@@ -89,7 +89,7 @@ polls the store until a terminal state and resolves with the final snapshot.
 
 ```dart
 final chat = backgroundAgent.chat();
-final task = await chat.detachText('Write a report on renewable energy trends');
+final task = await chat.detach(text: 'Write a report on renewable energy trends');
 print(task.snapshotId); // available immediately
 
 final snapshot = await task.wait(interval: Duration(seconds: 2));

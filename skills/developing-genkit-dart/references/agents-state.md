@@ -148,7 +148,7 @@ final chat = taskAgent.chat(
   ),
 );
 
-final res = await chat.sendText('Add a task: buy groceries');
+final res = await chat.send(text: 'Add a task: buy groceries');
 print(res.state); // res.state returns the custom state directly
 ```
 
@@ -177,7 +177,7 @@ final chat = agent.chat(
   ),
 );
 
-final turn = chat.sendTextStream('Add buy groceries, then mark it done');
+final turn = chat.sendStream(text: 'Add buy groceries, then mark it done');
 await for (final chunk in turn.stream) {
   // Live custom state arrives via customPatch chunks:
   if (chunk.custom != null) {

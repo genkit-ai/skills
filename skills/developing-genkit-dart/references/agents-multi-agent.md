@@ -79,8 +79,8 @@ Run it like any other agent:
 
 ```dart
 final chat = orchestratorAgent.chat();
-final turn = chat.sendTextStream(
-  'Research the best sorting algorithms, then write a Dart quicksort.',
+final turn = chat.sendStream(
+  text: 'Research the best sorting algorithms, then write a Dart quicksort.',
 );
 await for (final chunk in turn.stream) {
   stdout.write(chunk.text);
