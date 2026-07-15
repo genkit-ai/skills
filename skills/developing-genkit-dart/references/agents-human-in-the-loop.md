@@ -19,7 +19,7 @@ resume on the same `chat` (or, for raw calls, carry the returned state/snapshot
 back into the resume).
 
 Flow: `chat.sendText(...)` → response has `res.interrupts` → collect human input
-→ `chat.resume(AgentResume(respond: [...]))`.
+→ `chat.resume(respond: [...])`.
 
 ## Define an interrupt (a tool that interrupts)
 
@@ -100,7 +100,7 @@ exposes:
   **not** send.
 
 Resume the **same** chat with `chat.resume(...)` / `chat.resumeStream(...)`,
-passing an `AgentResume`:
+passing `respond` / `restart` entries directly:
 
 ```dart
 final chat = bankingAgent.chat();
@@ -113,11 +113,9 @@ if (approval != null) {
 
   // Collect the human decision, then resume with the interrupt's output:
   res = await chat.resume(
-    AgentResume(
-      respond: [
-        approval.respond({'approved': true, 'feedback': 'Looks good'}),
-      ],
-    ),
+    respond: [
+      approval.respond({'approved': true, 'feedback': 'Looks good'}),
+    ],
   );
 }
 print(res.text); // final confirmation
@@ -127,7 +125,7 @@ Streaming variant:
 
 ```dart
 final turn = chat.resumeStream(
-  AgentResume(respond: [approval.respond({'approved': true})]),
+  respond: [approval.respond({'approved': true})],
 );
 await for (final chunk in turn.stream) {
   stdout.write(chunk.text);
@@ -140,10 +138,8 @@ You can resume multiple interrupts at once by passing several builders, and mix
 
 ```dart
 await chat.resume(
-  AgentResume(
-    respond: [a.respond({'approved': true})],
-    restart: [b.restart()],
-  ),
+  respond: [a.respond({'approved': true})],
+  restart: [b.restart()],
 );
 ```
 
@@ -169,9 +165,7 @@ if (pending != null) {
 
   // 2. After the human approves/denies, resume the SAME chat.
   final turn = chat.resumeStream(
-    AgentResume(
-      respond: [pending.respond({'approved': true, 'feedback': 'ok'})],
-    ),
+    respond: [pending.respond({'approved': true, 'feedback': 'ok'})],
   );
   await for (final chunk in turn.stream) {
     /* render chunk.text */
@@ -195,9 +189,7 @@ middleware reads:
 // `interrupt` is the paused AgentInterrupt from `res.interrupts`.
 // Pass this restart entry back when resuming the chat:
 await chat.resume(
-  AgentResume(
-    restart: [interrupt.restart({'tool-approved': true})],
-  ),
+  restart: [interrupt.restart({'tool-approved': true})],
 );
 ```
 

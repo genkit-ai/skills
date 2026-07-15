@@ -87,6 +87,6 @@ if (response.finishReason == FinishReason.interrupted) {
 
 > **Agent-side resume.** When resuming an agent chat rather than a raw
 > `ai.generate` call, the interrupts are `AgentInterrupt`s; pass the same
-> `.restart(...)` builder in an `AgentResume`:
-> `chat.resume(AgentResume(restart: [interrupt.restart({'tool-approved': true})]))`.
+> `.restart(...)` builder directly to `chat.resume`:
+> `chat.resume(restart: [interrupt.restart({'tool-approved': true})])`.
 > See [human-in-the-loop](agents-human-in-the-loop.md).
