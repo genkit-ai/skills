@@ -112,6 +112,12 @@ final res = await chat.sendText('Add a task: buy groceries');
 print(res.state); // res.state returns the custom state directly
 ```
 
+> **Typed state.** When you supply a `stateSchema`, `res.state` / `chat.state`
+> (and `snapshot.custom`) are **parsed into the typed `State` object** (here a
+> `TaskState`), not a raw `Map`. `Agent`/`AgentChat`/`AgentResponse` are generic
+> over `State`, so the type flows through automatically. Without a `stateSchema`,
+> `state` is an untyped view over the JSON.
+
 ## Auto-sync to the `remoteAgent` client
 
 When you talk to the agent over HTTP, the `remoteAgent` client tracks custom

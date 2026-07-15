@@ -181,6 +181,27 @@ await for (final chunk in turn.stream) {
 final finalRes = await turn.response;
 ```
 
+### Per-turn ambient context
+
+`send`, `sendText`, `sendStream`, `sendTextStream`, `detach`, and `detachText`
+all accept an optional `context` map — ambient per-turn data (auth, request
+metadata, etc.) that tools can read via `getContext()` (and custom agents via
+`options.context`).
+
+```dart
+final res = await chat.sendText(
+  'What can I do?',
+  context: {
+    'auth': {'name': 'Ada', 'tier': 'pro'},
+  },
+);
+```
+
+> **In-process only.** The in-process transport honors `context`. The
+> **`remoteAgent` (HTTP) transport rejects a non-empty `context` with
+> `UnsupportedError`** — remote agents derive context server-side from the HTTP
+> request (headers/auth), so don't pass it from the client.
+
 ## Serve an agent over HTTP
 
 Use `shelfHandler` from `package:genkit_shelf`. Expose the main turn action, plus

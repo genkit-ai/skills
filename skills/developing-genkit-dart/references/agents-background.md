@@ -46,8 +46,9 @@ router.post(
 
 On the client (`package:genkit/client.dart`), `chat.detachText(...)` (or
 `chat.detach(...)`) resolves immediately with a `DetachedTask` carrying the
-`snapshotId`. `task.poll(...)` yields snapshots until a terminal status;
-`task.abort()` cancels the background work.
+`snapshotId`. `task.poll(...)` yields `AgentSnapshot`s until a terminal status;
+`task.abort()` cancels the background work. Each `AgentSnapshot` surfaces
+`.status`, `.messages`, `.artifacts`, and typed `.custom` state directly.
 
 ```dart
 import 'package:genkit/client.dart';
@@ -62,7 +63,7 @@ print(task.snapshotId);
 await for (final snap in task.poll(interval: Duration(milliseconds: 1500))) {
   final status = snap.status?.value ?? 'pending';
   if (status == 'completed') {
-    final messages = snap.state?.messages ?? [];
+    final messages = snap.messages;
     final lastModel =
         messages.where((m) => m.role == Role.model).lastOrNull;
     final text =
@@ -98,7 +99,7 @@ print(snapshot?.status?.value); // 'completed' | 'failed' | 'aborted' | 'expired
 ## Status values
 
 - `pending` — still processing.
-- `completed` — completed successfully (read the result from `snapshot.state.messages`).
+- `completed` — completed successfully (read the result from `snapshot.messages`).
 - `failed` — error during processing.
 - `aborted` — cancelled by the client via `abort()`.
 - `expired` — the background worker stopped responding (e.g. server restart);

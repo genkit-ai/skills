@@ -94,8 +94,10 @@ exposes:
 - `.input` — the data the model passed in.
 - `.respond(output)` — **builder** returning a resume entry that supplies the
   tool's output (without executing it). Does **not** send.
-- `.restart()` — **builder** re-issuing the original tool request (retry / let
-  the tool actually run). Does **not** send.
+- `.restart([payload])` — **builder** re-issuing the original tool request (retry
+  / let the tool actually run). Pass an optional `Map` payload; it is nested
+  under `metadata.resumed` and read back tool-side via `ctx.resumed`. Does
+  **not** send.
 
 Resume the **same** chat with `chat.resume(...)` / `chat.resumeStream(...)`,
 passing an `AgentResume`:
@@ -184,24 +186,28 @@ if (pending != null) {
 The [`toolApproval`](genkit_middleware.md) middleware turns selected tools into
 approval interrupts without any custom interrupt code. The middleware gates each
 tool call itself: a tool is allowed to run only if it is in the `approved` list
-or its request carries top-level metadata `{ 'tool-approved': true }`. To let an
-approved tool through on resume, re-issue the paused `ToolRequestPart` with that
-metadata added:
+or its `resumed` payload carries `{ 'tool-approved': true }`. To let an approved
+tool through on resume, **restart** the paused interrupt with that payload — the
+`.restart(...)` builder nests it under `metadata.resumed`, exactly what the
+middleware reads:
 
 ```dart
-final approved = ToolRequestPart(
-  toolRequest: interrupt.toolRequest,
-  metadata: {...?interrupt.metadata, 'tool-approved': true},
+// `interrupt` is the paused AgentInterrupt from `res.interrupts`.
+// Pass this restart entry back when resuming the chat:
+await chat.resume(
+  AgentResume(
+    restart: [interrupt.restart({'tool-approved': true})],
+  ),
 );
-// Pass `approved` back as the restart entry when resuming.
 ```
 
 If instead you write your own `ctx.interrupt(...)` gate inside a tool (as in the
-`coding_agent` sample), you inspect the resume payload yourself:
+`coding_agent` sample), you inspect the resume payload yourself via the
+`ctx.resumed` getter:
 
 ```dart
-final resumed = ctx.toolRequest?.metadata?['resumed'];
-final isApproved = resumed is Map && resumed['toolApproved'] == true;
+final resumed = ctx.resumed; // the payload passed to `.restart(...)`
+final isApproved = resumed is Map && resumed['tool-approved'] == true;
 ```
 
 ## Notes & gotchas

@@ -77,13 +77,17 @@ starting a turn — handy for restoring a UI after a reload (e.g. a snapshotId
 stored in the URL). The server must expose the agent's `getSnapshotDataAction`
 (see [agents.md](agents.md#serve-an-agent-over-http)).
 
+`getSnapshot(...)` returns an `AgentSnapshot<State>` — a typed veneer that
+surfaces `.messages`, `.artifacts`, and typed `.custom` state directly (use
+`.sessionState` for the raw `SessionState` if you need it).
+
 ```dart
 import 'package:genkit/client.dart';
 
 final agent = remoteAgent(url: '/api/branchingAgent');
 
 final snapshot = await agent.getSnapshot(snapshotId: snapshotId);
-final history = (snapshot?.state?.messages ?? [])
+final history = (snapshot?.messages ?? [])
     .where((m) => m.role == Role.user || m.role == Role.model)
     .map((m) => (
           role: m.role.value,

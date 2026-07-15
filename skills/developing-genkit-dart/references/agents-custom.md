@@ -33,8 +33,10 @@ Agent<State> defineCustomAgent<State>({
 ```
 
 The handler receives a session runner `sess` and `AgentFnOptions options`
-(`options.sendChunk(...)` streams chunks to the client). It must return an
-`AgentResult` with the final `message` for the turn.
+(`options.sendChunk(...)` streams chunks to the client; `options.context` holds
+the ambient [per-turn context](agents.md#per-turn-ambient-context) — e.g. auth,
+derived server-side for remote agents). It must return an `AgentResult` with the
+final `message` for the turn.
 
 Key `sess` methods:
 
