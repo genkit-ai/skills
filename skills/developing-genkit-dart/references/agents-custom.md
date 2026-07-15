@@ -28,6 +28,7 @@ Agent<State> defineCustomAgent<State>({
   String? description,
   SchemanticType<State>? stateSchema,
   SessionStore? store,
+  ClientTransform? clientTransform,
   required AgentFn fn, // (SessionRunner sess, AgentFnOptions options) => Future<AgentResult>
 });
 ```
@@ -35,8 +36,9 @@ Agent<State> defineCustomAgent<State>({
 The handler receives a session runner `sess` and `AgentFnOptions options`
 (`options.sendChunk(...)` streams chunks to the client; `options.context` holds
 the ambient [per-turn context](agents.md#per-turn-ambient-context) — e.g. auth,
-derived server-side for remote agents). It must return an `AgentResult` with the
-final `message` for the turn.
+derived server-side for remote agents). It returns an `AgentResult`, typically
+carrying the final `message` for the turn (`AgentResult.message` is nullable —
+pass `message: null` when the turn produced no message).
 
 Key `sess` methods:
 

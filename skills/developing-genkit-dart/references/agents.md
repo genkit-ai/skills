@@ -185,7 +185,7 @@ final finalRes = await turn.response;
 
 `send`, `sendText`, `sendStream`, `sendTextStream`, `detach`, and `detachText`
 all accept an optional `context` map — ambient per-turn data (auth, request
-metadata, etc.) that tools can read via `getContext()` (and custom agents via
+metadata, etc.) that tools can read via `ctx.context` (and custom agents via
 `options.context`).
 
 ```dart

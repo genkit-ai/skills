@@ -12,6 +12,18 @@ name) and are returned in `res.artifacts` / tracked on the client's
 > `read_artifact` tools directly on top of the session artifact API
 > (`ai.currentSession().addArtifacts()` / `getArtifacts()`).
 
+> **Session artifacts vs. real files.** Artifacts (this page) live *in the
+> session state* — they travel with the conversation and stream to the client.
+> If instead you want the agent to work against **real files on disk** (a
+> sandboxed workspace), use the `filesystem()` middleware from
+> `package:genkit_middleware/filesystem.dart`
+> (`filesystem(rootDirectory: ...)`, backed by `FilesystemPlugin()`), which
+> gives the model `list_files` / `read_file` / `write_file` /
+> `search_and_replace` tools rooted at a directory. See
+> [middleware](genkit_middleware.md). The two approaches are complementary:
+> session artifacts for conversation-scoped deliverables, `filesystem()` for
+> persistent on-disk work.
+
 ## Give the model artifact tools
 
 ```dart
