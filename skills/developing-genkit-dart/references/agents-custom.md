@@ -45,6 +45,11 @@ Key `sess` methods:
   `sess.getMessages()` includes it. `input.message?.content` holds the parts.
 - `sess.getMessages()` — the full message history.
 - `sess.addMessages([...])` — append messages (e.g. your final model response).
+- `sess.updateCustom(mutator)` / `sess.getCustom()` — read and mutate typed
+  custom state directly on the runner (no `ai.currentSession()` needed). The
+  mutator is `(State? state) => State`; each call auto-emits a `customPatch`
+  chunk. Its typing follows `stateSchema` — with the map schema below the state
+  is `Map<String, dynamic>?`; with a generated `.$schema` it's your typed class.
 
 ## Example: multi-step research agent
 
@@ -54,23 +59,25 @@ import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
 
-Map<String, dynamic> _state(dynamic custom) {
-  if (custom is Map) return Map<String, dynamic>.from(custom);
-  return {'subQuestions': <dynamic>[], 'subAnswers': <dynamic>[]};
+Map<String, dynamic> _state(Map<String, dynamic>? custom) {
+  if (custom == null) {
+    return {'subQuestions': <dynamic>[], 'subAnswers': <dynamic>[]};
+  }
+  return custom;
 }
 
 final researchAgent = ai.defineCustomAgent(
   name: 'researchAgent',
+  stateSchema: .map(.string(), .dynamicSchema()),
   fn: (sess, options) async {
     Message? lastMessage;
-    final session = ai.currentSession()!;
 
     await sess.run((input, ctx) async {
       final userText = input.message?.content.firstOrNull?.text ?? '';
 
       // Step 1: decompose (a fast model). Mutating custom state auto-emits a
       // `customPatch` chunk so the client's tracked state stays live.
-      session.updateCustom((s) {
+      sess.updateCustom((s) {
         final state = _state(s);
         state['status'] = 'Decomposing question into sub-topics…';
         return state;
@@ -87,7 +94,7 @@ final researchAgent = ai.defineCustomAgent(
       final subQuestions =
           (decompose.output ?? [userText]).map((e) => e.toString()).toList();
 
-      session.updateCustom((s) {
+      sess.updateCustom((s) {
         final state = _state(s);
         state['subQuestions'] = subQuestions;
         state['subAnswers'] = <dynamic>[];
@@ -97,7 +104,7 @@ final researchAgent = ai.defineCustomAgent(
       // Step 2: research each sub-question (main model).
       final subAnswers = <Map<String, dynamic>>[];
       for (var i = 0; i < subQuestions.length; i++) {
-        session.updateCustom((s) {
+        sess.updateCustom((s) {
           final state = _state(s);
           state['status'] =
               'Researching (${i + 1}/${subQuestions.length})';
@@ -110,14 +117,14 @@ final researchAgent = ai.defineCustomAgent(
         );
         subAnswers.add({'question': subQuestions[i], 'answer': research.text});
       }
-      session.updateCustom((s) {
+      sess.updateCustom((s) {
         final state = _state(s);
         state['subAnswers'] = subAnswers;
         return state;
       });
 
       // Step 3: synthesize and STREAM the final answer to the client.
-      session.updateCustom((s) {
+      sess.updateCustom((s) {
         final state = _state(s);
         state['status'] = 'Synthesizing final response…';
         return state;
@@ -135,7 +142,7 @@ final researchAgent = ai.defineCustomAgent(
       lastMessage = finalResponse.message;
       if (lastMessage != null) sess.addMessages([lastMessage!]);
 
-      session.updateCustom((s) {
+      sess.updateCustom((s) {
         final state = _state(s);
         state['status'] = 'Done';
         return state;
@@ -157,7 +164,7 @@ final researchAgent = ai.defineCustomAgent(
 
 ## Custom status streaming
 
-Calling `session.updateCustom(...)` during the turn automatically emits a
+Calling `sess.updateCustom(...)` during the turn automatically emits a
 `customPatch` chunk, so the `remoteAgent` client's tracked
 [custom state](agents-state.md) (e.g. the `status` field) stays live
 **mid-stream** without any extra wiring. Stream model output separately with

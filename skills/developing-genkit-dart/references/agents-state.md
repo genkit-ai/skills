@@ -48,10 +48,11 @@ final taskAgent = ai.defineAgent(
 
 ## Read & mutate state inside tools
 
-Tools call `ai.currentSession()` to access the live session, then
-`session.getCustom()` / `session.updateCustom(mutator)`. `updateCustom` takes
-`(dynamic custom) => dynamic` and returns the new state. Each call auto-emits a
-`customPatch` chunk to the client.
+Tools call `ai.currentSession<State>()` to access the live, **typed** session,
+then `session.getCustom()` / `session.updateCustom(mutator)`. `updateCustom` is
+fully typed: the mutator is `(State? state) => State` — it receives the current
+typed state (`null` before it's first set) and returns the new state. Each call
+auto-emits a `customPatch` chunk to the client.
 
 ```dart
 @Schema()
@@ -60,14 +61,10 @@ abstract class $AddTaskInput {
   String get title;
 }
 
-Map<String, dynamic> _stateOrEmpty(dynamic custom) {
-  if (custom is Map) {
-    final map = Map<String, dynamic>.from(custom);
-    map['tasks'] = (map['tasks'] as List?)?.toList() ?? <dynamic>[];
-    map['nextId'] = map['nextId'] ?? 1;
-    return map;
-  }
-  return {'tasks': <dynamic>[], 'nextId': 1};
+@Schema()
+abstract class $ToggleTaskInput {
+  @Field(description: 'The task ID to toggle')
+  int get id;
 }
 
 final addTask = ai.defineTool(
@@ -76,22 +73,65 @@ final addTask = ai.defineTool(
   inputSchema: AddTaskInput.$schema,
   outputSchema: TaskItem.$schema,
   fn: (input, _) async {
-    final session = ai.currentSession()!;
-    late Map<String, dynamic> newTask;
-    session.updateCustom((custom) {
-      final s = _stateOrEmpty(custom);
-      newTask = {'id': s['nextId'], 'title': input.title, 'done': false};
-      (s['tasks'] as List).add(newTask);
-      s['nextId'] = (s['nextId'] as int) + 1;
-      return s;
+    final session = ai.currentSession<TaskState>()!;
+    late TaskItem newTask;
+    session.updateCustom((state) {
+      state ??= TaskState(tasks: [], nextId: 1);
+      newTask = TaskItem(id: state.nextId, title: input.title, done: false);
+      state.tasks = [...state.tasks, newTask];
+      state.nextId += 1;
+      return state;
     });
-    return TaskItem.fromJson(newTask);
+    return newTask;
   },
 );
 ```
 
-`ai.currentSession()` returns `null` when called outside an active session (e.g.
-a tool invoked without a running agent turn), so only use it inside agent tools.
+Because the state is typed, you work with the generated `TaskState` / `TaskItem`
+classes directly — no manual `Map` munging or `fromJson`. Assign back to the
+setters (e.g. `state.tasks = [...]`) so the mutated values are written to the
+session.
+
+`ai.currentSession<State>()` returns `null` when called outside an active session
+(e.g. a tool invoked without a running agent turn), so only use it inside agent
+tools.
+
+For tools that look up and mutate an existing item, a small shared helper keeps
+the not-found handling in one place:
+
+```dart
+Map<String, dynamic> _mutateTaskById(
+  int id,
+  Map<String, dynamic> Function(List<TaskItem> tasks, int idx) onFound,
+) {
+  final session = ai.currentSession<TaskState>()!;
+  var result = <String, dynamic>{'success': false};
+  session.updateCustom((state) {
+    state ??= TaskState(tasks: [], nextId: 1);
+    final tasks = state.tasks;
+    final idx = tasks.indexWhere((t) => t.id == id);
+    if (idx >= 0) {
+      result = onFound(tasks, idx);
+      // Reassign so the mutated list is written back to the session state.
+      state.tasks = tasks;
+    } else {
+      result = {'success': false, 'error': 'Task $id not found'};
+    }
+    return state;
+  });
+  return result;
+}
+
+final toggleTask = ai.defineTool(
+  name: 'toggleTask',
+  description: 'Toggle a task done/undone by its ID.',
+  inputSchema: ToggleTaskInput.$schema,
+  fn: (input, _) async => _mutateTaskById(input.id, (tasks, idx) {
+    tasks[idx].done = !tasks[idx].done;
+    return {'success': true, 'task': tasks[idx].toJson()};
+  }),
+);
+```
 
 ## Seed and read state (server-side)
 
