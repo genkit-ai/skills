@@ -37,6 +37,14 @@ export const myFlow = ai.defineFlow({
 });
 ```
 
+## Prompts (Dotprompt)
+
+`.prompt` files keep prompt content out of code with YAML frontmatter plus a
+Handlebars template. See [Dotprompt](references/dotprompt.md): `promptDir`,
+`ai.prompt()` (call/stream/render), variants, partials, named schemas via
+`ai.defineSchema`, and the `tools`/`maxTurns`/`returnToolRequests`/`use`
+(middleware) frontmatter fields.
+
 ## Agents (Beta)
 
 Genkit has a preview **agent** API for persistent, multi-turn conversations
@@ -134,6 +142,7 @@ The `genkit` CLI is your primary tool for development and documentation.
 ## References
 
 -   [Best Practices](references/best-practices.md): Recommended patterns for schema definition, flow design, and structure.
+-   [Dotprompt](references/dotprompt.md): `.prompt` files — `promptDir`, `ai.prompt()`, variants, partials, named schemas, and `tools`/`maxTurns`/`returnToolRequests`/`use` frontmatter.
 -   [Docs & CLI Reference](references/docs-and-cli.md): Documentation search, CLI tasks, and workflows.
 -   [Common Errors](references/common-errors.md): Critical "gotchas", migration guide, and troubleshooting.
 -   [Setup Guide](references/setup.md): Manual setup instructions for new projects.

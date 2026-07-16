@@ -11,6 +11,15 @@ Genkit Dart is an AI SDK for Dart that provides a unified interface for code gen
 If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embedMany`), streaming, or calling remote flow endpoints, please load the core framework reference: 
 [references/genkit.md](references/genkit.md)
 
+## Prompts (Dotprompt)
+
+`.prompt` files keep prompt content out of Dart code with YAML frontmatter plus a
+Handlebars template. See [references/dotprompt.md](references/dotprompt.md):
+`promptDir`, `ai.prompt()` (call/stream/render), variants, partials, named
+schemas via `defineSchema`, and the `tools`/`maxTurns`/`returnToolRequests`/`use`
+(middleware) frontmatter fields. A `.prompt` file can also back an agent directly
+via `definePromptAgent`.
+
 ## Agents
 
 Genkit Dart has an **agent** API for persistent, multi-turn conversations
@@ -57,9 +66,6 @@ Wrap your run command with `genkit start` to attach the Genkit developer UI and 
 genkit start -- dart run main.dart
 
 # Run a flow directly from the CLI
-genkit flow:run myFlow '{"data": "input"}'
-
-# Or run the flow and spin up the runtime in a single command
 genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
 
 # Tracing
