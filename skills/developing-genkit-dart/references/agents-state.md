@@ -92,6 +92,21 @@ classes directly — no manual `Map` munging or `fromJson`. Assign back to the
 setters (e.g. `state.tasks = [...]`) so the mutated values are written to the
 session.
 
+> **Make computed/optional state fields nullable.** Non-nullable schemantic
+> getters are hard casts and throw (`Null is not a subtype of num`) when a
+> partially populated state blob is reloaded (e.g. a computed field that was
+> never written). Make such fields nullable or give them a `defaultValue`. See
+> [non-nullable getters throw on partial data](schemantic.md#non-nullable-getters-throw-on-partial-data).
+
+> **Prefer whole-collection tools over append-one-item tools.** The model may
+> emit several tool calls in a single **parallel** batch. Each
+> `session.updateCustom` reads the current custom state, mutates, and writes it
+> back; when the calls run in one batch they all read the same base and the last
+> write wins, silently dropping the others. An incremental `addTask` tool is only
+> safe if the model calls it sequentially. For anything the model may batch,
+> prefer a single idempotent "replace the whole collection" tool (e.g.
+> `setTasks(items: [...])`) that writes the entire collection in one call.
+
 `ai.currentSession<State>()` returns `null` when called outside an active session
 (e.g. a tool invoked without a running agent turn), so only use it inside agent
 tools.

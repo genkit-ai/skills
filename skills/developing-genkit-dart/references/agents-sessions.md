@@ -110,7 +110,6 @@ the exact pause point. They work with a store or with client-managed state
 
 ## Firestore session store (scalable)
 
-
 For production, `FirestoreSessionStore` (from `package:genkit_google_cloud`)
 persists each turn as an incremental JSON Patch diff anchored to periodic sharded
 checkpoints — no single document approaches Firestore's 1 MiB limit, and
@@ -130,6 +129,13 @@ final myAgent = ai.defineAgent(
   store: FirestoreSessionStore(),
 );
 ```
+
+> **Project id.** ADC alone may not carry a project id, so the default
+> `Firestore()` can fail at write time with `Project ID has not been discovered
+> yet. Initialize the SDK with credentials that include a project ID, set project
+> ID in Settings, or set the GOOGLE_CLOUD_PROJECT environment variable.` Export
+> `GOOGLE_CLOUD_PROJECT` (the Firestore client also reads a small set of standard
+> GCP project-id env vars), or pass an explicit `Firestore` via `db`.
 
 Options:
 
