@@ -11,6 +11,42 @@ Genkit Dart is an AI SDK for Dart that provides a unified interface for code gen
 If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embedMany`), streaming, or calling remote flow endpoints, please load the core framework reference: 
 [references/genkit.md](references/genkit.md)
 
+## Prompts (Dotprompt)
+
+`.prompt` files keep prompt content out of Dart code with YAML frontmatter plus a
+Handlebars template. See [references/dotprompt.md](references/dotprompt.md):
+`promptDir`, `ai.prompt()` (call/stream/render), variants, partials, named
+schemas via `defineSchema`, and the `tools`/`maxTurns`/`returnToolRequests`/`use`
+(middleware) frontmatter fields. A `.prompt` file can also back an agent directly
+via `definePromptAgent`.
+
+## Agents
+
+Genkit Dart has an **agent** API for persistent, multi-turn conversations
+(sessions, snapshots, interrupts, branching, background execution, custom state,
+artifacts, and multi-agent delegation). Server APIs come from
+`package:genkit/genkit.dart` and the browser/HTTP client from
+`package:genkit/client.dart`. The `remoteAgent` client works from any Dart app,
+including **Flutter**, and the backend is fully interchangeable — it can talk to
+a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
+protocol. A few Dart specifics: interrupts are modeled as tools that call
+`ctx.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
+the `agents()` middleware from `package:genkit_middleware`, and there is no
+`artifacts()` middleware yet (define artifact tools directly).
+
+For more details see:
+
+-   [Agents](references/agents.md): defining/serving an agent and client-managed state (start here).
+-   [Sessions & persistence](references/agents-sessions.md): session stores (`InMemorySessionStore`/`FileSessionStore`/`FirestoreSessionStore`).
+-   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input via `ctx.interrupt` and resuming.
+-   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
+-   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+-   [Working with state](references/agents-state.md): typed custom session state, auto-synced to the client.
+-   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents with the `agents()` middleware.
+-   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
+-   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit_shelf` (multiple agents, CORS).
+
 ## Genkit CLI (recommended)
 
 The Genkit CLI provides a local development UI for running Flow, tracing executions, playing with models, and evaluating outputs.
@@ -30,9 +66,6 @@ Wrap your run command with `genkit start` to attach the Genkit developer UI and 
 genkit start -- dart run main.dart
 
 # Run a flow directly from the CLI
-genkit flow:run myFlow '{"data": "input"}'
-
-# Or run the flow and spin up the runtime in a single command
 genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
 
 # Tracing

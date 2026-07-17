@@ -211,6 +211,63 @@ Write an article about {{topic}}.
 {{#if style}}Write in a {{style}} style.{{/if}}
 ```
 
+**Tools, tool-loop control, and middleware:**
+
+`.prompt` frontmatter can also configure tool calling and attach middleware, so
+an agent-style prompt can be fully described in the file:
+
+```
+---
+model: googleai/gemini-flash-latest
+input:
+  schema:
+    tone: string
+tools:
+  - getAttractions
+  - getFlightInfo
+toolChoice: auto          # auto | required | none
+maxTurns: 20              # max tool-call loop iterations (WithMaxTurns)
+returnToolRequests: false # return tool requests instead of running them (WithReturnToolRequests)
+use:
+  - name: genkit-middleware/retry
+    config:
+      maxRetries: 2
+  - genkit-middleware/fallback   # bare string = middleware name, no config
+---
+{{role "system"}}
+You are a friendly trip planning assistant. Keep your tone {{tone}}.
+
+{{history}}
+```
+
+Field mapping:
+
+| Frontmatter | Option | Notes |
+| --- | --- | --- |
+| `tools` | `WithTools` | list of registered tool names (strings) |
+| `toolChoice` | `WithToolChoice` | `auto`, `required`, or `none` |
+| `maxTurns` | `WithMaxTurns` | integer |
+| `returnToolRequests` | `WithReturnToolRequests` | boolean |
+| `use` | `WithUse` | list of middleware refs |
+
+`use` entries are resolved by name against middleware registered on the `*Genkit`
+instance. Each entry is either a bare string (the middleware name) or a map with
+`name` and optional `config`. Register the built-in middleware plugin so names
+like `genkit-middleware/retry` resolve:
+
+```go
+import "github.com/firebase/genkit/go/plugins/middleware"
+
+g := genkit.Init(ctx, genkit.WithPlugins(
+	&googlegenai.GoogleAI{},
+	&middleware.Middleware{}, // registers genkit-middleware/{retry,fallback,filesystem,skills,toolApproval}
+))
+```
+
+Available named middleware: `genkit-middleware/retry`, `genkit-middleware/fallback`,
+`genkit-middleware/filesystem`, `genkit-middleware/skills`,
+`genkit-middleware/toolApproval`. See [references/middleware.md](middleware.md).
+
 ## Schemas
 
 ### DefineSchemaFor (from Go type)

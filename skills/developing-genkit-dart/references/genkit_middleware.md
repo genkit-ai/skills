@@ -50,6 +50,12 @@ final response = await ai.generate(
 ## Tool Approval Middleware
 Intercepts tool execution for specified tools and requires explicit approval. Returns `FinishReason.interrupted`.
 
+A tool is allowed through only if it is in the `approved` list or its request's
+`resumed` payload carries `{ 'tool-approved': true }`. To approve on resume,
+re-issue the paused `ToolRequestPart` with `.restart({'tool-approved': true})` —
+the builder nests the payload under `metadata.resumed`, exactly what the
+middleware reads.
+
 ```dart
 final response = await ai.generate(
   prompt: 'Delete the database.',
@@ -60,8 +66,9 @@ final response = await ai.generate(
 );
 
 if (response.finishReason == FinishReason.interrupted) {
+  // `response.interrupts` is a List<ToolRequestPart>.
   final interrupt = response.interrupts.first;
-  
+
   // Ask user for approval
   final isApproved = await askUser();
 
@@ -70,15 +77,16 @@ if (response.finishReason == FinishReason.interrupted) {
       messages: response.messages, // Pass history
       toolChoice: ToolChoice.none, // Prevent immediate re-call
       interruptRestart: [
-        ToolRequestPart(
-          toolRequest: interrupt.toolRequest,
-          metadata: {
-            ...?interrupt.metadata, 
-            'tool-approved': true 
-          }, 
-        ),
+        // `.restart(...)` nests the payload under `metadata.resumed`.
+        interrupt.restart({'tool-approved': true}),
       ],
     );
   }
 }
 ```
+
+> **Agent-side resume.** When resuming an agent chat rather than a raw
+> `ai.generate` call, the interrupts are `AgentInterrupt`s; pass the same
+> `.restart(...)` builder directly to `chat.resume`:
+> `chat.resume(restart: [interrupt.restart({'tool-approved': true})])`.
+> See [human-in-the-loop](agents-human-in-the-loop.md).
