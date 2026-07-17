@@ -12,11 +12,20 @@ Always use `schemantic` when strongly typed JSON parsing or programmatic schema 
 
 ## Installation
 
-Add dependencies:
+Add dependencies. As of schemantic 0.2.x the code generator lives in a
+**separate** `schemantic_builder` package, so you must add it as a dev
+dependency too:
 
 ```bash
 dart pub add schemantic
+dart pub add dev:schemantic_builder
+dart pub add dev:build_runner
 ```
+
+> **Gotcha:** if `schemantic_builder` is missing, `dart run build_runner build`
+> completes "successfully" but reports `wrote 0 outputs` and generates no
+> `.g.dart` files, with no error explaining why. If you see zero outputs, confirm
+> `schemantic_builder` is in your `dev_dependencies`.
 
 ## Basic Usage
 
@@ -135,3 +144,13 @@ abstract class $Node {
 }
 ```
 *Note*: `Node.$schema.jsonSchema(useRefs: true)` generates schemas with JSON Schema `$ref`.
+
+## Non-nullable getters throw on partial data
+
+Generated getters for required fields are non-nullable casts (e.g.
+`_json['estimatedCostUsd'] as num`). A JSON blob that is missing such a field
+throws on access (`Null is not a subtype of num`) rather than returning a
+default — this commonly bites computed/optional values that were never written,
+e.g. when reloading a partially populated state blob. Make computed or optional
+fields nullable (`num?`) or give them a `defaultValue` so partial data can still
+be read.
