@@ -133,11 +133,29 @@ Use the Genkit CLI to find authoritative documentation:
 3.  **Read a guide**: `genkit docs:read <path>`
     -   Example: `genkit docs:read js/flows.md`
 
-## CLI Usage
+## CLI Usage (recommended)
 
-The `genkit` CLI is your primary tool for development and documentation.
--   See [CLI Reference](references/docs-and-cli.md) for common tasks, workflows, and command usage.
--   Use `genkit --help` for a full list of commands.
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action.
+
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
+```bash
+genkit start -- npx tsx --watch src/index.ts
+genkit start --noui -- npx tsx src/index.ts   # trace collection only, lighter, no UI
+```
+
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
+
+**Secondary pattern:** run a single flow without your program's normal entrypoint:
+```bash
+genkit flow:run myFlow '{"data": "input"}' -- npx tsx src/index.ts
+```
+
+See [CLI Reference](references/docs-and-cli.md) for more commands, and `genkit --help` for the full list.
+
 
 ## References
 

@@ -43,7 +43,31 @@ The Python SDK changes often — verify imports and APIs against the references 
 4. After generating code, follow [Dev Workflow](references/dev-workflow.md) for `genkit start` and the Dev UI.
 5. On errors: step 1 is always [Common Errors](references/common-errors.md).
 
+## Genkit CLI (recommended)
+
+`genkit start` unintrusively wraps any Python program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action.
+
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
+```bash
+genkit start -- uv run src/main.py
+genkit start --noui -- uv run src/main.py   # trace collection only, lighter, no UI
+```
+
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
+
+**Secondary pattern:** run a single flow without your program's normal entrypoint:
+```bash
+genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
+```
+
+See [Dev Workflow](references/dev-workflow.md) for the full checklist and Dev UI walkthrough.
+
 ## References
+
 
 - [Examples](references/examples.md): Structured output, streaming, flows, tools, embeddings.
 - [Setup](references/setup.md): New project bootstrap and plugins.

@@ -57,43 +57,47 @@ Load the appropriate reference based on what you need:
 | Flows & HTTP | [references/flows-and-http.md](references/flows-and-http.md) | `DefineFlow`, `DefineStreamingFlow`, `genkit.Handler`, HTTP serving |
 | Model Providers | [references/providers.md](references/providers.md) | Google AI, Vertex AI, Anthropic, OpenAI-compatible, Ollama setup |
 
-## Genkit CLI
+## Genkit CLI (recommended)
 
-Check if installed: `genkit --version`
+`genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. Check install with `genkit --version`.
 
 **Installation:**
 ```bash
 curl -sL cli.genkit.dev | bash
 ```
 
-**Key commands:**
-
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
 ```bash
-# Start app with Developer UI (tracing, flow testing) at http://localhost:4000
 genkit start -- go run .
-genkit start -o -- go run .   # also opens browser
+genkit start --noui -- go run .   # trace collection only, lighter, no UI
+genkit start -o -- go run .       # also opens the browser
+```
 
-# Run a flow directly from the CLI
-genkit flow:run myFlow '{"data": "input"}'
-genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
-genkit flow:run myFlow '{"data": "input"}' --wait      # wait for completion
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
 
-# Or run the flow and spin up the runtime in a single command
+**Secondary pattern:** run a single flow without your program's normal entrypoint:
+```bash
 genkit flow:run myFlow '{"data": "input"}' -- go run .
+genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
+genkit flow:run myFlow '{"data": "input"}' --wait     # wait for completion
+```
+Traces for this run can be inspected using the above trace commands.
 
-# Look up Genkit documentation
+**Documentation:**
+```bash
 genkit docs:search "streaming" go
 genkit docs:list go
 genkit docs:read go/flows.md
-
-# Inspect traces
-genkit trace:list                 # list recent traces to find trace IDs
-genkit trace:get <traceId>        # view trace details (useful for debugging)
 ```
 
 See [references/getting-started.md](references/getting-started.md) for full CLI and Developer UI details.
 
 ## Key Guidance
+
 
 - **Pass `g` explicitly.** The `*Genkit` instance returned by `genkit.Init` is the central registry. Pass it to all Genkit functions rather than storing it as a global. This is a core pattern throughout the SDK.
 - **Wrap AI logic in flows.** Flows give you tracing, observability, HTTP deployment via `genkit.Handler`, and the ability to test from the Developer UI and CLI. Any generation call worth keeping should live in a flow.

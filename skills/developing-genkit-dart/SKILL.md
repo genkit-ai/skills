@@ -49,30 +49,39 @@ For more details see:
 
 ## Genkit CLI (recommended)
 
-The Genkit CLI provides a local development UI for running Flow, tracing executions, playing with models, and evaluating outputs.
-
-check if the user has it installed: `genkit --version`
+`genkit start` unintrusively wraps any Dart program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. Check install with `genkit --version`.
 
 **Installation:**
 ```bash
 curl -sL cli.genkit.dev | bash # Native CLI
 # OR
 npm install -g genkit-cli # Via npm
+# OR use npx (if installed)
+npx genkit-cli --version
 ```
 
-**Usage:**
-Wrap your run command with `genkit start` to attach the Genkit developer UI and tracing:
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
+
 ```bash
 genkit start -- dart run main.dart
+genkit start --noui -- dart run main.dart   # trace collection only, lighter, no UI
+```
 
-# Run a flow directly from the CLI
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
+
+**Secondary pattern:** run a single flow without your program's normal entrypoint:
+```bash
 genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
+```
 
-# Tracing
-genkit trace:list                 # list recent traces to find trace IDs
-genkit trace:get <traceId>        # view trace details (useful for debugging)
+Traces for this run can be inspected using the above trace commands.
 
-# Documentation
+**Documentation:**
+```bash
 genkit docs:search "streaming" dart
 genkit docs:list dart
 genkit docs:read dart/flows.md

@@ -81,27 +81,33 @@ To stop it: press `Ctrl+C` in the terminal.
 
 ## CLI Commands
 
-You can interact with Genkit flows, docs, and traces directly from the command line:
+`genkit start` unintrusively wraps any Python program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action.
 
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI:
 ```bash
-# Start the app with Developer UI
 genkit start -- uv run src/main.py
+genkit start --noui -- uv run src/main.py   # trace collection only, lighter, no UI
+```
 
-# Run a flow directly from the CLI
-genkit flow:run myFlow '{"data": "input"}'
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
 
-# Or run the flow and spin up the runtime in a single command
+**Secondary pattern:** run a single flow without your program's normal entrypoint:
+```bash
 genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
+```
+Traces for this run can be inspected using the above trace commands.
 
-# Tracing
-genkit trace:list                 # list recent traces to find trace IDs
-genkit trace:get <traceId>        # view trace details (useful for debugging)
-
-# Documentation
+**Documentation:**
+```bash
 genkit docs:search "streaming" python
 genkit docs:list python
 genkit docs:read python/flows.md
 ```
+
 
 ## Troubleshooting
 

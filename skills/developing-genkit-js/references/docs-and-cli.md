@@ -15,23 +15,29 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
     -   Example: `genkit docs:read js/overview.md`
 -   **List docs**: `genkit docs:list`
 
-## Development Workflow
+## Development Workflow (recommended)
 
--   **Start Dev Mode**: `genkit start -- <command>`
-    -   Runs the provided command in Genkit dev mode, enabling the Developer UI (usually at http://localhost:4000).
-    -   **Node.js (TypeScript)**:
-        ```bash
-        genkit start -- npx tsx --watch src/index.ts
-        ```
-    -   **Next.js**:
-        ```bash
-        genkit start -- npx next dev
-        ```
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action.
 
-## Flow Execution
+**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
+
+-   **Node.js (TypeScript)**:
+    ```bash
+    genkit start -- npx tsx --watch src/index.ts
+    ```
+-   **Next.js**:
+    ```bash
+    genkit start -- npx next dev
+    ```
+-   **Trace collection only** (lighter, no UI):
+    ```bash
+    genkit start --noui -- npx tsx src/index.ts
+    ```
+
+## Flow Execution (secondary)
 
 -   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>'`
-    -   Executes a flow directly from the CLI. Useful for testing.
+    -   Executes a single flow directly from the CLI without driving your program's normal entrypoint. Useful for testing. Traces for the run can be inspected with the tracing commands below.
     -   **Simple Input**:
         ```bash
         genkit flow:run tellJoke '"chicken"'
@@ -46,6 +52,7 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
         ```
 
 ## Evaluation
+
 
 -   **Evaluate a flow**: `genkit eval:flow <flowName> [data]`
     -   Runs a flow and evaluates the output against configured evaluators.
