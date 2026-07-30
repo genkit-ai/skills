@@ -45,8 +45,8 @@ automatically:
 
 ```python
 chat = agent.chat()
-res1 = await chat.send('Log this: I started studying Genkit today.').response
-res2 = await chat.send('What did I study today?').response  # remembers turn 1
+res1 = await chat.send('Log this: I started studying Genkit today.')
+res2 = await chat.send('What did I study today?')  # remembers turn 1
 print(res1.snapshot_id, res2.snapshot_id)
 ```
 
@@ -54,7 +54,7 @@ Resume a prior conversation by snapshot id:
 
 ```python
 resumed = await agent.load_chat(snapshot_id=res2.snapshot_id)
-await resumed.send('Add another note.').response
+await resumed.send('Add another note.')
 ```
 
 ## Typed session state

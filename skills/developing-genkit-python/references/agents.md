@@ -124,18 +124,23 @@ coding_agent = ai.define_agent(
 ## Chat with an agent
 
 `agent.chat()` opens a conversation. One `chat` carries state forward across
-turns. There is **no `send_stream`** — streaming is on the turn object.
+turns. The split matches `Action.run` / `Action.stream` (and `ai.generate` /
+`ai.generate_stream`):
+
+- `await chat.send(...)` — primary path; returns the completed `AgentResponse`
+- `chat.send_stream(...)` — same turn, with `.stream` / `.response` for chunks
+- `await chat.resume(...)` / `chat.resume_stream(...)` — same split after an interrupt
 
 ```python
 chat = agent.chat()
 
-# Non-streaming: await the response directly.
-res = await chat.send('Weather in Tokyo?').response
+# Non-streaming (primary):
+res = await chat.send('Weather in Tokyo?')
 print(res.text)
 print(res.snapshot_id)  # immutable checkpoint id (None if no store)
 
-# Streaming: iterate turn.stream, then await turn.response.
-turn = chat.send('What about Paris?')
+# Streaming:
+turn = chat.send_stream('What about Paris?')
 async for chunk in turn.stream:
     if chunk.text:
         print(chunk.accumulated_text, end='\r', flush=True)
@@ -151,7 +156,7 @@ With a store, hold onto `snapshot_id` and rehydrate later:
 ```python
 checkpoint = res.snapshot_id
 resumed = await agent.load_chat(snapshot_id=checkpoint)
-await resumed.send('What city did I ask about?').response
+await resumed.send('What city did I ask about?')
 ```
 
 You can also open `agent.chat(snapshot_id=...)` when you already know the id.
@@ -170,11 +175,11 @@ agent = ai.define_agent(
 )
 
 chat = agent.chat()
-await chat.send('My name is Ada. Remember it.').response
+await chat.send('My name is Ada. Remember it.')
 
 messages, state, artifacts = chat.messages, chat.state, chat.artifacts
 resumed = agent.chat(messages=messages, state=state, artifacts=artifacts)
-await resumed.send('What is my name? One word.').response
+await resumed.send('What is my name? One word.')
 ```
 
 Use client-managed state when you don't want server-side storage. Use a
@@ -189,7 +194,7 @@ For apps started with `genkit start`, use `ai.run_main(main())`:
 ```python
 async def main() -> None:
     chat = agent.chat()
-    print((await chat.send('hi').response).text)
+    print((await chat.send('hi')).text)
 
 if __name__ == '__main__':
     ai.run_main(main())

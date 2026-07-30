@@ -32,13 +32,15 @@ assert hasattr(Genkit, 'define_agent')
 
 ---
 
-## AttributeError: 'AgentChat' object has no attribute 'send_stream'
+## TypeError / wrong shape from `chat.send`
 
-**Cause:** There is no `send_stream` on the Python agent chat client.
+**Cause:** `chat.send` is async and returns `AgentResponse`. Streaming lives on
+`chat.send_stream` (same split as `Action.run` / `Action.stream`).
 
-**Fix:** Use the turn's stream:
+**Fix:**
 ```python
-turn = chat.send('hi')
+res = await chat.send('hi')                 # non-streaming
+turn = chat.send_stream('hi')               # streaming
 async for chunk in turn.stream:
     ...
 res = await turn.response
@@ -85,7 +87,7 @@ restart_parts = [
     intr.restart(resumed_metadata={'tool_approved': True})
     for intr in out.interrupts
 ]
-await chat.resume(restart=restart_parts).response
+await chat.resume(restart=restart_parts)
 ```
 
 ---

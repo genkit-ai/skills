@@ -30,7 +30,7 @@ agent = ai.define_agent(
 )
 
 chat = agent.chat()
-await chat.send('Write poem.txt with a short poem about Python agents.').response
+await chat.send('Write poem.txt with a short poem about Python agents.')
 assert any(a.name == 'poem.txt' for a in chat.artifacts)
 ```
 

@@ -63,7 +63,7 @@ agent = ai.define_agent(
 ```python
 chat = agent.chat()
 
-out1 = await chat.send('Transfer $500 to account 12345 for rent.').response
+out1 = await chat.send('Transfer $500 to account 12345 for rent.')
 assert out1.finish_reason == AgentFinishReason.INTERRUPTED
 # transferMoney is pending — it has NOT executed yet.
 
@@ -71,7 +71,7 @@ assert out1.finish_reason == AgentFinishReason.INTERRUPTED
 restart_parts: list[ToolRequestPart] = [
     intr.restart(resumed_metadata={'tool_approved': True}) for intr in out1.interrupts
 ]
-out2 = await chat.resume(restart=restart_parts).response
+out2 = await chat.resume(restart=restart_parts)
 assert out2.finish_reason == AgentFinishReason.STOP
 ```
 
@@ -90,13 +90,13 @@ You can mix respond and restart:
 await chat.resume(
     respond=[a.respond({'approved': True})],
     restart=[b.restart(resumed_metadata={'tool_approved': True})],
-).response
+)
 ```
 
-Streaming works the same way — `chat.resume(...)` returns an `AgentTurn`:
+Streaming resume uses `resume_stream` (same split as `send` / `send_stream`):
 
 ```python
-turn = chat.resume(restart=restart_parts)
+turn = chat.resume_stream(restart=restart_parts)
 async for chunk in turn.stream:
     if chunk.text:
         print(chunk.text, end='', flush=True)

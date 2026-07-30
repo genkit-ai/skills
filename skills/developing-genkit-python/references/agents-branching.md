@@ -26,23 +26,23 @@ agent = ai.define_agent(
 )
 
 root = agent.chat()
-await root.send('Plan a landing page for a note-taking app.').response
+await root.send('Plan a landing page for a note-taking app.')
 checkpoint = root.snapshot_id
 session_id = root.session_id
 
 # Two independent branches from the same checkpoint.
 minimal = await agent.load_chat(snapshot_id=checkpoint)
-await minimal.send('Direction: minimal.').response
+await minimal.send('Direction: minimal.')
 
 bold = await agent.load_chat(snapshot_id=checkpoint)
-await bold.send('Direction: bold.').response
+await bold.send('Direction: bold.')
 chosen_leaf = bold.snapshot_id
 
 # session_id can no longer mean "the latest turn" — Genkit raises
 # FAILED_PRECONDITION rather than silently picking a branch.
 # Resolve by resuming the specific leaf you want:
 resumed = await agent.load_chat(snapshot_id=chosen_leaf)
-await resumed.send('Add a pricing section.').response
+await resumed.send('Add a pricing section.')
 ```
 
 ## Time travel

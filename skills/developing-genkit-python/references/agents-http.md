@@ -23,7 +23,7 @@ client = remote_agent(
 )
 
 chat = client.chat()
-turn = chat.send('Weather in Tokyo?')
+turn = chat.send_stream('Weather in Tokyo?')
 async for chunk in turn.stream:
     if chunk.text:
         print(chunk.text, end='', flush=True)

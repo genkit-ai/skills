@@ -34,7 +34,7 @@ agent = ai.define_agent(
 )
 
 chat = agent.chat(state=Profile(name='Ada', tier='pro'))
-res = await chat.send('Hello').response
+res = await chat.send('Hello')
 print(chat.state.name)  # typed
 ```
 
@@ -95,7 +95,7 @@ agent = ai.define_custom_agent(
 )
 
 chat = agent.chat()
-turn = chat.send('Go')
+turn = chat.send_stream('Go')
 async for chunk in turn.stream:
     if chunk.custom is not None:
         print(chunk.custom.turns)  # Progress, not a dict
