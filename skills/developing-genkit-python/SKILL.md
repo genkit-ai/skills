@@ -59,7 +59,7 @@ first.
 - Google AI: `from genkit_google_genai import GoogleAI`
 - Agents: `from genkit.agent import InMemorySessionStore, ...`
 - Middleware: `from genkit_middleware import Middleware, ToolApproval, ...`
-- FastAPI: `from genkit_fastapi import serve_agent, serve_flow, genkit_fastapi_handler`
+- FastAPI: `from genkit_fastapi import serve_agent, serve_flow, handle_genkit_request`
 - Evaluators: `from genkit_evaluators import register_genkit_evaluators`
 
 ## Development Workflow
@@ -75,7 +75,7 @@ first.
 - [Examples](references/examples.md): Structured output, streaming, flows, tools, embeddings.
 - [Setup](references/setup.md): New project bootstrap and plugins.
 - [Common Errors](references/common-errors.md): Read first when something breaks.
-- [FastAPI](references/fastapi.md): `serve_agent` / `serve_flow`, `genkit_fastapi_handler`, parallel flows.
+- [FastAPI](references/fastapi.md): `serve_agent` / `serve_flow` / `handle_genkit_request`, parallel flows.
 - [Dotprompt](references/dotprompt.md): `.prompt` files and helpers.
 - [Evals](references/evals.md): Evaluators and datasets.
 - [Dev Workflow](references/dev-workflow.md): `genkit start`, Dev UI, checklist.
