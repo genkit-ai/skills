@@ -4,14 +4,19 @@ Minimal patterns for common Genkit APIs. Examples use **Google AI** (`GoogleAI`,
 
 ## Public imports
 
-Use **`genkit`**, **`genkit.plugins.*`**, **`genkit.embedder`**, **`genkit.evaluator`**, and **`genkit.model`** (and similar public modules) only — not internal packages (`genkit._core`, etc.).
+Use public packages only — `genkit`, `genkit_google_genai`, `genkit_fastapi`,
+`genkit_middleware`, `genkit_evaluators`, `genkit.agent`, `genkit.embedder`,
+`genkit.evaluator`, `genkit.model`, etc. Do not import internal modules
+(`genkit._core`, …).
 
 ```python
 from genkit import Genkit, ActionRunContext
-from genkit.plugins.google_genai import GoogleAI
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
 ```
+
+For agents, see [Agents](agents.md) (`from genkit.agent import ...`).
 
 ---
 
@@ -156,7 +161,7 @@ response = await ai.generate(prompt='Weather in Paris?', tools=[get_weather])
 ## Embeddings
 
 ```python
-from genkit.plugins.google_genai import GeminiEmbeddingModels
+from genkit_google_genai import GeminiEmbeddingModels
 
 embedder = f'googleai/{GeminiEmbeddingModels.GEMINI_EMBEDDING_001}'
 embeddings = await ai.embed(embedder=embedder, content='The sky is blue.')

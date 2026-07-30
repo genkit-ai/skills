@@ -2,13 +2,13 @@
 
 ## Two types of evaluators
 
-1. **Built-in** — ship with `genkit-plugin-evaluators`, register with `register_genkit_evaluators(ai)`
+1. **Built-in** — ship with `genkit-evaluators`, register with `register_genkit_evaluators(ai)`
 2. **BYO (LLM-based)** — define your own scoring logic with `ai.define_evaluator()`
 
 ## Install
 
 ```bash
-uv add genkit-plugin-evaluators
+uv add genkit-evaluators
 ```
 
 ## Dataset format
@@ -26,11 +26,12 @@ Fields: `testCaseId`, `input`, `output`, `reference` (reference optional for som
 ## Built-in evaluators
 
 ```python
-from genkit.plugins.evaluators import register_genkit_evaluators
+from genkit_evaluators import register_genkit_evaluators
 register_genkit_evaluators(ai)
 ```
 
-Registered evaluators include `genkitEval/regex`. Run via CLI:
+Registered evaluators: `genkitEval/regex`, `genkitEval/deep_equal`,
+`genkitEval/jsonata`. Run via CLI:
 ```bash
 genkit eval:run datasets/my_dataset.json --evaluators=genkitEval/regex
 ```

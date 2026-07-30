@@ -38,7 +38,7 @@ Replace `/path/to/your-project` with the actual full path to the project (e.g. `
 
 ```bash
 cd /path/to/your-project
-uv add genkit genkit-plugin-google-genai
+uv add genkit genkit-google-genai
 ```
 
 (Requires a project with `pyproject.toml` — run `uv init` in an empty directory first if needed.)
@@ -105,10 +105,10 @@ genkit docs:read python/flows.md
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `genkit: command not found` | Run: `npm install -g genkit-cli` |
-| `GEMINI_API_KEY not set` | Run: `export GEMINI_API_KEY=your-key` |
-| Port 4000 already in use | Use: `genkit start --port 4001 -- uv run src/main.py` |
-| `uv: command not found` | Run: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| Flow not showing in Dev UI | Make sure `genkit start` output shows no errors |
+- `genkit: command not found` — `npm install -g genkit-cli`
+- `GEMINI_API_KEY not set` — `export GEMINI_API_KEY=your-key`
+- Port 4000 already in use —
+  `genkit start --port 4001 -- uv run src/main.py`
+- `uv: command not found` —
+  `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Flow not showing in Dev UI — check `genkit start` output for errors

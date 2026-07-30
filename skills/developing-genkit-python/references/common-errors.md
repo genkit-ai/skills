@@ -6,11 +6,74 @@
 
 ## ModuleNotFoundError: No module named 'genkit.plugins.google_genai'
 
-**Cause:** Plugin package not installed.
+**Cause:** Stale import path. The Google AI plugin is no longer under
+`genkit.plugins.google_genai`.
 
-**Fix:** Add dependencies from PyPI:
+**Fix:**
+```python
+from genkit_google_genai import GoogleAI  # correct
+```
 ```bash
-uv add genkit genkit-plugin-google-genai
+uv add genkit genkit-google-genai
+```
+
+---
+
+## TypeError / wrong shape from `chat.send`
+
+**Cause:** `send` returns `AgentResponse`; streaming is `send_stream`.
+
+**Fix:**
+```python
+res = await chat.send('hi')
+turn = chat.send_stream('hi')
+async for chunk in turn.stream:
+    ...
+res = await turn.response  # no need to drain .stream; unread chunks stay on this turn
+```
+
+---
+
+## snapshot_id / session_id is None after a turn
+
+**Cause:** Agent was defined **without** a `store`. Ids are only minted when a
+session store is attached.
+
+**Fix:** Pass `store=InMemorySessionStore()` (or `FileSessionStore`). Without a store,
+resume by round-tripping `chat.messages`, `chat.state`, and `chat.artifacts`.
+
+---
+
+## detach / chat.abort() fails or does nothing useful
+
+**Cause:** Background detach and **server-side** abort require a session store.
+
+**Also:** `turn.abort()` is a **client** detach (stop listening; server may
+still finish). `chat.abort()` / `task.abort()` cancel on the server.
+
+---
+
+## FAILED_PRECONDITION on session_id lookup after branching
+
+**Cause:** The session has multiple leaves; "latest" is ambiguous
+(`reject_ambiguous_session=True`).
+
+**Fix:** Resume with the specific leaf `snapshot_id`, not `session_id`.
+
+---
+
+## ToolApproval: tool still doesn't run after resume
+
+**Cause:** Resume parts missing approval metadata, or built by hand instead of
+from `res.interrupts`.
+
+**Fix:**
+```python
+restart_parts = [
+    intr.restart(resumed_metadata={'tool_approved': True})
+    for intr in out.interrupts
+]
+await chat.resume(restart=restart_parts)
 ```
 
 ---
@@ -28,8 +91,6 @@ from pydantic import BaseModel
 async def get_weather(city: str) -> str: ...
 
 # Right
-from pydantic import BaseModel
-
 class WeatherInput(BaseModel):
     city: str
 

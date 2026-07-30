@@ -3,15 +3,55 @@
 ## Install
 
 ```bash
-uv add genkit-plugin-fastapi fastapi uvicorn
+uv add genkit-fastapi fastapi uvicorn
+```
+
+Import from `genkit_fastapi`:
+
+- `serve_agent` / `serve_flow` — mount an agent or flow as a router (preferred for new code)
+- `genkit_fastapi_handler` — decorator stack on a FastAPI route
+
+For agents, see also [Agent HTTP](agents-http.md).
+
+---
+
+## Serve an agent or flow (preferred)
+
+```python
+import uvicorn
+from fastapi import FastAPI
+from genkit import Genkit
+from genkit.agent import InMemorySessionStore
+from genkit_fastapi import serve_agent, serve_flow
+from genkit_google_genai import GoogleAI
+
+ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
+
+agent = ai.define_agent(
+    name='weatherAgent',
+    system='Weather assistant. Be concise.',
+    store=InMemorySessionStore(),
+)
+
+@ai.flow()
+async def hello(name: str) -> str:
+    return f'Hello, {name}'
+
+app = FastAPI()
+app.include_router(serve_agent(agent), prefix='/api')          # /api/weatherAgent (+ getSnapshot/abort)
+app.include_router(serve_flow(hello), prefix='/api')           # /api/hello
+# Optional: app.include_router(serve_flow(hello, base_path='/hi'), prefix='/api')
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8080)
 ```
 
 ---
 
 ## Streaming by default
 
-The `genkit_fastapi_handler` decorator auto-streams when the client sends `Accept: text/event-stream`.
-No extra setup — just add the header on the frontend and it works.
+`serve_flow` / `genkit_fastapi_handler` stream when the client sends
+`Accept: text/event-stream`.
 
 **Wire format (SSE):**
 ```
@@ -49,8 +89,8 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 from genkit import Genkit
 from genkit import ActionRunContext
-from genkit.plugins.fastapi import genkit_fastapi_handler
-from genkit.plugins.google_genai import GoogleAI
+from genkit_fastapi import genkit_fastapi_handler
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
 app = FastAPI()
@@ -81,9 +121,11 @@ Without `ctx.send_chunk`, the flow runs but streams nothing — client waits for
 
 ## Advanced Use Cases
 
-### Fine-grained control over flow streaming
+### Nested flow streaming
 
-Complex apps chain flows — a parent orchestrates children. Chunks propagate upward by **passing `ctx` to child flows**.
+Chain flows so a child's chunks surface on the parent's HTTP stream. Call the
+child with `.run(..., on_chunk=ctx.send_chunk)` — do **not** pass `ctx` as a
+second positional argument to `await child(input, ctx)` (that raises `TypeError`).
 
 ```python
 class ResearchInput(BaseModel):
@@ -91,12 +133,11 @@ class ResearchInput(BaseModel):
 
 @ai.flow()
 async def research(input: ResearchInput, ctx: ActionRunContext) -> str:
-    """Child flow — streams its generate_stream chunks to whoever called it."""
     sr = ai.generate_stream(prompt=f'Explain {input.topic} in depth.')
     full = ''
     async for chunk in sr.stream:
         if chunk.text:
-            ctx.send_chunk(chunk.text)   # propagates up through the call stack
+            ctx.send_chunk(chunk.text)
             full += chunk.text
     return full
 
@@ -106,7 +147,6 @@ class HeadlineInput(BaseModel):
 
 @ai.flow()
 async def make_headline(input: HeadlineInput) -> str:
-    """Child flow — non-streaming, returns instantly."""
     response = await ai.generate(prompt=f'One-line headline for: {input.text}')
     return response.text.strip()
 
@@ -118,22 +158,23 @@ class ReportInput(BaseModel):
 @genkit_fastapi_handler(ai)
 @ai.flow()
 async def report(input: ReportInput, ctx: ActionRunContext) -> str:
-    """Parent flow — calls children, composes a streaming report."""
-    # Step 1: fast non-streaming call
     headline = await make_headline(HeadlineInput(text=input.topic))
-    ctx.send_chunk(f'# {headline}\n\n')           # send headline immediately
+    ctx.send_chunk(f'# {headline}\n\n')
 
-    # Step 2: child flow streams its chunks — passes ctx so they flow up
-    body = await research(ResearchInput(topic=input.topic), ctx)
+    body = (
+        await research.run(
+            ResearchInput(topic=input.topic),
+            on_chunk=ctx.send_chunk,
+        )
+    ).response
 
     return f'# {headline}\n\n{body}'
 ```
 
-**Rules for nested streaming:**
-- Child flows that should stream must also accept `ctx: ActionRunContext`
-- Pass the parent's `ctx` when calling child flows: `await child(input, ctx)`
-- Non-streaming child flows don't need `ctx` — just `await` them normally
-- A child that doesn't call `ctx.send_chunk` contributes nothing to the stream (fine for parallel data fetching)
+**Rules:**
+- Streaming children accept `ctx: ActionRunContext` and call `ctx.send_chunk`
+- Parents forward chunks with `child.run(input, on_chunk=ctx.send_chunk)`
+- Non-streaming children: `await child(input)` is fine
 
 ### Executing flows in parallel
 
