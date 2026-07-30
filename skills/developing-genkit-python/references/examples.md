@@ -8,10 +8,12 @@ Use **`genkit`**, **`genkit.plugins.*`**, **`genkit.embedder`**, **`genkit.evalu
 
 ```python
 from genkit import Genkit, ActionRunContext
-from genkit.plugins.google_genai import GoogleAI
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
 ```
+
+For agents, see [Agents](agents.md) (`from genkit.agent import ...`).
 
 ---
 

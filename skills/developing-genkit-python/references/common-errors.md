@@ -6,11 +6,86 @@
 
 ## ModuleNotFoundError: No module named 'genkit.plugins.google_genai'
 
-**Cause:** Plugin package not installed.
+**Cause:** Stale import path. The Google AI plugin is no longer under
+`genkit.plugins.google_genai`.
 
-**Fix:** Add dependencies from PyPI:
+**Fix:**
+```python
+from genkit_google_genai import GoogleAI  # correct
+```
 ```bash
 uv add genkit genkit-plugin-google-genai
+```
+
+---
+
+## AttributeError: 'Genkit' object has no attribute 'define_agent'
+
+**Cause:** Installed `genkit` build does not include agents yet (e.g. PyPI 0.8.x).
+
+**Fix:** Install from the agents branch / local checkout your team specifies
+until a release that exports `ai.define_agent` is published. Verify with:
+```python
+from genkit import Genkit
+assert hasattr(Genkit, 'define_agent')
+```
+
+---
+
+## AttributeError: 'AgentChat' object has no attribute 'send_stream'
+
+**Cause:** There is no `send_stream` on the Python agent chat client.
+
+**Fix:** Use the turn's stream:
+```python
+turn = chat.send('hi')
+async for chunk in turn.stream:
+    ...
+res = await turn.response
+```
+
+---
+
+## snapshot_id / session_id is None after a turn
+
+**Cause:** Agent was defined **without** a `store`. Ids are only minted when a
+session store is attached.
+
+**Fix:** Pass `store=InMemorySessionStore()` (or File/Firestore). Without a store,
+resume by round-tripping `chat.messages`, `chat.state`, and `chat.artifacts`.
+
+---
+
+## detach / chat.abort() fails or does nothing useful
+
+**Cause:** Background detach and **server-side** abort require a session store.
+
+**Also:** `turn.abort()` is a **client** detach (stop listening; server may
+still finish). `chat.abort()` / `task.abort()` cancel on the server.
+
+---
+
+## FAILED_PRECONDITION on session_id lookup after branching
+
+**Cause:** The session has multiple leaves; "latest" is ambiguous
+(`reject_ambiguous_session=True`).
+
+**Fix:** Resume with the specific leaf `snapshot_id`, not `session_id`.
+
+---
+
+## ToolApproval: tool still doesn't run after resume
+
+**Cause:** Resume parts missing approval metadata, or built by hand instead of
+from `res.interrupts`.
+
+**Fix:**
+```python
+restart_parts = [
+    intr.restart(resumed_metadata={'tool_approved': True})
+    for intr in out.interrupts
+]
+await chat.resume(restart=restart_parts).response
 ```
 
 ---
@@ -28,8 +103,6 @@ from pydantic import BaseModel
 async def get_weather(city: str) -> str: ...
 
 # Right
-from pydantic import BaseModel
-
 class WeatherInput(BaseModel):
     city: str
 
