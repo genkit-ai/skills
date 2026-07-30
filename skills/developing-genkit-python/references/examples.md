@@ -4,14 +4,19 @@ Minimal patterns for common Genkit APIs. Examples use **Google AI** (`GoogleAI`,
 
 ## Public imports
 
-Use **`genkit`**, **`genkit.plugins.*`**, **`genkit.embedder`**, **`genkit.evaluator`**, and **`genkit.model`** (and similar public modules) only — not internal packages (`genkit._core`, etc.).
+Use public packages only — `genkit`, `genkit_google_genai`, `genkit_fastapi`,
+`genkit_middleware`, `genkit_evaluators`, `genkit.agent`, `genkit.embedder`,
+`genkit.evaluator`, `genkit.model`, etc. Do not import internal modules
+(`genkit._core`, …).
 
 ```python
 from genkit import Genkit, ActionRunContext
-from genkit.plugins.google_genai import GoogleAI
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
 ```
+
+For agents, see [Agents](agents.md) (`from genkit.agent import ...`).
 
 ---
 
@@ -55,6 +60,10 @@ async for chunk in sr.stream:
 final = await sr.response  # final.text
 ```
 
+You do **not** need to drain `.stream` for the turn to finish — `await sr.response`
+completes even if you break out of the loop early (same idea as agent
+`send_stream`).
+
 ---
 
 ## Text and media parts
@@ -83,6 +92,38 @@ if final.message:
 ```
 
 ---
+
+
+## Sending image / media input
+
+The section above covers **model-produced** media. To *send* an image to Gemini,
+build a user `Message` with text + `MediaPart` (URL or data URI):
+
+```python
+from genkit import Media, MediaPart, Message, Part, Role, TextPart
+
+image_url = 'https://example.com/cat.jpg'  # or data:image/png;base64,...
+msg = Message(
+    role=Role.USER,
+    content=[
+        Part(root=TextPart(text='What is in this image?')),
+        Part(root=MediaPart(media=Media(url=image_url, content_type='image/jpeg'))),
+    ],
+)
+response = await ai.generate(messages=[msg])
+print(response.text)
+```
+
+Prefer a vision-capable model (`googleai/gemini-flash-latest`). URLs are
+fetched **server-side** — hotlink-blocked or thumbnail URLs often fail.
+Prefer a direct image URL or a data URI:
+
+```python
+import base64
+b64 = base64.b64encode(Path('cat.png').read_bytes()).decode()
+url = f'data:image/png;base64,{b64}'
+```
+
 
 ## Streaming + structured output
 
@@ -156,7 +197,7 @@ response = await ai.generate(prompt='Weather in Paris?', tools=[get_weather])
 ## Embeddings
 
 ```python
-from genkit.plugins.google_genai import GeminiEmbeddingModels
+from genkit_google_genai import GeminiEmbeddingModels
 
 embedder = f'googleai/{GeminiEmbeddingModels.GEMINI_EMBEDDING_001}'
 embeddings = await ai.embed(embedder=embedder, content='The sky is blue.')
