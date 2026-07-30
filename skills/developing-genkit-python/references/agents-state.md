@@ -1,19 +1,38 @@
-# Working with Agent State (Beta)
+# Agent State (Beta)
 
-> **Beta / preview API.** See [agents.md](agents.md),
-> [sessions](agents-sessions.md).
+> See [agents.md](agents.md) · [sessions](agents-sessions.md).
 
-Three layers on the session: **messages**, **custom** (`state_schema`),
-**artifacts**. With `state_schema`, `chat.state` / `response.state` /
-`chunk.custom` are instances of that model.
+A session carries three layers: messages, custom state (`state_schema`), and
+artifacts. With a schema, `chat.state` and streamed `chunk.custom` come back as
+that model.
 
-## Typed custom state
+## Two modes
+
+**With a store** — Genkit owns history. Resume by `snapshot_id` or
+`session_id`. You cannot seed with `chat(state=...)`.
+
+**Without a store** — your app owns history. Seed and round-trip yourself:
+
+```python
+chat = agent.chat(state=Profile(name='Ada', tier='pro'))
+await chat.send('Hello')
+resumed = agent.chat(
+    messages=chat.messages, state=chat.state, artifacts=chat.artifacts
+)
+```
+
+Custom state is for your product (routing, UI). It is not injected into the
+model unless you put it in the system prompt or messages.
+
+`state_schema` alone does not fill `chat.state`. Something in the turn must call
+`update_custom`. Prefer tools on a normal agent so you keep middleware.
+
+## Client-managed typed state
 
 ```python
 from pydantic import BaseModel
 
 from genkit import Genkit
-from genkit.agent import InMemorySessionStore
 from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
@@ -26,92 +45,91 @@ class Profile(BaseModel):
 
 agent = ai.define_agent(
     name='profileAgent',
-    model='googleai/gemini-flash-latest',
-    system='Greet the user by name.',
-    store=InMemorySessionStore(),
+    system='Greet the user by name when you know it.',
     state_schema=Profile,
 )
 
 chat = agent.chat(state=Profile(name='Ada', tier='pro'))
-res = await chat.send('Hello')
+await chat.send('Hello')
 print(chat.state.name)
 ```
 
-## Streaming patches (custom agent)
+## Store + middleware
 
-In [`handle_turn`](agents-custom.md), `sess.update_custom(...)` mutates custom
-state; clients see live `chunk.custom`:
+Update custom state from tools with `ai.current_session()`. Mutators are
+async. Coerce to your model if the callback receives a dict:
 
 ```python
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from genkit import ActionRunContext, FinishReason, Genkit, Message
-from genkit.agent import (
-    AgentFinishReason,
-    AgentInput,
-    AgentResult,
-    AgentStreamChunk,
-    InMemorySessionStore,
-    SessionRunner,
-    TurnContext,
-    TurnResult,
-)
+from genkit import Genkit
+from genkit.agent import InMemorySessionStore
 from genkit_google_genai import GoogleAI
-
-ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
-
-
-class Progress(BaseModel):
-    turns: int = 0
+from genkit_middleware import Middleware, ToolApproval
 
 
-async def stateful_fn(sess: SessionRunner, ctx: ActionRunContext) -> AgentResult:
-    async def handle_turn(inp: AgentInput, _: TurnContext) -> TurnResult | None:
-        await sess.update_custom(lambda c: {'turns': (c or {}).get('turns', 0) + 1})
-
-        history = await sess.get_messages()
-        messages = [Message(m) for m in history] if history else None
-        stream_resp = ai.generate_stream(
-            model='googleai/gemini-flash-latest',
-            system='Acknowledge progress in one sentence.',
-            messages=messages,
-        )
-        async for chunk in stream_resp.stream:
-            ctx.send_chunk(AgentStreamChunk(model_chunk=chunk))
-
-        res = await stream_resp.response
-        if res.message:
-            await sess.add_messages(res.message)
-        fr = (
-            AgentFinishReason.STOP
-            if res.finish_reason == FinishReason.STOP
-            else AgentFinishReason.UNKNOWN
-        )
-        return TurnResult(finish_reason=fr)
-
-    await sess.run(handle_turn)
-    return await sess.result()
+class CaseState(BaseModel):
+    case_id: str = ''
+    status: str = 'open'
 
 
-agent = ai.define_custom_agent(
-    name='statefulAgent',
-    fn=stateful_fn,
+class OpenCaseInput(BaseModel):
+    case_id: str = Field(description='Support case id')
+
+
+ai = Genkit(plugins=[GoogleAI(), Middleware()], model='googleai/gemini-flash-latest')
+
+
+@ai.tool(name='openCase', description='Open or update the support case id.')
+async def open_case(input: OpenCaseInput) -> dict:
+    sess = ai.current_session()
+    if sess is None:
+        return {'ok': False, 'error': 'no session'}
+
+    async def mutate(c: object) -> CaseState:
+        base = c if isinstance(c, CaseState) else CaseState.model_validate(c or {})
+        return CaseState(case_id=input.case_id, status=base.status)
+
+    await sess.update_custom(mutate)
+    return {'ok': True, 'case_id': input.case_id}
+
+
+agent = ai.define_agent(
+    name='supportOps',
+    system='Support ops. Call openCase when asked. Be brief.',
+    tools=[open_case],
+    state_schema=CaseState,
+    use=[ToolApproval(allowed_tools=['openCase'])],
     store=InMemorySessionStore(),
-    state_schema=Progress,
 )
-
-chat = agent.chat()
-turn = chat.send_stream('Go')
-async for chunk in turn.stream:
-    if chunk.custom is not None:
-        print(chunk.custom.turns)
-final = await turn.response
 ```
 
-## Client transforms (egress only)
+## Live patches
 
-`state_transform` / `chunk_transform` on `define_agent` run on the way **out**.
-They do not rewrite what the store persists.
+In a [custom agent](agents-custom.md), `update_custom` streams to
+`chunk.custom`:
 
-- `state_transform` must return a `SessionState` (never `None` to clear)
-- `chunk_transform` may return `None` to drop a chunk
+```python
+async def bump(c):
+    return {'turns': (c or {}).get('turns', 0) + 1}
+
+await sess.update_custom(bump)
+```
+
+## Redacting on the way out
+
+`state_transform` and `chunk_transform` shape what clients see. They do not
+change what the store keeps. Return a full `SessionState` from
+`state_transform`. Returning `None` from `chunk_transform` drops that chunk.
+
+```python
+from genkit.agent import SessionState
+
+def redact(state: SessionState) -> SessionState:
+    custom = dict(state.custom or {})
+    if 'api_key' in custom:
+        custom['api_key'] = 'REDACTED'
+    return SessionState(messages=state.messages, custom=custom, artifacts=state.artifacts)
+
+agent = ai.define_agent(..., state_schema=SecretState, state_transform=redact, store=...)
+```

@@ -11,7 +11,9 @@ Flow: `send` → `finish_reason == INTERRUPTED` + `res.interrupts` → human inp
 ## ToolApproval
 
 Tools in `allowed_tools` run freely; everything else pauses. Empty list ⇒ every
-tool needs approval.
+tool needs approval. When you also mount `Filesystem` / `Artifacts`, remember
+to allow-list (or deliberately interrupt on) `write_file` / `edit_file` /
+`write_artifact` — the coding-agent example often auto-approves **reads only**.
 
 ```python
 from uuid import uuid4
@@ -58,14 +60,12 @@ agent = ai.define_agent(
 chat = agent.chat()
 
 out1 = await chat.send('Transfer $500 to account 12345 for rent.')
-assert out1.finish_reason == AgentFinishReason.INTERRUPTED
-# transferMoney has NOT executed yet.
+# finish_reason == INTERRUPTED; transferMoney has NOT executed yet.
 
 restart_parts: list[ToolRequestPart] = [
     intr.restart(resumed_metadata={'tool_approved': True}) for intr in out1.interrupts
 ]
 out2 = await chat.resume(restart=restart_parts)
-assert out2.finish_reason == AgentFinishReason.STOP
 ```
 
 Resume builders (return parts; you still call `chat.resume`):
@@ -73,8 +73,19 @@ Resume builders (return parts; you still call `chat.resume`):
 - `interrupt.restart(...)` — re-issue the tool request (ToolApproval after OK).
   `resumed_metadata={'tool_approved': True}` (camelCase `toolApproved` also ok)
 - `interrupt.respond(output)` — supply a tool response without running the tool
+  (use this to **deny**: e.g. `respond({'ok': False, 'error': 'denied by policy'})`)
 
 ```python
+# Approve (runs the tool):
+await chat.resume(
+    restart=[intr.restart(resumed_metadata={'tool_approved': True}) for intr in out1.interrupts]
+)
+
+# Deny (model sees the respond payload; tool does not execute):
+await chat.resume(
+    respond=[intr.respond({'ok': False, 'error': 'export denied'}) for intr in out1.interrupts]
+)
+
 await chat.resume(
     respond=[a.respond({'approved': True})],
     restart=[b.restart(resumed_metadata={'tool_approved': True})],
@@ -92,3 +103,7 @@ Without a store: keep the same `chat`, or round-trip messages/state/artifacts
 
 Build resume parts from `res.interrupts` only. Loop until finish reason is no
 longer `INTERRUPTED`. Don't treat an interrupted turn as the final reply.
+
+For approval UIs, each interrupt exposes `.name`, `.ref`, and `.input` (the
+pending tool call). Use those to render the prompt; then `.restart(...)` or
+`.respond(...)`.

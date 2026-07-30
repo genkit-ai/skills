@@ -37,7 +37,8 @@ this), `parent_snapshot_id`, `turn_index`. Without a store, `snapshot_id` is
 `None`.
 
 From `sess`: `get_messages` / `add_messages` / `set_messages`,
-`get_custom` / `update_custom`, `get_artifacts` / `add_artifacts`. Stream with
+`get_custom` / `update_custom`, `get_artifacts` / `add_artifacts`.
+`add_messages` and `add_artifacts` each take a **list**. Stream with
 `ctx.send_chunk(AgentStreamChunk(...))`.
 
 ## Example
@@ -75,7 +76,7 @@ async def custom_coder_fn(sess: SessionRunner, ctx: ActionRunContext) -> AgentRe
 
         res = await stream_resp.response
         if res.message:
-            await sess.add_messages(res.message)
+            await sess.add_messages([res.message])
 
         fr = (
             AgentFinishReason.STOP
@@ -96,3 +97,20 @@ await chat.send('What is a Python list comprehension?')
 
 Persist model replies with `sess.add_messages` or the next turn won't see them.
 Custom state → [state](agents-state.md). Artifacts → [artifacts](agents-artifacts.md).
+
+
+## Non-streaming `handle_turn` with tools
+
+```python
+async def handle_turn(inp: AgentInput, ctx: TurnContext) -> TurnResult | None:
+    history = [Message(m) for m in await sess.get_messages()]
+    # ai.generate runs the tool loop for you
+    res = await ai.generate(
+        messages=history + list(inp.messages or []),
+        tools=[get_time],
+        system='You are helpful.',
+    )
+    return TurnResult(messages=res.messages, finish_reason=AgentFinishReason.STOP)
+```
+
+Tool inputs: [agents.md](agents.md#tool-inputs).

@@ -1,96 +1,43 @@
-# Common Errors — Genkit Python
+# Common Errors
 
-## Before anything else: read this file when you hit any error.
+Quick fixes. Longer recipes live in the linked guides.
 
 ---
 
-## ModuleNotFoundError: No module named 'genkit.plugins.google_genai'
+## Wrong Google AI import
 
-**Cause:** Stale import path. The Google AI plugin is no longer under
-`genkit.plugins.google_genai`.
-
-**Fix:**
 ```python
-from genkit_google_genai import GoogleAI  # correct
+from genkit_google_genai import GoogleAI
 ```
+
 ```bash
 uv add genkit genkit-google-genai
 ```
 
 ---
 
-## TypeError / wrong shape from `chat.send`
+## Streaming TypeError
 
-**Cause:** `send` returns `AgentResponse`; streaming is `send_stream`.
+Do not await the stream handle — await the response:
 
-**Fix:**
 ```python
-res = await chat.send('hi')
 turn = chat.send_stream('hi')
-async for chunk in turn.stream:
-    ...
-res = await turn.response  # no need to drain .stream; unread chunks stay on this turn
+async for chunk in turn.stream: ...
+res = await turn.response
+
+sr = ai.generate_stream(prompt='...')
+async for chunk in sr.stream: ...
+final = await sr.response
 ```
 
 ---
 
-## snapshot_id / session_id is None after a turn
+## Tool schema must be an object
 
-**Cause:** Agent was defined **without** a `store`. Ids are only minted when a
-session store is attached.
+Wrap tool params in a Pydantic model. Bare `str` / `float` arguments fail on
+Gemini. See [agents.md](agents.md).
 
-**Fix:** Pass `store=InMemorySessionStore()` (or `FileSessionStore`). Without a store,
-resume by round-tripping `chat.messages`, `chat.state`, and `chat.artifacts`.
-
----
-
-## detach / chat.abort() fails or does nothing useful
-
-**Cause:** Background detach and **server-side** abort require a session store.
-
-**Also:** `turn.abort()` is a **client** detach (stop listening; server may
-still finish). `chat.abort()` / `task.abort()` cancel on the server.
-
----
-
-## FAILED_PRECONDITION on session_id lookup after branching
-
-**Cause:** The session has multiple leaves; "latest" is ambiguous
-(`reject_ambiguous_session=True`).
-
-**Fix:** Resume with the specific leaf `snapshot_id`, not `session_id`.
-
----
-
-## ToolApproval: tool still doesn't run after resume
-
-**Cause:** Resume parts missing approval metadata, or built by hand instead of
-from `res.interrupts`.
-
-**Fix:**
 ```python
-restart_parts = [
-    intr.restart(resumed_metadata={'tool_approved': True})
-    for intr in out.interrupts
-]
-await chat.resume(restart=restart_parts)
-```
-
----
-
-## 400 INVALID_ARGUMENT: functionDeclaration parameters schema should be of type OBJECT
-
-**Cause:** Tool function has bare scalar parameters (e.g. `city: str`). Gemini requires object schema.
-
-**Fix:** Wrap parameters in a Pydantic BaseModel:
-```python
-from pydantic import BaseModel
-
-# Wrong
-@ai.tool()
-async def get_weather(city: str) -> str: ...
-
-# Right
 class WeatherInput(BaseModel):
     city: str
 
@@ -100,44 +47,87 @@ async def get_weather(input: WeatherInput) -> str: ...
 
 ---
 
-## AttributeError: 'Genkit' object has no attribute 'define_tool'
+## `define_tool` missing
 
-**Cause:** Wrong decorator name.
-
-**Fix:** Use `@ai.tool()`, not `@ai.define_tool()`.
+Use `@ai.tool()`.
 
 ---
 
-## RuntimeError / event loop errors when using asyncio.run()
+## Model id without a prefix
 
-**Cause:** For apps you start with **`genkit start`**, Genkit runs your entrypoint with an event loop suited to the framework (including uvloop where used). There is no “default” loop for you to manage in that mode.
-
-**Fix:** For long-running Genkit apps (servers, flows served under `genkit start`), use **`ai.run_main(main())`** as your entrypoint instead of `asyncio.run(main())`. For one-off scripts that exit when done, using `asyncio.run()` can still be appropriate when you are not using `genkit start`.
+Use `googleai/gemini-flash-latest`, not bare `gemini-flash-latest`.
 
 ---
 
-## Wrong model ID (no plugin prefix)
+## Missing `.json` / `.message` on the response
 
-**Cause:** `model='gemini-flash-latest'` — missing plugin prefix.
-
-**Fix:** `model='googleai/gemini-flash-latest'`
+Plain text → `response.text`. Structured output → `response.output`.
 
 ---
 
-## response.json / response.message AttributeError
+## Event loop issues under `genkit start`
 
-- Use `response.text` for plain text output
-- Use `response.output` for structured (JSON) output
+Use `ai.run_main(main())` for long-lived apps. See [fastapi.md](fastapi.md)
+for serving under Dev UI.
 
 ---
 
-## await ai.generate_stream(...) fails or returns wrong type
+## No `snapshot_id` after a turn
 
-**Cause:** `generate_stream` is synchronous — do not await it.
+Attach a `store`. Without one, pass messages / state / artifacts yourself —
+[agents.md](agents.md).
 
-**Fix:**
+---
+
+## Cannot send state to a server-managed agent
+
+Store-backed chats resume by id. Update fields inside the turn —
+[agents-state.md](agents-state.md).
+
+---
+
+## Ambiguous session after a fork
+
+Resume with a leaf `snapshot_id`, not `session_id` —
+[agents-branching.md](agents-branching.md).
+
+---
+
+## Approval resume does nothing
+
+Pass approval metadata on the restart part:
+
 ```python
-sr = ai.generate_stream(prompt='...')   # no await
-async for chunk in sr.stream: ...
-final = await sr.response
+await chat.resume(
+    restart=[
+        i.restart(resumed_metadata={'tool_approved': True})
+        for i in out.interrupts
+    ]
+)
 ```
+
+Build from `res.interrupts`. Full flow:
+[agents-human-in-the-loop.md](agents-human-in-the-loop.md).
+
+---
+
+## Abort seems to do nothing
+
+Await it. Client stop: `turn.abort()` (or a timeout around the stream).
+Server cancel: `chat.abort()` / `task.abort()` after you have a snapshot.
+Details: [agents-background.md](agents-background.md).
+
+---
+
+## Tool raise becomes `AgentError`
+
+A raised tool ends the turn. Catch `AgentError` on `chat.send`. Prefer
+returning a soft-error dict so the model can recover. History stays usable —
+the next send continues from the last good snapshot.
+
+---
+
+## Remote client oddities
+
+Match `state_management` to the server. No trailing slash on the URL. Check
+server logs. Auth: [agents-http.md](agents-http.md).

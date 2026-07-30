@@ -39,12 +39,19 @@ async def hello(name: str) -> str:
     return f'Hello, {name}'
 
 app = FastAPI()
-app.include_router(serve_agent(agent), prefix='/api')   # /api/weatherAgent (+ getSnapshot/abort)
-app.include_router(serve_flow(hello), prefix='/api')    # /api/hello
-# Optional: app.include_router(serve_flow(hello, base_path='/hi'), prefix='/api')
+# Routes use the action name as defined: agent `weatherAgent` → /api/weatherAgent;
+# flow `hello` → /api/hello. Override with base_path=... if needed.
+app.include_router(serve_agent(agent), prefix='/api')
+app.include_router(serve_flow(hello), prefix='/api')
+
+# Under genkit start, drive uvicorn from ai.run_main (don't nest uvicorn.run inside it).
+async def main() -> None:
+    import os
+    config = uvicorn.Config(app, host='0.0.0.0', port=int(os.environ.get('PORT', '8080')))
+    await uvicorn.Server(config).serve()
 
 if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8080)
+    ai.run_main(main())
 ```
 
 ---
@@ -114,8 +121,13 @@ async def chat(input: ChatInput, ctx: ActionRunContext) -> str:
 app = FastAPI()
 app.include_router(serve_flow(chat), prefix='/api')  # POST /api/chat
 
+async def main() -> None:
+    import os
+    config = uvicorn.Config(app, host='0.0.0.0', port=int(os.environ.get('PORT', '8080')))
+    await uvicorn.Server(config).serve()
+
 if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8080)
+    ai.run_main(main())
 ```
 
 **Key:** the flow must accept `ctx: ActionRunContext` and call `ctx.send_chunk(text)`
@@ -311,3 +323,22 @@ Genkit Developer UI: http://localhost:4000
 ```
 
 Open that URL. Port may differ if 4000 is busy.
+
+
+## Python HTTP client (mounted flows)
+
+```python
+import httpx, asyncio
+
+async with httpx.AsyncClient(base_url='http://127.0.0.1:18524') as client:
+    async def call(path, data):
+        r = await client.post(path, json={'data': data})
+        r.raise_for_status()
+        return r.json()['result']
+    a, b = await asyncio.gather(
+        call('/api/summarize', {'text': '...'}),
+        call('/api/sentiment', {'text': '...'}),
+    )
+```
+
+Wire shape is `{"data": ...}` in, `{"result": ...}` out (not raw flow args).

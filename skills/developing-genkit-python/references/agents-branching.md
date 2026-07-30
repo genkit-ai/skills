@@ -35,4 +35,9 @@ await resumed.send('Add a pricing section.')
 ```
 
 Same pattern for time travel: reopen an earlier snapshot and send a different
-follow-up. After forks, resume by `snapshot_id`, not `session_id`.
+follow-up. After forks, resume by `snapshot_id`, not `session_id`:
+
+```python
+# Ambiguous when reject_ambiguous_session=True — pick a leaf instead:
+resumed = await agent.load_chat(snapshot_id=bold.snapshot_id)
+```

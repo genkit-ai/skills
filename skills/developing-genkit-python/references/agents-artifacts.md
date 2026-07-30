@@ -1,15 +1,17 @@
-# Working with Artifacts (Beta)
+# Artifacts (Beta)
 
-> **Beta / preview API.** `Artifacts` middleware from `genkit_middleware`.
 > See [agents.md](agents.md).
 
-Named deliverables (files, reports, code) on the session — deduped by name,
-exposed as `chat.artifacts` / `res.artifacts`.
+Named deliverables on the session — reports, files, code — available as
+`chat.artifacts` and `res.artifacts`.
 
-## Middleware tools
+## Middleware
 
-`Artifacts()` exposes `write_artifact` / `read_artifact` to the model. Same
-`name` again replaces the artifact.
+`Artifacts()` gives the model `write_artifact` and `read_artifact`. Writing the
+same name replaces the previous version.
+
+Store-backed agents cannot seed with `chat(artifacts=...)`. Have the model
+write on the first turn, or call `add_artifacts` from a custom agent.
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -23,36 +25,40 @@ ai = Genkit(plugins=[GoogleAI(), Middleware()])
 agent = ai.define_agent(
     name='workspaceAgent',
     model='googleai/gemini-flash-latest',
-    system=(
-        'Code generation assistant. Use write_artifact to create files '
-        '(name + content). Use read_artifact to review prior files.'
-    ),
+    system='Use write_artifact for files. Use read_artifact to review them.',
     use=[Artifacts()],
     store=InMemorySessionStore(),
 )
 
 chat = agent.chat()
 await chat.send('Write poem.txt with a short poem about Python agents.')
-assert any(a.name == 'poem.txt' for a in chat.artifacts)
+print([a.name for a in chat.artifacts])
 ```
 
 ## From a custom agent
 
-Inside [`handle_turn`](agents-custom.md):
+Pass a list:
 
 ```python
 from genkit import Part, TextPart
 from genkit.agent import Artifact
 
 await sess.add_artifacts(
-    Artifact(name='report.md', parts=[Part(TextPart(text=body))])
+    [Artifact(name='report.md', parts=[Part(TextPart(text=body))])]
 )
-# mid-turn: await sess.get_artifacts()
 ```
 
-## Client
+## Reading text
 
-- `chat.artifacts` — session cumulative
-- `res.artifacts` — this turn only
+Parts use a RootModel — read text from `.root` when it is a `TextPart`:
 
-Over HTTP, see [HTTP](agents-http.md) (`state_management`).
+```python
+from genkit import TextPart
+
+def artifact_text(artifact) -> str:
+    return ''.join(
+        p.root.text
+        for p in (artifact.parts or [])
+        if isinstance(p.root, TextPart)
+    )
+```
