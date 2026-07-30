@@ -1,8 +1,8 @@
 # Background Agents / Detaching (Beta)
 
-> **Beta / preview API.** Detaching **requires a [session store](agents-sessions.md)** —
-> the server needs somewhere to write the result when background work finishes.
-> Read [agents.md](agents.md) first.
+> **Beta / preview API.** Detaching requires a
+> [session store](agents-sessions.md) so the server can persist the result.
+> See [agents.md](agents.md).
 
 Detaching runs a turn in the background: the server saves a `pending` snapshot
 and returns a `snapshot_id` **immediately**, keeps processing, then updates the

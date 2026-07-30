@@ -37,18 +37,16 @@ Genkit Python has a preview **agent** API for persistent, multi-turn
 conversations (sessions, snapshots, interrupts, branching, background
 execution). Types live under `genkit.agent`.
 
-Chat surface (Action-style): `await chat.send(...)` returns `AgentResponse`;
+Chat API: `await chat.send(...)` returns `AgentResponse`;
 `chat.send_stream(...)` returns an `AgentTurn` with `.stream` / `.response`.
-Same split for `resume` / `resume_stream`. Prefer `send` when you don't need
-chunks — you do not have to drain a stream for the turn to finish.
+Same split for `resume` / `resume_stream`. Use `send` when you don't need
+chunks — awaiting the response does not require draining the stream.
 
 **Requires a Genkit Python build that includes agents.** Stable PyPI `genkit`
 0.8.x does not yet export `define_agent` — install from the agents branch /
 checkout your team specifies until a release ships.
 
-For more details see:
-
-- [Agents](references/agents.md): defining/chatting with an agent and client-managed state (start here).
+- [Agents](references/agents.md): defining/chatting with an agent and client-managed state.
 - [Sessions & persistence](references/agents-sessions.md): session stores (`InMemory`/`File`/`Firestore`).
 - [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
 - [Branching](references/agents-branching.md): forking a conversation from a snapshot.
@@ -58,9 +56,11 @@ For more details see:
 - [Advanced custom agents](references/agents-custom.md): `define_custom_agent` for full turn control.
 - [HTTP clients](references/agents-http.md): `remote_agent` / `HttpAgentTransport`.
 
-## Critical: Do Not Trust Internal Knowledge
+## Verify against references
 
-The Python SDK changes often — verify imports and APIs against the references here or upstream docs. On **any** error, read [Common Errors](references/common-errors.md) first.
+The Python SDK changes often — check imports and APIs against the references
+here or upstream docs. On errors, see [Common Errors](references/common-errors.md)
+first.
 
 **Common import traps:**
 

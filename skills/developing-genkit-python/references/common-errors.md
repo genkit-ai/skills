@@ -46,9 +46,9 @@ async for chunk in turn.stream:
 res = await turn.response
 ```
 
-Do **not** assume `send` returns a stream handle, or that you must drain
-`send_stream` for the turn to finish / for `chat.state` patches to apply.
-`await turn.response` is enough; unread chunks stay on that turn only.
+`send` returns `AgentResponse`, not a stream handle. You do not need to drain
+`send_stream` for the turn to finish or for `chat.state` patches to apply —
+`await turn.response` is enough. Unread chunks stay on that turn only.
 
 ---
 

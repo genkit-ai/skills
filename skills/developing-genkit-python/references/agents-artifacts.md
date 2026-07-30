@@ -1,7 +1,7 @@
 # Working with Artifacts (Beta)
 
-> **Beta / preview API.** `Artifacts` middleware comes from `genkit_middleware`.
-> Read [agents.md](agents.md) first.
+> **Beta / preview API.** `Artifacts` middleware is from `genkit_middleware`.
+> See [agents.md](agents.md).
 
 **Artifacts** are named, content-bearing deliverables an agent produces during a
 session — files, reports, code, etc. They live in the session (deduplicated by

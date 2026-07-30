@@ -1,8 +1,8 @@
 # Agent Sessions & Persistence (Beta)
 
-> **Beta / preview API.** Session stores are imported from `genkit.agent`
+> **Beta / preview API.** Session stores: `genkit.agent`
 > (`InMemorySessionStore`, `FileSessionStore`) and `genkit_google_cloud`
-> (`FirestoreSessionStore`). See [agents.md](agents.md) for the basics first.
+> (`FirestoreSessionStore`). See [agents.md](agents.md).
 
 When an agent has a `store`, the **server** owns the session history. Each turn
 produces an immutable **snapshot**; the snapshot chain is what carries

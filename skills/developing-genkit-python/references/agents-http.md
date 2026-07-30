@@ -1,6 +1,6 @@
 # Agent HTTP Clients (Beta)
 
-> **Beta / preview API.** Read [agents.md](agents.md) first.
+> **Beta / preview API.** See [agents.md](agents.md).
 
 Python exposes a client-side HTTP transport so one process can talk to an agent
 served elsewhere. There is **not** yet a dedicated FastAPI helper that mounts an

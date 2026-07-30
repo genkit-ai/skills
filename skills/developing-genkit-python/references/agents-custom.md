@@ -1,7 +1,7 @@
 # Advanced Custom Agents — `define_custom_agent` (Beta)
 
-> **Beta / preview API.** Read [agents.md](agents.md) and
-> [agent state](agents-state.md) first.
+> **Beta / preview API.** See [agents.md](agents.md) and
+> [agent state](agents-state.md).
 
 `define_agent` runs a single prompt + tool loop. When you need **full control of
 the turn** — multiple model calls, custom logic between them, manual

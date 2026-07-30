@@ -1,7 +1,7 @@
 # Agent Branching (Beta)
 
-> **Beta / preview API.** Requires a [session store](agents-sessions.md). Read
-> [agents.md](agents.md) first.
+> **Beta / preview API.** Requires a [session store](agents-sessions.md).
+> See [agents.md](agents.md).
 
 A `snapshot_id` is an **immutable checkpoint**, like a git commit. You can fork
 as many independent timelines as you want from the same snapshot — each turn

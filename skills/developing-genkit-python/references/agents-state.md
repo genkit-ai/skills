@@ -1,7 +1,7 @@
 # Working with Agent State (Beta)
 
-> **Beta / preview API.** Read [agents.md](agents.md) and
-> [sessions](agents-sessions.md) first.
+> **Beta / preview API.** See [agents.md](agents.md) and
+> [sessions](agents-sessions.md).
 
 Session state has three layers:
 

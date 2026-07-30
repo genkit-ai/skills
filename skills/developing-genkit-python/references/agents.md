@@ -16,7 +16,7 @@ An **agent** is a persistent, multi-turn conversation primitive built on prompts
 - **Branching**: fork a conversation from any snapshot.
 - **Detaching**: run a turn in the background and poll for the result.
 
-Progressive disclosure — read the file for the level you need:
+Related topics:
 
 - This file: defining an agent, chatting, streaming, and **client-managed state** (no store).
 - [Sessions & persistence](agents-sessions.md): `SessionStore`, `InMemorySessionStore`, `FileSessionStore`, `FirestoreSessionStore`.
@@ -93,11 +93,10 @@ Common `define_agent` options:
 For a registered Dotprompt, use `ai.define_prompt_agent(name=...)` with the same
 prompt name. For full turn control, use [`define_custom_agent`](agents-custom.md).
 
-## Agents and middleware go hand in hand
+## Middleware
 
-Most agent capabilities — artifacts, filesystem access, skill loading, tool
-approval, retries — are middleware you pass via `use=[...]`. Register the
-middleware plugin once:
+Artifacts, filesystem access, skill loading, tool approval, and retries are
+middleware passed via `use=[...]`. Register the middleware plugin once:
 
 ```python
 from genkit_middleware import Middleware, ToolApproval, Filesystem, Skills, Retry
@@ -124,25 +123,22 @@ coding_agent = ai.define_agent(
 ## Chat with an agent
 
 `agent.chat()` opens a conversation. One `chat` carries state forward across
-turns. Prefer the **Action-style** split (same idea as `ai.generate` /
-`ai.generate_stream` and `Action.run` / `Action.stream`):
+turns:
 
 | Method | Returns | When to use |
 | --- | --- | --- |
-| `await chat.send(...)` | `AgentResponse` | Primary path — you only need the final result |
-| `chat.send_stream(...)` | `AgentTurn` (`.stream` / `.response`) | You want incremental chunks |
-| `await chat.resume(...)` | `AgentResponse` | Continue after an interrupt (non-streaming) |
-| `chat.resume_stream(...)` | `AgentTurn` | Continue after an interrupt (streaming) |
+| `await chat.send(...)` | `AgentResponse` | Final result only |
+| `chat.send_stream(...)` | `AgentTurn` (`.stream` / `.response`) | Incremental chunks |
+| `await chat.resume(...)` | `AgentResponse` | Continue after an interrupt |
+| `chat.resume_stream(...)` | `AgentTurn` | Continue after an interrupt, with chunks |
 
 ```python
 chat = agent.chat()
 
-# Non-streaming (primary) — prefer this when you don't need chunks:
 res = await chat.send('Weather in Tokyo?')
 print(res.text)
 print(res.snapshot_id)  # immutable checkpoint id (None if no store)
 
-# Streaming — same turn, with a live chunk view:
 turn = chat.send_stream('What about Paris?')
 async for chunk in turn.stream:
     if chunk.text:
@@ -151,16 +147,14 @@ final = await turn.response
 # or: final = await turn
 ```
 
-### Streaming semantics (important)
+Streaming notes:
 
-- **You do not have to drain chunks.** `await turn.response` (or `await turn`)
-  completes whether or not you read `.stream`. Custom-state patches and
-  message stitching still apply — the client pumps the transport internally.
-- **Chunks are per-turn.** Each `send_stream` / `resume_stream` has its own
-  buffer. Unread chunks from turn N do **not** show up on turn N+1's stream.
-  Dropping the turn handle (or draining it later) is how unread chunks go away.
-- **Don't overlap sends on one `chat`.** Turns are single-flight; overlapping
-  `send` / `send_stream` on the same session can corrupt local history.
+- `await turn.response` (or `await turn`) completes whether or not you read
+  `.stream`. Custom-state patches and message stitching still apply.
+- Each `send_stream` / `resume_stream` has its own chunk buffer. Unread chunks
+  from one turn do not appear on the next turn's stream.
+- Turns on a single `chat` are single-flight — do not overlap `send` /
+  `send_stream` calls on the same session.
 
 Follow-up turns on the same `chat` remember prior context automatically.
 

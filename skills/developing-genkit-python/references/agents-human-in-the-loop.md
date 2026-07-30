@@ -1,13 +1,13 @@
 # Agent Human-in-the-Loop / Interrupts (Beta)
 
-> **Beta / preview API.** Read [agents.md](agents.md) first.
+> **Beta / preview API.** See [agents.md](agents.md).
 
 An **interrupt** pauses an agent mid-turn and hands control back to your code (or
 a human) — e.g. to approve a sensitive tool before it runs. You then **resume**
 from the exact point it paused.
 
-Interrupts are **orthogonal to persistence** — they work the same whether the
-agent uses a [session store](agents-sessions.md) or
+Interrupts work the same whether the agent uses a
+[session store](agents-sessions.md) or
 [client-managed state](agents.md#client-managed-state-no-server-store).
 
 Flow: `chat.send(...)` → response has `finish_reason == INTERRUPTED` and
