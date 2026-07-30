@@ -93,7 +93,7 @@ await chat.resume(
 )
 ```
 
-Streaming resume uses `resume_stream` (same split as `send` / `send_stream`):
+Streaming resume:
 
 ```python
 turn = chat.resume_stream(restart=restart_parts)

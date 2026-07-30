@@ -35,7 +35,7 @@ assert hasattr(Genkit, 'define_agent')
 ## TypeError / wrong shape from `chat.send`
 
 **Cause:** `chat.send` is async and returns `AgentResponse`. Streaming lives on
-`chat.send_stream` (same split as `Action.run` / `Action.stream`).
+`chat.send_stream`.
 
 **Fix:**
 ```python
