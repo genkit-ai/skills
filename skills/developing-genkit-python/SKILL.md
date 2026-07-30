@@ -37,6 +37,11 @@ Genkit Python has a preview **agent** API for persistent, multi-turn
 conversations (sessions, snapshots, interrupts, branching, background
 execution). Types live under `genkit.agent`.
 
+Chat surface (Action-style): `await chat.send(...)` returns `AgentResponse`;
+`chat.send_stream(...)` returns an `AgentTurn` with `.stream` / `.response`.
+Same split for `resume` / `resume_stream`. Prefer `send` when you don't need
+chunks — you do not have to drain a stream for the turn to finish.
+
 **Requires a Genkit Python build that includes agents.** Stable PyPI `genkit`
 0.8.x does not yet export `define_agent` — install from the agents branch /
 checkout your team specifies until a release ships.

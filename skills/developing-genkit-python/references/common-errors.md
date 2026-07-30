@@ -39,12 +39,16 @@ assert hasattr(Genkit, 'define_agent')
 
 **Fix:**
 ```python
-res = await chat.send('hi')                 # non-streaming
+res = await chat.send('hi')                 # non-streaming (primary)
 turn = chat.send_stream('hi')               # streaming
 async for chunk in turn.stream:
     ...
 res = await turn.response
 ```
+
+Do **not** assume `send` returns a stream handle, or that you must drain
+`send_stream` for the turn to finish / for `chat.state` patches to apply.
+`await turn.response` is enough; unread chunks stay on that turn only.
 
 ---
 

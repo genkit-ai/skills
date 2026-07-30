@@ -124,28 +124,43 @@ coding_agent = ai.define_agent(
 ## Chat with an agent
 
 `agent.chat()` opens a conversation. One `chat` carries state forward across
-turns. The split matches `Action.run` / `Action.stream` (and `ai.generate` /
-`ai.generate_stream`):
+turns. Prefer the **Action-style** split (same idea as `ai.generate` /
+`ai.generate_stream` and `Action.run` / `Action.stream`):
 
-- `await chat.send(...)` — primary path; returns the completed `AgentResponse`
-- `chat.send_stream(...)` — same turn, with `.stream` / `.response` for chunks
-- `await chat.resume(...)` / `chat.resume_stream(...)` — same split after an interrupt
+| Method | Returns | When to use |
+| --- | --- | --- |
+| `await chat.send(...)` | `AgentResponse` | Primary path — you only need the final result |
+| `chat.send_stream(...)` | `AgentTurn` (`.stream` / `.response`) | You want incremental chunks |
+| `await chat.resume(...)` | `AgentResponse` | Continue after an interrupt (non-streaming) |
+| `chat.resume_stream(...)` | `AgentTurn` | Continue after an interrupt (streaming) |
 
 ```python
 chat = agent.chat()
 
-# Non-streaming (primary):
+# Non-streaming (primary) — prefer this when you don't need chunks:
 res = await chat.send('Weather in Tokyo?')
 print(res.text)
 print(res.snapshot_id)  # immutable checkpoint id (None if no store)
 
-# Streaming:
+# Streaming — same turn, with a live chunk view:
 turn = chat.send_stream('What about Paris?')
 async for chunk in turn.stream:
     if chunk.text:
         print(chunk.accumulated_text, end='\r', flush=True)
 final = await turn.response
+# or: final = await turn
 ```
+
+### Streaming semantics (important)
+
+- **You do not have to drain chunks.** `await turn.response` (or `await turn`)
+  completes whether or not you read `.stream`. Custom-state patches and
+  message stitching still apply — the client pumps the transport internally.
+- **Chunks are per-turn.** Each `send_stream` / `resume_stream` has its own
+  buffer. Unread chunks from turn N do **not** show up on turn N+1's stream.
+  Dropping the turn handle (or draining it later) is how unread chunks go away.
+- **Don't overlap sends on one `chat`.** Turns are single-flight; overlapping
+  `send` / `send_stream` on the same session can corrupt local history.
 
 Follow-up turns on the same `chat` remember prior context automatically.
 
