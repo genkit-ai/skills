@@ -26,7 +26,7 @@ Fields: `testCaseId`, `input`, `output`, `reference` (reference optional for som
 ## Built-in evaluators
 
 ```python
-from genkit.plugins.evaluators import register_genkit_evaluators
+from genkit_evaluators import register_genkit_evaluators
 register_genkit_evaluators(ai)
 ```
 

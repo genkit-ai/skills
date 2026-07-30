@@ -33,7 +33,7 @@ Place `.prompt` files in a `prompts/` directory and point `prompt_dir` at it.
 from pathlib import Path
 from pydantic import BaseModel
 from genkit import Genkit
-from genkit.plugins.google_genai import GoogleAI
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],

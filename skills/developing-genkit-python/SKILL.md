@@ -64,9 +64,11 @@ first.
 
 **Common import traps:**
 
-- Google AI plugin: `from genkit_google_genai import GoogleAI` (not `genkit.plugins.google_genai`).
+- Google AI: `from genkit_google_genai import GoogleAI`
 - Agents: `from genkit.agent import InMemorySessionStore, ...`
-- Middleware: `from genkit_middleware import Middleware, ToolApproval, ...` (agents branch; older PyPI may still use `genkit.plugins.middleware`).
+- Middleware: `from genkit_middleware import Middleware, ToolApproval, ...`
+- FastAPI: `from genkit_fastapi import genkit_fastapi_handler, serve_agent`
+- Evaluators: `from genkit_evaluators import register_genkit_evaluators`
 
 ## Development Workflow
 

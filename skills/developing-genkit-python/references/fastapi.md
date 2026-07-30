@@ -49,8 +49,8 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 from genkit import Genkit
 from genkit import ActionRunContext
-from genkit.plugins.fastapi import genkit_fastapi_handler
-from genkit.plugins.google_genai import GoogleAI
+from genkit_fastapi import genkit_fastapi_handler
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(plugins=[GoogleAI()], model='googleai/gemini-flash-latest')
 app = FastAPI()
