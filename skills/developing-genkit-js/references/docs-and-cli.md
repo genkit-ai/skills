@@ -36,6 +36,8 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
 
 `genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
 
+For non-interactive/agent/CI use, add the global `--non-interactive` flag before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the first-run analytics notice), e.g. `genkit flow:run myFlow '<input>' --non-interactive -- npx tsx src/index.ts`.
+
 ## Flow Execution (secondary)
 
 -   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>' -- <run cmd>`
