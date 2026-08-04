@@ -57,7 +57,32 @@ Load the appropriate reference based on what you need:
 | Flows & HTTP | [references/flows-and-http.md](references/flows-and-http.md) | `DefineFlow`, `DefineStreamingFlow`, `genkit.Handler`, HTTP serving |
 | Model Providers | [references/providers.md](references/providers.md) | Google AI, Vertex AI, Anthropic, OpenAI-compatible, Ollama setup |
 
+## Agents (Experimental)
+
+Genkit Go has an **experimental** agent API for persistent, multi-turn
+conversations (sessions, snapshots, interrupts, branching, background execution).
+It is gated: initialize with `genkit.Init(ctx, genkit.WithExperimental())` or the
+constructors panic. Server constructors come from `genkit/exp` (aliased
+`genkitx`); types and options from `ai/exp` (aliased `aix`); session stores from
+`ai/exp/localstore`.
+
+- **Agent or flow?** If the task is conversational, multi-turn, or described as "an agent", "assistant", or "chatbot", build it with `genkitx.DefineAgent` rather than hand-rolling a `Generate` + tools loop in a flow. Reach for a plain flow only for single-shot, stateless generation.
+
+For details see:
+
+-   [Agents](references/agents.md): defining/serving an agent, running turns, and client- vs server-managed state (start here).
+-   [Sessions & persistence](references/agents-sessions.md): session stores (`localstore.NewInMemorySessionStore`/`NewFileSessionStore`) and snapshots.
+-   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
+-   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
+-   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+-   [Working with state](references/agents-state.md): typed custom session state, streamed as JSON patches.
+-   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents.
+-   [Advanced custom agents](references/agents-custom.md): `DefineCustomAgent` for full turn control.
+-   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit.Handler`.
+
 ## Genkit CLI (recommended)
+
 
 `genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`go run .`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
 
