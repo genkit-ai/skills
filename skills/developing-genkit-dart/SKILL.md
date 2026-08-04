@@ -49,7 +49,7 @@ For more details see:
 
 ## Genkit CLI (recommended)
 
-`genkit start` unintrusively wraps any Dart program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Check install with `genkit --version`.
+`genkit start` unintrusively wraps any Dart program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`dart run`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
 
 **Installation:**
 ```bash
@@ -60,12 +60,13 @@ npm install -g genkit-cli # Via npm
 # npx genkit-cli start -- dart run main.dart
 ```
 
-**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
+**Primary pattern (default):** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
 
 ```bash
 genkit start -- dart run main.dart
-genkit start --noui -- dart run main.dart   # trace collection only, lighter, no UI
+genkit start --noui -- dart run main.dart   # same, without the Dev UI (still a persistent server)
 ```
+`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
@@ -73,12 +74,11 @@ genkit trace:list          # find recent trace IDs
 genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
 ```
 
-**Secondary pattern:** run a single flow without your program's normal entrypoint:
+**Run a flow (`flow:run`):** execute any single flow from the CLI without going through your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run:
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
 ```
-
-Traces for this run can be inspected using the above trace commands.
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). To exercise an agent this way, drive it from a throwaway flow. Traces for this run can be inspected using the above trace commands.
 
 **Documentation:**
 ```bash
@@ -111,3 +111,4 @@ To learn how to use schemantic, ensure you read [references/schemantic.md](refer
 - **Agent or flow?** If the task is conversational, multi-turn, or described as "an agent", "assistant", or "chatbot", build it with `ai.defineAgent` (see [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools loop inside a flow. Reach for a plain flow only for single-shot, stateless generation.
 - Always check that code cleanly compiles using `dart analyze` before generating the final response.
 - Always use the Genkit CLI for local development and debugging.
+- Verify with traces, not a blind run. Running the app directly (`dart run`) does not capture dev traces. See the [Genkit CLI](#genkit-cli-recommended) section for how to run your app and capture traces.

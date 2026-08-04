@@ -119,6 +119,7 @@ See [Common Errors](references/common-errors.md) for a list of deprecated APIs (
 5.  **Ensure Correctness**:
     -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
     -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
+    -   Verify with traces, not a blind run. Running the app directly (`node`/`tsx`/`npm start`) does **not** capture dev traces. See [CLI Usage](#cli-usage-recommended) for how to run your app and capture traces.
 6.  **Handle Errors**:
     -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
     -   Match error to documented patterns
@@ -136,13 +137,14 @@ Use the Genkit CLI to find authoritative documentation:
 
 ## CLI Usage (recommended)
 
-`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues.
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can **prove tools were actually called and inspect model I/O** from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running your app directly (`node`/`tsx`/`npm start`) skips trace capture, so you're debugging blind.
 
-**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
+**Primary pattern (default):** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script:
 ```bash
 genkit start -- npx tsx --watch src/index.ts
-genkit start --noui -- npx tsx src/index.ts   # trace collection only, lighter, no UI
+genkit start --noui -- npx tsx src/index.ts   # same, without the Dev UI (still a persistent server)
 ```
+`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts.
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
@@ -150,10 +152,11 @@ genkit trace:list          # find recent trace IDs
 genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
 ```
 
-**Secondary pattern:** run a single flow without your program's normal entrypoint:
+**Run a flow (`flow:run`):** execute any single flow from the CLI without going through your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run:
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- npx tsx src/index.ts
 ```
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits (inspect it with `genkit trace:get <id>`). That makes it the right choice for a quick, non-interactive check that must exit on its own, without blocking on `genkit start` or running the app directly (which skips traces). To exercise an agent this way, drive it from a throwaway flow.
 
 See [CLI Reference](references/docs-and-cli.md) for more commands, and `genkit --help` for the full list.
 

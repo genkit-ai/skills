@@ -17,9 +17,9 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
 
 ## Development Workflow (recommended)
 
-`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues.
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running your app directly (`node`/`tsx`/`npm start`) skips trace capture, so you're debugging blind.
 
-**Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
+**Primary pattern (default):** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script:
 
 -   **Node.js (TypeScript)**:
     ```bash
@@ -29,42 +29,36 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
     ```bash
     genkit start -- npx next dev
     ```
--   **Trace collection only** (lighter, no UI):
+-   **Without the Dev UI** (still a persistent server):
     ```bash
     genkit start --noui -- npx tsx src/index.ts
     ```
 
+`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
+
 ## Flow Execution (secondary)
 
--   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>'`
-    -   Executes a single flow directly from the CLI without driving your program's normal entrypoint. Useful for testing. Traces for the run can be inspected with the tracing commands below.
+-   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>' -- <run cmd>`
+    -   Executes a single flow directly from the CLI without driving your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run: it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). To verify an agent this way, drive it from a throwaway flow. Traces for the run can be inspected with the tracing commands below.
     -   **Simple Input**:
         ```bash
-        genkit flow:run tellJoke '"chicken"'
+        genkit flow:run tellJoke '"chicken"' -- npx tsx src/index.ts
         ```
     -   **Object Input**:
         ```bash
-        genkit flow:run generateStory '{"subject": "robot", "genre": "sci-fi"}'
-        ```
-    -   **Single Command (spin up runtime & run flow)**:
-        ```bash
-        genkit flow:run tellJoke '"chicken"' -- npx tsx src/index.ts
+        genkit flow:run generateStory '{"subject": "robot", "genre": "sci-fi"}' -- npx tsx src/index.ts
         ```
 
 ## Evaluation
 
 
--   **Evaluate a flow**: `genkit eval:flow <flowName> [data]`
-    -   Runs a flow and evaluates the output against configured evaluators.
+-   **Evaluate a flow**: `genkit eval:flow <flowName> [data] -- <run cmd>`
+    -   Runs a flow and evaluates the output against configured evaluators. As with `flow:run`, append your run command after `--` to spin up the runtime for the run.
     -   **Example (Single Input)**:
         ```bash
-        genkit eval:flow answerQuestion '[{"testCaseId": "1", "input": {"question": "What is Genkit?"}}]'
+        genkit eval:flow answerQuestion '[{"testCaseId": "1", "input": {"question": "What is Genkit?"}}]' -- npx tsx src/index.ts
         ```
     -   **Example (Batch Input)**:
-        ```bash
-        genkit eval:flow answerQuestion --input inputs.json
-        ```
-    -   **Single Command (spin up runtime & evaluate flow)**:
         ```bash
         genkit eval:flow answerQuestion --input inputs.json -- npx tsx src/index.ts
         ```
