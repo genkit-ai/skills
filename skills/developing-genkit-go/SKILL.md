@@ -82,8 +82,8 @@ genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, er
 **Secondary pattern:** run a single flow without your program's normal entrypoint:
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- go run .
-genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
-genkit flow:run myFlow '{"data": "input"}' --wait     # wait for completion
+genkit flow:run myFlow '{"data": "input"}' --stream -- go run .   # with streaming
+genkit flow:run myFlow '{"data": "input"}' --wait -- go run .     # wait for completion
 ```
 Traces for this run can be inspected using the above trace commands.
 

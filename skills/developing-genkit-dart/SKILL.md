@@ -56,8 +56,8 @@ For more details see:
 curl -sL cli.genkit.dev | bash # Native CLI
 # OR
 npm install -g genkit-cli # Via npm
-# OR use npx (if installed)
-npx genkit-cli --version
+# OR run commands directly with npx without a global install (prefix every genkit command):
+# npx genkit-cli start -- dart run main.dart
 ```
 
 **Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
