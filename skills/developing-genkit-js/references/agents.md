@@ -146,6 +146,24 @@ for await (const chunk of turn.stream) {
 const final = await turn.response;
 ```
 
+## Verify an agent from the CLI (`flow:run`)
+
+`genkit flow:run` only runs **flows**, not agents, so you can't `flow:run` an
+agent directly. To exercise an agent from the CLI (e.g. a quick, self-terminating
+check), wrap one turn in a throwaway flow and run that:
+
+```ts
+import { z } from 'genkit';
+import { weatherAgent } from './weather-agent.js';
+import { ai } from './genkit.js';
+
+export const tryWeatherAgent = ai.defineFlow(
+  { name: 'tryWeatherAgent', inputSchema: z.string(), outputSchema: z.string() },
+  async (message) => (await weatherAgent.chat().send(message)).text
+);
+// genkit flow:run tryWeatherAgent '"Weather in Tokyo?"' -- npx tsx src/index.ts
+```
+
 ## Serve an agent over HTTP
 
 Use `expressHandler` from `@genkit-ai/express`. Optionally expose the agent's

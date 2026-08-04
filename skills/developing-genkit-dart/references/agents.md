@@ -201,6 +201,21 @@ final res = await chat.send(
 > `UnsupportedError`** — remote agents derive context server-side from the HTTP
 > request (headers/auth), so don't pass it from the client.
 
+## Verify an agent from the CLI (`flow:run`)
+
+`genkit flow:run` only runs **flows**, not agents, so you can't `flow:run` an
+agent directly. To exercise an agent from the CLI (e.g. a quick, self-terminating
+check), wrap one turn in a throwaway flow and run that:
+
+```dart
+final tryWeatherAgent = ai.defineFlow(
+  name: 'tryWeatherAgent',
+  fn: (String message, _) async =>
+      (await weatherAgent.chat().send(text: message)).text,
+);
+// genkit flow:run tryWeatherAgent '"Weather in Tokyo?"' -- dart run main.dart
+```
+
 ## Serve an agent over HTTP
 
 Use `shelfHandler` from `package:genkit_shelf`. Expose the main turn action, plus

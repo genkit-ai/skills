@@ -119,6 +119,20 @@ resumed = await agent.load_chat(snapshot_id=res.snapshot_id)
 await resumed.send('What city did I ask about?')
 ```
 
+## Verify an agent from the CLI (`flow:run`)
+
+`genkit flow:run` only runs **flows**, not agents, so you can't `flow:run` an
+agent directly. To exercise an agent from the CLI (e.g. a quick, self-terminating
+check), wrap one turn in a throwaway flow and run that:
+
+```python
+@ai.flow()
+async def try_weather_agent(message: str) -> str:
+    return (await agent.chat().send(message)).text
+
+# genkit flow:run try_weather_agent '"Weather in Tokyo?"' -- uv run src/main.py
+```
+
 ## Without a store
 
 Skip `store` when your app owns history. Ids stay `None` — pass messages,

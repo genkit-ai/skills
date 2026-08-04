@@ -41,7 +41,7 @@ For non-interactive/agent/CI use, add the global `--non-interactive` flag before
 ## Flow Execution (secondary)
 
 -   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>' -- <run cmd>`
-    -   Invokes a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime for this run (the command runs as-is to register your flows): it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). To verify an agent this way, drive it from a throwaway flow. Traces for the run can be inspected with the tracing commands below.
+    -   Invokes a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime for this run (the command runs as-is to register your flows): it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). Note: `flow:run` runs **flows** (`ai.defineFlow`), not agents; you can't `flow:run` an agent (`ai.defineAgent`) directly. To verify an agent, wrap one turn in a throwaway flow and run that. Traces for the run can be inspected with the tracing commands below.
     -   **Always pass input JSON explicitly.** `flow:run` sends `undefined` when the input is omitted and does **not** fall back to a schema `.default()`, so a flow with a defaulted input will fail validation unless you pass the value.
     -   **Simple Input**:
         ```bash

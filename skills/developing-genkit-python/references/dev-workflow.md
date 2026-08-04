@@ -96,7 +96,7 @@ genkit start --noui -- uv run src/main.py   # same, without the Dev UI (still a 
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
 ```
-This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). To exercise an agent this way, drive it from a throwaway flow. Traces for this run can be inspected using the trace commands below.
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Note: `flow:run` runs **flows** (`@ai.flow()`), not agents; you can't `flow:run` an agent (`ai.define_agent`) directly. To exercise an agent from the CLI, wrap one turn in a throwaway flow and run that (see [Agents](agents.md)). Traces for this run can be inspected using the trace commands below.
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
