@@ -5,18 +5,21 @@ description: Develop AI-powered applications using Genkit in Python. Use when th
 
 # Genkit Python
 
+Build AI features in Python — generate, stream, tools, flows, and multi-turn
+agents — with one SDK.
+
 ## Prerequisites
 
-- **Runtime**: Python **3.14+**, **`uv`** for deps ([install](https://docs.astral.sh/uv/getting-started/installation/)).
-- **CLI**: `genkit --version` — install via `npm install -g genkit-cli` if missing.
+- Python **3.10+** and **`uv`** ([install](https://docs.astral.sh/uv/getting-started/installation/))
+- Genkit CLI: `npm install -g genkit-cli` if `genkit --version` is missing
 
-**New projects:** [Setup](references/setup.md) (bootstrap + env). **Patterns and code samples:** [Examples](references/examples.md).
+New app? [Setup](references/setup.md). Patterns? [Examples](references/examples.md).
 
 ## Hello World
 
 ```python
 from genkit import Genkit
-from genkit.plugins.google_genai import GoogleAI
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
@@ -31,17 +34,41 @@ if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-## Critical: Do Not Trust Internal Knowledge
+## Agents (Beta)
 
-The Python SDK changes often — verify imports and APIs against the references here or upstream docs. On **any** error, read [Common Errors](references/common-errors.md) first.
+Multi-turn chats with history, typed state, human approval, branching, and
+background work. Start here: [Agents](references/agents.md).
 
-## Development Workflow
+```python
+chat = agent.chat()
+res = await chat.send('Hello')           # AgentResponse
+turn = chat.send_stream('Hello')         # AgentTurn — .stream / .response
+```
 
-1. Default provider: **Google AI** (`GoogleAI()`), **`GEMINI_API_KEY`** in the environment.
-2. Model IDs: always prefixed, e.g. **`googleai/gemini-flash-latest`** (always-on-latest Flash alias; same pattern as other skills).
-3. Entrypoint: **`ai.run_main(main())`** for Genkit-driven apps (not `asyncio.run()` for long-lived servers started with `genkit start` — see [Common Errors](references/common-errors.md)).
-4. After generating code, follow [Dev Workflow](references/dev-workflow.md) for `genkit start` and the Dev UI.
-5. On errors: step 1 is always [Common Errors](references/common-errors.md).
+More: [sessions](references/agents-sessions.md) ·
+[HITL](references/agents-human-in-the-loop.md) ·
+[branching](references/agents-branching.md) ·
+[background](references/agents-background.md) ·
+[state](references/agents-state.md) ·
+[artifacts](references/agents-artifacts.md) ·
+[custom](references/agents-custom.md) ·
+[HTTP](references/agents-http.md)
+
+## Imports
+
+- Google AI: `from genkit_google_genai import GoogleAI`
+- Agents: `from genkit.agent import InMemorySessionStore, ...`
+- Middleware: `from genkit_middleware import Middleware, ToolApproval, ...`
+- FastAPI: `from genkit_fastapi import serve_agent, serve_flow`
+- Evals: `from genkit_evaluators import register_genkit_evaluators`
+
+## Workflow
+
+1. Set **`GEMINI_API_KEY`**. Use prefixed model ids (`googleai/gemini-flash-latest`).
+2. Enter via **`ai.run_main(main())`** for Genkit apps (especially under
+   `genkit start`). See [Common Errors](references/common-errors.md).
+3. Run with [Dev Workflow](references/dev-workflow.md) (`genkit start` + Dev UI).
+4. Stuck? [Common Errors](references/common-errors.md) first.
 
 ## Genkit CLI (recommended)
 
@@ -68,7 +95,6 @@ See [Dev Workflow](references/dev-workflow.md) for the full checklist and Dev UI
 
 ## References
 
-
 - [Examples](references/examples.md): Structured output, streaming, flows, tools, embeddings.
 - [Setup](references/setup.md): New project bootstrap and plugins.
 - [Common Errors](references/common-errors.md): Read first when something breaks.
@@ -76,3 +102,4 @@ See [Dev Workflow](references/dev-workflow.md) for the full checklist and Dev UI
 - [Dotprompt](references/dotprompt.md): `.prompt` files and helpers.
 - [Evals](references/evals.md): Evaluators and datasets.
 - [Dev Workflow](references/dev-workflow.md): `genkit start`, Dev UI, checklist.
+- [Agents (Beta)](references/agents.md): Multi-turn API.

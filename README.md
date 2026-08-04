@@ -33,6 +33,12 @@ npx skills add genkit-ai/skills --skill developing-genkit-dart
 npx skills add genkit-ai/skills --skill developing-genkit-go
 ```
 
+**For Python:**
+
+```bash
+npx skills add genkit-ai/skills --skill developing-genkit-python
+```
+
 ### Using tool-specific command
 
 For example (if using [Gemini CLI](https://geminicli.com/docs/cli/skills/#from-the-terminal)):
@@ -53,6 +59,12 @@ gemini skills install https://github.com/genkit-ai/skills.git --path skills/deve
 
 ```bash
 gemini skills install https://github.com/genkit-ai/skills.git --path skills/developing-genkit-go
+```
+
+**For Python:**
+
+```bash
+gemini skills install https://github.com/genkit-ai/skills.git --path skills/developing-genkit-python
 ```
 
 ### Manual Installation
