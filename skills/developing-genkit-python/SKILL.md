@@ -64,11 +64,16 @@ More: [sessions](references/agents-sessions.md) ·
 
 ## Workflow
 
-1. Set **`GEMINI_API_KEY`**. Use prefixed model ids (`googleai/gemini-flash-latest`).
-2. Enter via **`ai.run_main(main())`** for Genkit apps (especially under
+1. **Agent or flow?** If the task is conversational, multi-turn, or described as
+   "an agent", "assistant", or "chatbot", build it with `ai.define_agent` (see
+   [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools
+   loop inside a flow. Reach for a plain flow only for single-shot, stateless
+   generation.
+2. Set **`GEMINI_API_KEY`**. Use prefixed model ids (`googleai/gemini-flash-latest`).
+3. Enter via **`ai.run_main(main())`** for Genkit apps (especially under
    `genkit start`). See [Common Errors](references/common-errors.md).
-3. Run with [Dev Workflow](references/dev-workflow.md) (`genkit start` + Dev UI).
-4. Stuck? [Common Errors](references/common-errors.md) first.
+4. Run with [Dev Workflow](references/dev-workflow.md) (`genkit start` + Dev UI).
+5. Stuck? [Common Errors](references/common-errors.md) first.
 
 ## Genkit CLI (recommended)
 

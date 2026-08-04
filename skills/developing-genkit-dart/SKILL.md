@@ -108,5 +108,6 @@ Whenever you define schemas mapping inside of Tools, Flows, and Prompts, you mus
 To learn how to use schemantic, ensure you read [references/schemantic.md](references/schemantic.md) for how to implement type safe generated Dart code. This is particularly relevant when you encounter symbols like `@Schema()`, `SchemanticType`, or classes with the `$` prefix. Genkit Dart uses schemantic for all of its data models so it's a CRITICAL skill to understand for using Genkit Dart.
 
 ## Best Practices
+- **Agent or flow?** If the task is conversational, multi-turn, or described as "an agent", "assistant", or "chatbot", build it with `ai.defineAgent` (see [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools loop inside a flow. Reach for a plain flow only for single-shot, stateless generation.
 - Always check that code cleanly compiles using `dart analyze` before generating the final response.
 - Always use the Genkit CLI for local development and debugging.

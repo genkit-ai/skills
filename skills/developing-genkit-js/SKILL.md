@@ -106,19 +106,20 @@ See [Common Errors](references/common-errors.md) for a list of deprecated APIs (
 
 ## Development Workflow
 
-1.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
+1.  **Agent or flow?**: If the task is conversational, multi-turn, or described as "an agent", "assistant", or "chatbot", build it with `ai.defineAgent` (see [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools loop inside a flow. Reach for a plain flow only for single-shot, stateless generation.
+2.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
     -   If the user does not specify a provider, default to **Google AI**.
     -   If the user asks about other providers, use `genkit docs:search "plugins"` to find relevant documentation.
-2.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
+3.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
     -   Look for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud`.
     -   Adapt implementation to the specific framework's patterns.
-3.  **Follow Best Practices**:
+4.  **Follow Best Practices**:
     -   See [Best Practices](references/best-practices.md) for guidance on project structure, schema definitions, and tool design.
     -   **Be Minimal**: Only specify options that differ from defaults. When unsure, check docs/source.
-4.  **Ensure Correctness**:
+5.  **Ensure Correctness**:
     -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
     -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
-5.  **Handle Errors**:
+6.  **Handle Errors**:
     -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
     -   Match error to documented patterns
     -   Apply documented fixes before attempting alternatives
