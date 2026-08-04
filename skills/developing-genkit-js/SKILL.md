@@ -106,19 +106,21 @@ See [Common Errors](references/common-errors.md) for a list of deprecated APIs (
 
 ## Development Workflow
 
-1.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
+1.  **Agent or flow?**: If the task is conversational, multi-turn, or described as "an agent", "assistant", or "chatbot", build it with `ai.defineAgent` (see [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools loop inside a flow. Reach for a plain flow only for single-shot, stateless generation.
+2.  **Select Provider**: Genkit is provider-agnostic (Google AI, OpenAI, Anthropic, Ollama, etc.).
     -   If the user does not specify a provider, default to **Google AI**.
     -   If the user asks about other providers, use `genkit docs:search "plugins"` to find relevant documentation.
-2.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
+3.  **Detect Framework**: Check `package.json` to identify the runtime (Next.js, Firebase, Express).
     -   Look for `@genkit-ai/next`, `@genkit-ai/firebase`, or `@genkit-ai/google-cloud`.
     -   Adapt implementation to the specific framework's patterns.
-3.  **Follow Best Practices**:
+4.  **Follow Best Practices**:
     -   See [Best Practices](references/best-practices.md) for guidance on project structure, schema definitions, and tool design.
     -   **Be Minimal**: Only specify options that differ from defaults. When unsure, check docs/source.
-4.  **Ensure Correctness**:
+5.  **Ensure Correctness**:
     -   Run type checks (e.g., `npx tsc --noEmit`) after making changes.
     -   If type checks fail, consult [Common Errors](references/common-errors.md) before searching source code.
-5.  **Handle Errors**:
+    -   Verify with traces, not a blind run. Running the app directly (`node`/`tsx`/`npm start`) does **not** capture dev traces. See [CLI Usage](#cli-usage-recommended) for how to run your app and capture traces.
+6.  **Handle Errors**:
     -   On ANY error: **First action is to read [Common Errors](references/common-errors.md)**
     -   Match error to documented patterns
     -   Apply documented fixes before attempting alternatives
@@ -133,11 +135,35 @@ Use the Genkit CLI to find authoritative documentation:
 3.  **Read a guide**: `genkit docs:read <path>`
     -   Example: `genkit docs:read js/flows.md`
 
-## CLI Usage
+## CLI Usage (recommended)
 
-The `genkit` CLI is your primary tool for development and documentation.
--   See [CLI Reference](references/docs-and-cli.md) for common tasks, workflows, and command usage.
--   Use `genkit --help` for a full list of commands.
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can **prove tools were actually called and inspect model I/O** from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running your app directly (`node`/`tsx`/`npm start`) skips trace capture, so you're debugging blind.
+
+**Primary pattern (default):** prefix `genkit start --` to your normal run command. This collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script:
+```bash
+genkit start -- npx tsx --watch src/index.ts
+genkit start --noui -- npx tsx src/index.ts   # same, without the Dev UI (still a persistent server)
+```
+`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts.
+
+**Non-interactive use (agents/CI):** add the global `--non-interactive` flag before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the first-run analytics notice): `genkit start --non-interactive -- npx tsx src/index.ts` (works with `flow:run` too).
+
+**Run a flow (`flow:run`):** invoke a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime just for this run (the command runs as-is to register your flows):
+```bash
+genkit flow:run myFlow '{"data": "input"}' -- npx tsx src/index.ts
+```
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits (inspect it with `genkit trace:get <id>`). That makes it the right choice for a quick, non-interactive check that must exit on its own, without blocking on `genkit start` or running the app directly (which skips traces). Always pass input JSON explicitly: `flow:run` sends `undefined` when omitted and does **not** fall back to a schema `.default()`. Note: `flow:run` runs **flows** (`ai.defineFlow`), not agents; you can't `flow:run` an agent (`ai.defineAgent`) directly. To exercise an agent from the CLI, wrap one turn in a throwaway flow and run that (see [Agents](references/agents.md)).
+
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
+
+Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into `jq`. For complex traces, use grep or the Dev UI trace viewer.
+
+See [CLI Reference](references/docs-and-cli.md) for more commands, and `genkit --help` for the full list.
+
 
 ## References
 

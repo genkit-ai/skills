@@ -57,46 +57,56 @@ Load the appropriate reference based on what you need:
 | Flows & HTTP | [references/flows-and-http.md](references/flows-and-http.md) | `DefineFlow`, `DefineStreamingFlow`, `genkit.Handler`, HTTP serving |
 | Model Providers | [references/providers.md](references/providers.md) | Google AI, Vertex AI, Anthropic, OpenAI-compatible, Ollama setup |
 
-## Genkit CLI
+## Genkit CLI (recommended)
 
-Check if installed: `genkit --version`
+`genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`go run .`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
 
 **Installation:**
 ```bash
 curl -sL cli.genkit.dev | bash
 ```
 
-**Key commands:**
-
+**Primary pattern (default):** prefix `genkit start --` to your normal run command. This collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
 ```bash
-# Start app with Developer UI (tracing, flow testing) at http://localhost:4000
 genkit start -- go run .
-genkit start -o -- go run .   # also opens browser
+genkit start --noui -- go run .   # same, without the Dev UI (still a persistent server)
+genkit start -o -- go run .       # also opens the browser
+```
+`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
 
-# Run a flow directly from the CLI
-genkit flow:run myFlow '{"data": "input"}'
-genkit flow:run myFlow '{"data": "input"}' --stream   # with streaming
-genkit flow:run myFlow '{"data": "input"}' --wait      # wait for completion
+**Non-interactive use (agents/CI):** add the global `--non-interactive` flag before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the first-run analytics notice): `genkit start --non-interactive -- go run .` (works with `flow:run` too).
 
-# Or run the flow and spin up the runtime in a single command
+**Run a flow (`flow:run`):** invoke a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime just for this run (the command runs as-is to register your flows):
+```bash
 genkit flow:run myFlow '{"data": "input"}' -- go run .
+genkit flow:run myFlow '{"data": "input"}' --stream -- go run .   # with streaming
+genkit flow:run myFlow '{"data": "input"}' --wait -- go run .     # wait for completion
+```
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Traces for this run can be inspected using the trace commands below.
 
-# Look up Genkit documentation
+**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+```bash
+genkit trace:list          # find recent trace IDs
+genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+```
+
+Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into JSON parsers. For complex traces, use grep or the Dev UI trace viewer.
+
+**Documentation:**
+```bash
 genkit docs:search "streaming" go
 genkit docs:list go
 genkit docs:read go/flows.md
-
-# Inspect traces
-genkit trace:list                 # list recent traces to find trace IDs
-genkit trace:get <traceId>        # view trace details (useful for debugging)
 ```
 
 See [references/getting-started.md](references/getting-started.md) for full CLI and Developer UI details.
 
 ## Key Guidance
 
+
 - **Pass `g` explicitly.** The `*Genkit` instance returned by `genkit.Init` is the central registry. Pass it to all Genkit functions rather than storing it as a global. This is a core pattern throughout the SDK.
 - **Wrap AI logic in flows.** Flows give you tracing, observability, HTTP deployment via `genkit.Handler`, and the ability to test from the Developer UI and CLI. Any generation call worth keeping should live in a flow.
+- **Verify with traces, not a blind run.** Running the app directly (`go run .`) does not capture dev traces. See the [Genkit CLI](#genkit-cli-recommended) section for how to run your app and capture traces.
 - **Use `jsonschema:"description=..."` struct tags on output types.** The model uses these descriptions to understand what each field should contain. Without them, structured output quality drops significantly.
 - **Write good tool descriptions.** The model decides which tools to call based on their description string. Vague descriptions lead to missed or incorrect tool calls.
 - **Use `.prompt` files for complex prompts.** They separate prompt content from Go code, support Handlebars templating, and can be iterated on without recompilation. Code-defined prompts are better for simple, single-line cases.
