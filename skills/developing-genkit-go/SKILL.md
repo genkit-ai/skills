@@ -66,13 +66,21 @@ Load the appropriate reference based on what you need:
 curl -sL cli.genkit.dev | bash
 ```
 
-**Primary pattern (default):** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
+**Primary pattern (default):** prefix `genkit start --` to your normal run command. This collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Starts the Developer UI (usually http://localhost:4000) for running flows, model and agent playground, and browsing traces:
 ```bash
 genkit start -- go run .
 genkit start --noui -- go run .   # same, without the Dev UI (still a persistent server)
 genkit start -o -- go run .       # also opens the browser
 ```
 `genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
+
+**Run a flow (`flow:run`):** invoke a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime just for this run (the command runs as-is to register your flows):
+```bash
+genkit flow:run myFlow '{"data": "input"}' -- go run .
+genkit flow:run myFlow '{"data": "input"}' --stream -- go run .   # with streaming
+genkit flow:run myFlow '{"data": "input"}' --wait -- go run .     # wait for completion
+```
+This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Traces for this run can be inspected using the trace commands below.
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
@@ -81,14 +89,6 @@ genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, er
 ```
 
 Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into JSON parsers. For complex traces, use grep or the Dev UI trace viewer.
-
-**Run a flow (`flow:run`):** invoke a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime just for this run (the command runs as-is to register your flows):
-```bash
-genkit flow:run myFlow '{"data": "input"}' -- go run .
-genkit flow:run myFlow '{"data": "input"}' --stream -- go run .   # with streaming
-genkit flow:run myFlow '{"data": "input"}' --wait -- go run .     # wait for completion
-```
-This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Traces for this run can be inspected using the above trace commands.
 
 **Documentation:**
 ```bash
