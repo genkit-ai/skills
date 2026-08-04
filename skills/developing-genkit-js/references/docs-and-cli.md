@@ -39,7 +39,7 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
 ## Flow Execution (secondary)
 
 -   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>' -- <run cmd>`
-    -   Executes a single flow directly from the CLI without driving your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run: it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). To verify an agent this way, drive it from a throwaway flow. Traces for the run can be inspected with the tracing commands below.
+    -   Invokes a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime for this run (the command runs as-is to register your flows): it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). To verify an agent this way, drive it from a throwaway flow. Traces for the run can be inspected with the tracing commands below.
     -   **Always pass input JSON explicitly.** `flow:run` sends `undefined` when the input is omitted and does **not** fall back to a schema `.default()`, so a flow with a defaulted input will fail validation unless you pass the value.
     -   **Simple Input**:
         ```bash
