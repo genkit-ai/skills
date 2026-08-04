@@ -135,7 +135,7 @@ Use the Genkit CLI to find authoritative documentation:
 
 ## CLI Usage (recommended)
 
-`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action.
+`genkit start` unintrusively wraps any Node.js program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues.
 
 **Primary pattern:** prefix your normal run command. Collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script. Useful for all local development and testing, even when you never open the dev UI. Starts the Developer UI (usually http://localhost:4000):
 ```bash

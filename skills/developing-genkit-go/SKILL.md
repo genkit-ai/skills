@@ -59,7 +59,7 @@ Load the appropriate reference based on what you need:
 
 ## Genkit CLI (recommended)
 
-`genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. Check install with `genkit --version`.
+`genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while discreetly collecting traces from every Genkit action. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Check install with `genkit --version`.
 
 **Installation:**
 ```bash
