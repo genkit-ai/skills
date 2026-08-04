@@ -40,6 +40,7 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
 
 -   **Run a flow**: `genkit flow:run <flowName> '<inputJSON>' -- <run cmd>`
     -   Executes a single flow directly from the CLI without driving your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run: it runs once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check that must self-terminate (unlike `genkit start`). To verify an agent this way, drive it from a throwaway flow. Traces for the run can be inspected with the tracing commands below.
+    -   **Always pass input JSON explicitly.** `flow:run` sends `undefined` when the input is omitted and does **not** fall back to a schema `.default()`, so a flow with a defaulted input will fail validation unless you pass the value.
     -   **Simple Input**:
         ```bash
         genkit flow:run tellJoke '"chicken"' -- npx tsx src/index.ts
@@ -76,3 +77,4 @@ Ensure that the CLI is on `genkit-cli` version >= 1.29.0. If not, or if an older
     -   Retrieves detailed information for a specific trace by its ID. This is particularly useful for debugging failed model calls, inspecting tool execution, or analyzing the exact inputs and outputs of a specific step in your flow.
 -   **List traces**: `genkit trace:list [options]`
     -   Lists recent traces. Use this to find trace IDs from recent executions.
+-   **Known issue**: CLI trace output is human-oriented and may not be valid JSON (extra banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into `jq` or other JSON parsers. For complex traces, use the Dev UI trace viewer (`genkit start`).

@@ -80,6 +80,8 @@ genkit trace:list          # find recent trace IDs
 genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
 ```
 
+Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into JSON parsers. For complex traces, use grep or the Dev UI trace viewer.
+
 **Run a flow (`flow:run`):** execute any single flow from the CLI without going through your program's normal entrypoint. Append your run command after `--` to spin up the runtime just for this run:
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- go run .
