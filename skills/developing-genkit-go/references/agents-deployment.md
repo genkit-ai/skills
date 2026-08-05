@@ -130,8 +130,13 @@ func withCORS(h http.Handler) http.Handler {
 		h.ServeHTTP(w, r)
 	})
 }
+```
 
-log.Fatal(server.Start(ctx, "127.0.0.1:8080", withCORS(mux)))
+`server.Start` takes a `*http.ServeMux`, so wrap the mux with `http.ListenAndServe`
+(which accepts any `http.Handler`) to apply CORS around every route:
+
+```go
+log.Fatal(http.ListenAndServe("127.0.0.1:8080", withCORS(mux)))
 ```
 
 ## Registering agents

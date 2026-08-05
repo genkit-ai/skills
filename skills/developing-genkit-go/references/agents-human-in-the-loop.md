@@ -29,6 +29,7 @@ re-execution.
 import (
 	"github.com/genkit-ai/genkit/go/ai"
 	"github.com/genkit-ai/genkit/go/ai/exp/tool"
+	"github.com/genkit-ai/genkit/go/core/status" // status.Errorf / status.ErrInvalidArgument
 )
 
 type ApprovalAsk struct {
@@ -187,7 +188,16 @@ so the paused turn is in scope).
 ```go
 out, _ := bankingAgent.RunText(ctx, "Transfer $500 to savings.")
 if out.FinishReason == aix.AgentFinishReasonInterrupted {
-	part := out.Message.Content[len(out.Message.Content)-1] // the interrupt part
+	// Find the interrupt part: don't assume it's the last content part. The
+	// model may emit text alongside the tool request, or several tool calls
+	// where only one interrupted. tool.InterruptAs matches the right one.
+	var part *ai.Part
+	for _, p := range out.Message.Content {
+		if _, ok := tool.InterruptAs[ApprovalAsk](p); ok {
+			part = p
+			break
+		}
+	}
 	respond, _ := transferMoney.Respond(part, TransferOutput{Success: true, TransactionID: "txn-1"})
 
 	out, _ = bankingAgent.Run(ctx,

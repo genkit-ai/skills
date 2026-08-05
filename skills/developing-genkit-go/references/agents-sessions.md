@@ -40,7 +40,7 @@ multi-instance production, implement `aix.SessionStore` against a real database
 - `localstore.WithSnapshotPathPrefix(fn)`: derive a per-call subdirectory from
   context to isolate snapshots per tenant (e.g. `"org-42/user-7"`).
 - `localstore.WithPollInterval(d)`: how often the store re-reads subscribed
-  snapshot files to observe cross-process status changes (default 1s). This is
+  snapshot files to observe cross-process status changes (default 2s). This is
   what lets one process abort a detached turn another process is running.
 
 ```go

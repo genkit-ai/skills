@@ -83,7 +83,6 @@ For details see:
 
 ## Genkit CLI (recommended)
 
-
 `genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`go run .`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
 
 **Installation:**
