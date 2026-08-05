@@ -24,16 +24,50 @@ The handler accepts `{"data": <AgentInput>, "init": <AgentInit>}`:
   server-managed agents, `{"state": ...}` for client-managed ones. Omit for a
   fresh conversation.
 
-Responses come back as `{"result": <AgentOutput>}`. Set
-`Accept: text/event-stream` to stream chunks (`modelChunk`, `turnEnd`, then the
-final `result`). Turn-tier failures return **200** with a failed `AgentOutput`
-(so the caller keeps its last-good state); init-tier failures (a rejected session
-source) are hard HTTP errors (400/404).
+Responses come back as `{"result": <AgentOutput>}`. Stream chunks (`modelChunk`,
+`turnEnd`, then the final `result`) by either setting `Accept: text/event-stream`
+or adding `?stream=true` to the URL — the handler honors both. Turn-tier failures
+return **200** with a failed `AgentOutput` (so the caller keeps its last-good
+state); init-tier failures (a rejected session source) are hard HTTP errors
+(400/404).
 
-## A reusable helper for several agents
+## Serve with the built-in route layout (recommended)
 
-`exp.ListAgents(g)` returns every registered agent, so you can mount them
-uniformly. A small helper keeps companion wiring consistent.
+`genkit/exp` ships a default HTTP layout so you don't hand-wire companions.
+`genkitx.AllAgentRoutes(g)` returns a `[]genkitx.Route` covering every registered
+agent; `genkitx.AgentRoutes(agent)` does one agent. Each `Route` exposes
+`Pattern()` (a `"METHOD /path"` string for `http.ServeMux`) and
+`Handler(opts...)` (builds the `genkit.Handler`, passing any `HandlerOption`s).
+The layout follows each agent's capabilities, mounting under `/agents`:
+
+```go
+mux := http.NewServeMux()
+for _, route := range genkitx.AllAgentRoutes(g) {
+	mux.HandleFunc(route.Pattern(), route.Handler())
+}
+log.Fatal(server.Start(ctx, "127.0.0.1:8080", mux))
+```
+
+This produces, per agent:
+
+```
+POST /agents/<name>                one turn per request
+POST /agents/<name>/getSnapshot    read a snapshot (store-backed agents)
+POST /agents/<name>/abort          abort background work (abortable stores)
+```
+
+Companion routes are omitted for capabilities an agent lacks: a client-managed
+agent contributes only its turn route. To serve specific agents instead of all
+of them, use `genkitx.AgentRoutes(agent)`; to expose flows,
+`genkitx.AllFlowRoutes(g)` / `genkitx.FlowRoutes(flow)`. Mix them by
+concatenating the route slices. Any router works the same way (Gin, Chi, Echo):
+read `Pattern()` and serve `Handler()`.
+
+## A reusable helper for several agents (manual wiring)
+
+If you'd rather wire routes by hand (a custom path scheme, extra middleware per
+route, a `/api`-style prefix), mount the agent and pluck its companions off the
+typed value. A small helper keeps companion wiring consistent.
 
 ```go
 func exposeAgent[State any](mux *http.ServeMux, agent *aix.Agent[State]) {
@@ -55,15 +89,19 @@ exposeAgent(mux, backgroundAgent) // store + subscriber: getSnapshot + abort
 log.Fatal(server.Start(ctx, "127.0.0.1:8080", mux))
 ```
 
-To mount every agent generically (companions are typed on the concrete
-`*aix.Agent[State]`, so from `exp.ListAgents` you serve the run action directly;
-pluck companions off the typed value where you have it):
+To mount every agent generically, `genkitx.ListAgents(g)` returns every
+registered agent (companions are typed on the concrete `*aix.Agent[State]`, so
+from `ListAgents` you serve the run action directly and pluck companions off the
+typed value where you have it):
 
 ```go
-for _, a := range exp.ListAgents(g) {
+for _, a := range genkitx.ListAgents(g) {
 	mux.HandleFunc("POST /api/"+a.Name(), genkit.Handler(a))
 }
 ```
+
+For most deployments prefer the built-in route layout above
+(`genkitx.AllAgentRoutes`), which wires companions for you.
 
 Which companions to enable:
 

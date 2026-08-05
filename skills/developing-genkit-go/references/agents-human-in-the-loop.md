@@ -80,6 +80,18 @@ bankingAgent := genkitx.DefineAgent(g, "bankingAgent",
 `tool.Interrupt(data)` requires `data` to serialize to a JSON object (a struct or
 map), since it rides as structured metadata on the interrupted tool request.
 
+Returning an ordinary Go `error` from the tool is different: it **fails the turn**
+rather than pausing it. The runtime wraps the cause as `ai.ErrToolFailed` with the
+original preserved, so you can validate inputs and still branch on the classified
+status server-side, e.g.:
+
+```go
+if in.Amount <= 0 {
+	return TransferOutput{}, status.Errorf(status.ErrInvalidArgument,
+		"transfer amount must be positive, got $%.2f", in.Amount)
+}
+```
+
 ## Detect and resume
 
 When a turn pauses, its output has `FinishReason == aix.AgentFinishReasonInterrupted`.

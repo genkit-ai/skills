@@ -107,6 +107,45 @@ Constructor choices:
 - `genkitx.DefineCustomAgent` — full control over the turn loop. See
   [advanced custom agents](agents-custom.md).
 
+### Backing an agent with a `.prompt` file
+
+`genkitx.DefinePromptAgent` pairs an agent with a prompt from the registry — for
+example a `.prompt` file loaded at startup — so prompt authors can tune the
+model, config, template, and default input without touching the Go wiring. With
+no source option it defaults to the prompt registered under the agent's own name.
+
+```prompt
+---
+# prompts/chef.prompt
+model: googleai/gemini-flash-latest
+input:
+  schema: ChatPromptInput
+  default:
+    personality: a Michelin-starred chef who loves explaining technique
+---
+You are {{personality}}. Keep every answer very brief, a few sentences at most.
+```
+
+If the `.prompt` frontmatter references a schema by name, register that Go type
+with `genkit.DefineSchemasFor` **before** defining the agent (the prompt is
+rendered at definition time):
+
+```go
+type ChatPromptInput struct {
+	Personality string `json:"personality"`
+}
+
+genkit.DefineSchemasFor(g, ChatPromptInput{}) // resolve "ChatPromptInput" in the .prompt
+
+chef := genkitx.DefinePromptAgent(g, "chef", // loads prompts/chef.prompt by name
+	aix.WithSessionStore(localstore.NewInMemorySessionStore[any]()),
+	aix.WithDescription[any]("Michelin-starred chef"),
+)
+```
+
+To supply an input from code, or to back several agents with one shared prompt,
+add `aix.WithNamedPrompt(name, input)`.
+
 Common agent options (all from `aix`):
 
 - `aix.WithSessionStore(store)`: server-side snapshot persistence. See [sessions](agents-sessions.md).
@@ -256,9 +295,21 @@ log.Fatal(server.Start(ctx, "127.0.0.1:8080", mux))
 
 The request body is `{"data": <AgentInput>, "init": <AgentInit>}`. `data` carries
 the turn's input; `init` carries the session source (see below). Set
-`Accept: text/event-stream` to stream chunks. For serving multiple agents, CORS
-headers for browser clients, and companion routing, see
-[Deploying agents](agents-deployment.md).
+`Accept: text/event-stream` (or add `?stream=true`) to stream chunks.
+
+Rather than wiring companions by hand, `genkit/exp` ships a default HTTP layout:
+`genkitx.AllAgentRoutes(g)` returns a route per registered agent (mounted under
+`/agents/<name>`, with `getSnapshot` / `abort` added for capable agents), which
+you range over onto a mux:
+
+```go
+for _, route := range genkitx.AllAgentRoutes(g) {
+	mux.HandleFunc(route.Pattern(), route.Handler())
+}
+```
+
+For serving multiple agents, the route helpers, CORS headers for browser clients,
+and companion routing, see [Deploying agents](agents-deployment.md).
 
 ## Client-managed vs server-managed state
 

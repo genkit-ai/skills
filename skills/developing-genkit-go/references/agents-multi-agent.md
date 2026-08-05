@@ -95,8 +95,9 @@ fmt.Println(out.Message.Text())
   sub-agent as context. `0` sends only the task description. History is forwarded
   only to **client-managed** sub-agents (no session store); server-managed
   sub-agents receive only the task.
-- `ArtifactStrategy` (`aix.ArtifactStrategy`): `ArtifactStrategyInline` (default)
-  or `ArtifactStrategySession` — see below.
+- `ArtifactStrategy` (`middlewarex.ArtifactStrategy`): `ArtifactStrategyInline`
+  (default) or `ArtifactStrategySession` — see below. The type and its constants
+  live in `plugins/middleware/exp` alongside the `Agents` middleware.
 
 ## Sharing artifacts between agents
 
