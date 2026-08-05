@@ -23,7 +23,7 @@ listing (names + sizes, not full content) into the system prompt each turn. No
 custom tool code needed. Attach it via the `ai.WithUse` prompt option.
 
 ```go
-workspaceAgent := genkitx.DefineAgent(g, "workspaceAgent",
+workspaceAgent := genkitx.DefineAgent[any](g, "workspaceAgent",
 	aix.InlinePrompt{
 		ai.WithModelName("googleai/gemini-flash-latest"),
 		ai.WithSystem(`You are a code generation assistant. Use write_artifact to create
@@ -31,9 +31,14 @@ files (pass the filename as "name" and the full content as "content"). Use
 read_artifact to review or modify a previously created file.`),
 		ai.WithUse(&middlewarex.Artifacts{}),
 	},
-	aix.WithSessionStore(localstore.NewInMemorySessionStore[any]()),
 )
 ```
+
+No session store is needed to produce artifacts — they are returned on
+`out.Artifacts` either way (this agent is [client-managed](agents.md#client-managed-vs-server-managed-state),
+hence the explicit `[any]` type parameter). Add a store (e.g.
+`localstore.NewFileSessionStore`) only when artifacts should persist across turns
+or sessions. See [sessions](agents-sessions.md).
 
 Run it; artifacts are produced via the tool and returned in the output:
 
