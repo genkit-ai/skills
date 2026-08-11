@@ -1,6 +1,8 @@
 ---
 name: developing-genkit-python
 description: Develop AI-powered applications using Genkit in Python. Use when the user asks about Genkit, AI agents, flows, or tools in Python, or when encountering Genkit errors, import issues, or API problems.
+metadata:
+  category: AiAndMachineLearning
 ---
 
 # Genkit Python
