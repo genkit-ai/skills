@@ -158,7 +158,7 @@ This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then e
 ```bash
 genkit trace:list                        # find recent trace IDs
 genkit trace:get <traceId>               # full trace details (inputs, outputs, tool calls, errors)
-genkit trace:get <traceId> --format json # machine-readable JSON, safe to pipe into jq
+genkit trace:get <traceId> --format json # machine-readable JSON, safe to pipe into jq or other parsers
 ```
 
 For machine-readable output, pass `--format json` to get clean JSON you can pipe into `jq` or other parsers. The **default** output is human-oriented (banner/log lines, possible truncation on large traces), so don't pipe that form directly; use `--format json`, grep, or the Dev UI trace viewer.
