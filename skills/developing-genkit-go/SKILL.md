@@ -1,6 +1,8 @@
 ---
 name: developing-genkit-go
 description: Develop AI-powered applications using Genkit in Go. Use when the user asks to build AI features, agents, flows, or tools in Go using Genkit, or when working with Genkit Go code involving generation, prompts, streaming, tool calling, or model providers.
+metadata:
+  category: AiAndMachineLearning
 ---
 
 # Genkit Go
@@ -110,11 +112,13 @@ This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then e
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
-genkit trace:list          # find recent trace IDs
-genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+genkit trace:list                        # find recent trace IDs
+genkit trace:get <traceId>               # full trace details (inputs, outputs, tool calls, errors)
+genkit trace:get <traceId> --format json # machine-readable JSON, safe to pipe into jq or other parsers
 ```
 
-Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into JSON parsers. For complex traces, use grep or the Dev UI trace viewer.
+For machine-readable output, pass `--format json` to get clean JSON you can pipe into `jq` or other parsers. The **default** output is human-oriented (banner/log lines, possible truncation on large traces), so don't pipe that form directly; use `--format json`, grep, or the Dev UI trace viewer.
+
 
 **Documentation:**
 ```bash

@@ -77,6 +77,8 @@ For non-interactive/agent/CI use, add the global `--non-interactive` flag before
 
 -   **Get a trace**: `genkit trace:get <traceId>`
     -   Retrieves detailed information for a specific trace by its ID. This is particularly useful for debugging failed model calls, inspecting tool execution, or analyzing the exact inputs and outputs of a specific step in your flow.
+    -   **Machine-readable output**: add `--format json` (e.g. `genkit trace:get <traceId> --format json`) to get clean JSON you can pipe into `jq` or other parsers.
 -   **List traces**: `genkit trace:list [options]`
     -   Lists recent traces. Use this to find trace IDs from recent executions.
--   **Known issue**: CLI trace output is human-oriented and may not be valid JSON (extra banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into `jq` or other JSON parsers. For complex traces, use the Dev UI trace viewer (`genkit start`).
+-   **Piping to parsers**: the **default** trace output is human-oriented (extra banner/log lines, possible truncation on large traces), so don't pipe that form directly into `jq`. Use `--format json` for clean JSON, or the Dev UI trace viewer (`genkit start`) for complex traces.
+

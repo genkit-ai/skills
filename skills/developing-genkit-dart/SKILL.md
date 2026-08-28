@@ -1,6 +1,8 @@
 ---
 name: developing-genkit-dart
 description: Generates code and provides documentation for the Genkit Dart SDK. Use when the user asks to build AI agents in Dart, use Genkit flows, or integrate LLMs into Dart/Flutter applications.
+metadata:
+  category: AiAndMachineLearning
 ---
 
 # Genkit Dart
@@ -91,11 +93,13 @@ This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then e
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
-genkit trace:list          # find recent trace IDs
-genkit trace:get <traceId> # full trace details (inputs, outputs, tool calls, errors)
+genkit trace:list                        # find recent trace IDs
+genkit trace:get <traceId>               # full trace details (inputs, outputs, tool calls, errors)
+genkit trace:get <traceId> --format json # machine-readable JSON, safe to pipe into jq or other parsers
 ```
 
-Known issue: CLI trace output is human-oriented and may not be valid JSON (banner/log lines, possible truncation on large traces), so don't assume it pipes cleanly into JSON parsers. For complex traces, use grep or the Dev UI trace viewer.
+For machine-readable output, pass `--format json` to get clean JSON you can pipe into `jq` or other parsers. The **default** output is human-oriented (banner/log lines, possible truncation on large traces), so don't pipe that form directly; use `--format json`, grep, or the Dev UI trace viewer.
+
 
 **Documentation:**
 ```bash
