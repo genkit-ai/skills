@@ -66,6 +66,17 @@ For more details see:
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP (multiple agents, CORS, web UI, other frameworks).
 
+## Generative UI (A2UI)
+
+Genkit has an experimental **A2UI** (Agent-to-UI) plugin (`@genkit-ai/a2ui`) that
+lets an agent stream interactive UI **surfaces** (cards, lists, forms, buttons),
+not just prose. The whole server-side integration is the `a2ui()` model
+middleware in an agent's (or `ai.generate`'s) `use` array; the browser renders
+surfaces with an `@a2ui/*` renderer plus the helpers in `@genkit-ai/a2ui/client`.
+It builds on the beta agent client (`genkit/beta` + `genkit/beta/client`).
+
+-   [A2UI](references/a2ui.md): server middleware, options, client rendering, user actions/forms, custom catalogs, and the security/trust boundary.
+
 ## Middleware
 
 Middleware wraps generation (retries, fallback, extra tools, request/response
@@ -175,3 +186,4 @@ See [CLI Reference](references/docs-and-cli.md) for more commands, and `genkit -
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
 -   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md), [state](references/agents-state.md), [artifacts](references/agents-artifacts.md), [multi-agent](references/agents-multi-agent.md), [custom agents](references/agents-custom.md), [deployment](references/agents-deployment.md).
 -   [Middleware](references/middleware.md): using middleware and the `@genkit-ai/middleware` package. See also [building custom middleware](references/middleware-custom.md).
+-   [A2UI (Generative UI)](references/a2ui.md): the `@genkit-ai/a2ui` plugin (the `a2ui()` middleware), options, client rendering, user actions/forms, custom catalogs, and security.

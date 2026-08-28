@@ -47,6 +47,19 @@ For more details see:
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit_shelf` (multiple agents, CORS).
 
+## Generative UI (A2UI)
+
+Genkit Dart has an **A2UI** (Agent-to-UI) plugin (`genkit_a2ui`)
+that lets an agent stream interactive UI **surfaces** (cards, lists, forms,
+buttons), not just prose. The whole server-side integration is the `a2ui()` model
+middleware in an agent's (or `ai.generate`'s) `use` list; the Flutter client
+renders surfaces with the [`genui`](https://pub.dev/packages/genui) package plus
+the helpers in `package:genkit_a2ui/client.dart`. Dart specific: you must
+register `A2uiPlugin()` in `Genkit(plugins: [...])` (unlike JS, middleware is
+resolved by name from the registry).
+
+-   [A2UI](references/a2ui.md): server middleware, options, Flutter/genui client rendering, user actions/forms, custom catalogs, and the security/trust boundary.
+
 ## Genkit CLI (recommended)
 
 `genkit start` unintrusively wraps any Dart program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`dart run`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
@@ -106,6 +119,7 @@ When asked to use any given plugin, always verify usage by referring to its corr
 | `genkit_chrome` | [references/genkit_chrome.md](references/genkit_chrome.md) | Load for Running Gemini Nano locally inside the Chrome browser using the Prompt API. |
 | `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for Integrating Genkit Flow actions over HTTP using Dart Shelf. |
 | `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for Firebase AI plugin interface (Gemini API via Vertex AI). |
+| `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on the client with `genui`. |
 
 ## External Dependencies
 Whenever you define schemas mapping inside of Tools, Flows, and Prompts, you must use the [schemantic](https://pub.dev/packages/schemantic) library. 
