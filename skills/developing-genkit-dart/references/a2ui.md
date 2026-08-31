@@ -15,16 +15,23 @@ middleware: add `a2ui()` to an agent's `use` list and nothing else changes.
 
 ## Install
 
+On the **server** (the shelf app that hosts the agent), add `genkit_a2ui`
+alongside the packages the agent already needs. List `genkit` explicitly even
+though `genkit_a2ui` pulls it in transitively, otherwise `dart analyze` warns
+with `depend_on_referenced_packages` (the server code imports
+`package:genkit/genkit.dart` directly):
+
 ```bash
-dart pub add genkit_a2ui
+dart pub add genkit genkit_a2ui genkit_google_genai genkit_shelf
 ```
 
 To render surfaces you also need a renderer. The Flutter renderer for A2UI is
-[`genui`](https://pub.dev/packages/genui). Add it (plus `a2ui_core`) to your
-client Flutter app:
+[`genui`](https://pub.dev/packages/genui). On the **client** Flutter app, add it
+plus `a2ui_core`, and `genkit` + `genkit_a2ui` for the client helpers
+(`remoteAgent`, `a2uiEnvelopesFromParts`, `actionToMessage`):
 
 ```bash
-flutter pub add genui a2ui_core
+flutter pub add genkit genkit_a2ui genui a2ui_core
 ```
 
 ## Server: add the `a2ui()` middleware
@@ -103,8 +110,9 @@ so read them from `chunk.raw.modelChunk?.content`.
 import 'package:a2ui_core/a2ui_core.dart' as core;
 import 'package:genkit/client.dart';
 import 'package:genkit_a2ui/client.dart';
-import 'package:genui/genui.dart' hide basicCatalogId;
+import 'package:genui/genui.dart' hide basicCatalogId, DataPart;
 
+// remoteAgent returns an AgentApi<State> (not a `RemoteAgent`).
 final agent = remoteAgent(
   url: 'http://localhost:8080/api/uiAgent',
   getSnapshotUrl: 'http://localhost:8080/api/uiAgent/getSnapshot',
@@ -127,10 +135,16 @@ await for (final chunk in turn.stream) {
 await turn.response;
 ```
 
-**Dart specific:** both `genkit_a2ui` and `genui` export a `basicCatalogId`
-symbol with *different* values. You want the plugin's, so hide genui's with
-`import 'package:genui/genui.dart' hide basicCatalogId;`. If the ids do not
-match, genui registers an empty stub and surfaces render blank.
+**Dart specific:** importing both `package:genkit/client.dart` and
+`package:genui/genui.dart` collides on two symbols, so hide genui's:
+
+- `basicCatalogId`: both packages export one with *different* values. You want
+  the plugin's; if the ids do not match, genui registers an empty stub and
+  surfaces render blank.
+- `DataPart`: genkit's client and genui (via `genai_primitives`) both export a
+  `DataPart` class, so referencing `DataPart` unqualified is ambiguous.
+
+Hence `import 'package:genui/genui.dart' hide basicCatalogId, DataPart;`.
 
 `remoteAgent` manages the session id for you, so a single `chat` keeps the whole
 conversation server-side (the agent's session store holds history).
@@ -142,29 +156,53 @@ log when a `SurfaceAdded` update arrives, and listen to
 
 ## Handling user actions
 
-When a user interacts with a surface (for example, presses a `Button`), the
-renderer emits an action. Turn it into an agent input with `actionToMessage` and
-send it as the next turn:
+When a user interacts with a surface (for example, presses a `Button`),
+`surfaceController.onSubmit` emits a genui `ChatMessage`. That message is *not* an
+`A2uiClientAction` you can hand straight to `actionToMessage`: genui reports the
+interaction as a `UiInteractionPart` whose payload is a JSON string
+`{ "version": ..., "action": { name, surfaceId, widgetId, context } }`. Decode
+that part into an `A2uiClientAction`, then `actionToMessage(...)` it and send it
+as the next turn:
 
 ```dart
+import 'dart:convert';
 import 'package:genkit_a2ui/client.dart';
+import 'package:genui/genui.dart' hide basicCatalogId, DataPart;
 
-final message = actionToMessage(
-  A2uiClientAction(
-    name: 'refresh',
-    surfaceId: surfaceId,
-    sourceComponentId: 'refreshBtn',
-    timestamp: DateTime.now().toIso8601String(),
-    context: {'city': 'Tokyo'},
-  ),
-);
-final turn = chat.sendStream(message: message);
+surfaceController.onSubmit.listen((ChatMessage message) {
+  final action = _actionFromSubmit(message);
+  // Guard against re-entrancy: ignore a new action while a turn is still
+  // streaming, otherwise two concurrent turns interleave.
+  if (action == null || busy) return;
+  final turn = chat.sendStream(message: actionToMessage(action));
+  // ...consume turn.stream like above (prose + a2uiEnvelopesFromParts)...
+});
+
+/// Extracts an [A2uiClientAction] from a genui onSubmit [ChatMessage].
+A2uiClientAction? _actionFromSubmit(ChatMessage message) {
+  for (final part in message.parts) {
+    final interaction = part.asUiInteractionPart?.interaction;
+    if (interaction == null) continue;
+    final decoded = jsonDecode(interaction);
+    final action = decoded is Map ? decoded['action'] : null;
+    if (action is Map) {
+      final m = action.cast<String, dynamic>();
+      return A2uiClientAction(
+        name: (m['name'] as String?) ?? 'action',
+        surfaceId: (m['surfaceId'] as String?) ?? '',
+        // genui names it `widgetId`; A2uiClientAction calls it sourceComponentId.
+        sourceComponentId: (m['widgetId'] as String?) ?? '',
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+        context: (m['context'] as Map?)?.cast<String, dynamic>() ?? const {},
+      );
+    }
+  }
+  return null;
+}
 ```
 
 The action's `name` is sent as the user message; the full action (including its
-`context`) is attached as an a2ui data part so the agent can react to it. Guard
-against re-entrancy: ignore a new action while a turn is still streaming,
-otherwise two concurrent turns interleave.
+`context`) is attached as an a2ui data part so the agent can react to it.
 
 ### Forms
 
