@@ -38,7 +38,7 @@ flutter pub add genkit genkit_a2ui genui a2ui_core
 
 Add `a2ui()` to your agent's `use` list. That is the whole server-side setup.
 
-**Dart specific:** unlike the JS plugin, Dart middleware is resolved by name from
+**Dart specific:** Dart middleware is resolved by name from
 the registry, so you MUST register `A2uiPlugin()` in `Genkit(plugins: [...])`
 before referencing it via `a2ui()`.
 
