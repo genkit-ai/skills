@@ -2,7 +2,7 @@
 
 The `genkit_a2ui` package brings
 > [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based streaming UI
-> protocol, to Genkit Dart agents. APIs may change.
+> protocol, to Genkit Dart agents.
 >
 > A2UI builds on the agent client. Server APIs come from
 > `package:genkit/genkit.dart`; the browser/Flutter client comes from

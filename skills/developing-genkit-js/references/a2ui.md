@@ -2,11 +2,11 @@
 
 The `@genkit-ai/a2ui` plugin brings
 > [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based streaming UI
-> protocol, to Genkit agents. APIs may change.
+> protocol, to Genkit agents.
 >
-> A2UI builds on the agent client, so it needs the **Agents (Beta)** APIs:
-> `genkit/beta` on the server and `genkit/beta/client` in the browser. Read
-> [Agents](agents.md) first if you have not.
+> A2UI builds on the agent client, so it uses the agent APIs: `genkit/beta` on
+> the server and `genkit/beta/client` in the browser. Read [Agents](agents.md)
+> first if you have not.
 
 An A2UI-enabled agent streams more than prose. It streams interactive UI
 **surfaces** (cards, lists, forms, buttons) that a client renders incrementally
@@ -18,12 +18,6 @@ middleware: add `a2ui()` to an agent's `use` array and nothing else changes.
 ```bash
 npm i @genkit-ai/a2ui
 ```
-
-While A2UI is experimental it ships as a release candidate that peer-depends on
-the matching prerelease of Genkit core. If `npm i` reports a peer conflict, pin
-Genkit and its plugins to the same `-rc` line (published under the `next`
-dist-tag), for example `npm i genkit@next @genkit-ai/google-genai@next
-@genkit-ai/express@next`.
 
 To render surfaces in the browser you also need a renderer. A2UI ships renderers
 for [`@a2ui/lit`](https://www.npmjs.com/package/@a2ui/lit),
