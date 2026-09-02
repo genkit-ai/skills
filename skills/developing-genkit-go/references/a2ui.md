@@ -120,9 +120,11 @@ log.Fatal(server.Start(ctx, "127.0.0.1:8080", mux))
 ```
 
 If the browser is served from a different origin than the agent (for example a
-Vite dev server on `:5173`), wrap each handler with permissive CORS and register
-the bare paths too so the preflight `OPTIONS` requests match. Behind a same-origin
-proxy (for example Vite `preview`), CORS is a no-op.
+Vite dev server on `:5173`), wrap the entire router/mux with permissive CORS
+middleware (as shown in [Deploying agents](agents-deployment.md#cors-for-browser-clients))
+so that preflight OPTIONS requests are handled automatically without needing to
+register duplicate bare paths. Behind a same-origin proxy (for example Vite preview),
+CORS is a no-op.
 
 You can also drive the agent directly with curl:
 
