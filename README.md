@@ -11,7 +11,9 @@ This repository contains "Agent Skills" designed to teach AI agents how to build
 
 ## Installation
 
-Install skills into your project workspace using [skills.sh](https://skills.sh):
+### Using [skills.sh](https://skills.sh)
+
+Install skills into your project workspace:
 
 **For Node.js / TypeScript:**
 
