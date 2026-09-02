@@ -83,18 +83,6 @@ For details see:
 -   [Advanced custom agents](references/agents-custom.md): `DefineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit.Handler`.
 
-## Generative UI (A2UI)
-
-Genkit Go has an experimental **A2UI** (Agent-to-UI) plugin
-(`github.com/genkit-ai/genkit/go/plugins/a2ui`) that lets an agent stream
-interactive UI **surfaces** (cards, lists, forms, buttons), not just prose. The
-whole integration is the `&a2ui.Config{}` model middleware added via `ai.WithUse`
-on a generate call or agent inline prompt. **Go is server-only: it has no A2UI
-client/renderer.** Render surfaces with a JS or Dart/Flutter client that talks to
-your Go agent over HTTP (the server and clients are wire-compatible).
-
--   [A2UI](references/a2ui.md): server middleware, options, custom catalogs, and security. For the client (rendering surfaces), refer to the A2UI reference in the Genkit JS or Dart skill.
-
 ## Genkit CLI (recommended)
 
 `genkit start` unintrusively wraps any Go program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`go run .`) skips trace capture, so you're debugging blind. Check install with `genkit --version`.
