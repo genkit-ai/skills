@@ -70,7 +70,7 @@ For more details see:
 
 ## Generative UI (A2UI)
 
-Genkit has an experimental **A2UI** (Agent-to-UI) plugin (`@genkit-ai/a2ui`) that
+Genkit has an **A2UI** (Agent-to-UI) plugin (`@genkit-ai/a2ui`) that
 lets an agent stream interactive UI **surfaces** (cards, lists, forms, buttons),
 not just prose. The whole server-side integration is the `a2ui()` model
 middleware in an agent's (or `ai.generate`'s) `use` array; the browser renders
