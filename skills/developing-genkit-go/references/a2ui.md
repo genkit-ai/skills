@@ -4,7 +4,7 @@ The `a2ui` package (`github.com/genkit-ai/genkit/go/plugins/a2ui`) brings
 > [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based streaming UI
 > protocol, to Genkit Go agents.
 >
-> A2UI builds on the agent API, which runs in experimental mode
+> A2UI builds on the experimental agent API
 > (`genkit.Init(ctx, genkit.WithExperimental())`). Read [Agents](agents.md)
 > first if you have not.
 

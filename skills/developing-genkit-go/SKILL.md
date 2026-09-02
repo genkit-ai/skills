@@ -85,7 +85,7 @@ For details see:
 
 ## Generative UI (A2UI)
 
-Genkit Go has an experimental **A2UI** (Agent-to-UI) plugin
+Genkit Go has an **A2UI** (Agent-to-UI) plugin
 (`github.com/genkit-ai/genkit/go/plugins/a2ui`) that lets an agent stream
 interactive UI **surfaces** (cards, lists, forms, buttons), not just prose. The
 whole integration is the `&a2ui.Config{}` model middleware added via `ai.WithUse`
