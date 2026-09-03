@@ -234,7 +234,7 @@ emitted a2ui parts.
 
 A2UI rides on its own part channel: a Genkit `data` part with mime type
 `application/a2ui+json` (`a2ui.A2UIMimeType`) whose data is
-`{ "envelopes": [...] }`. On each model call, `&a2ui.Config{}`:
+`{ "envelopes": [...] }`. On each model call, `&a2ui.Surfaces{}`:
 
 1. Sanitizes inbound a2ui parts (a surface action sent back as the next turn, or
    replayed history) into model-readable text, so a model that does not
