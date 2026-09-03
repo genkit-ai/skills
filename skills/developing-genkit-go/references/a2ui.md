@@ -185,7 +185,7 @@ if err := a2ui.LoadCatalog(g, weatherCatalog); err != nil {
 uiAgent := genkitx.DefineAgent(g, "uiAgent",
 	aix.InlinePrompt{
 		ai.WithModelName("googleai/gemini-flash-latest"),
-		ai.WithUse(&a2ui.Config{
+		ai.WithUse(&a2ui.Surfaces{
 			CatalogID: weatherCatalog.ID,
 			Validate:  a2ui.ValidateStrict,
 		}),
