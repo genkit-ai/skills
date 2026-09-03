@@ -1,17 +1,19 @@
 # A2UI (Agent-to-UI) generative UI
 
-The `a2ui` package (`github.com/genkit-ai/genkit/go/plugins/a2ui`) brings
-> [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based streaming UI
-> protocol, to Genkit Go agents.
->
-> A2UI builds on the experimental agent API
-> (`genkit.Init(ctx, genkit.WithExperimental())`). Read [Agents](agents.md)
-> first if you have not.
+The A2UI plugin (`github.com/genkit-ai/genkit/go/plugins/a2ui/exp`, imported as
+`a2uix`) brings [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based
+streaming UI protocol, to Genkit Go agents. The plugin is in preview: it lives
+under the `.../a2ui/exp` import path (package `exp`, aliased `a2uix` following
+`aix` and `genkitx`) and its APIs may change in any minor version release.
+
+A2UI builds on the experimental agent API
+(`genkit.Init(ctx, genkit.WithExperimental())`). Read [Agents](agents.md)
+first if you have not.
 
 An A2UI-enabled agent streams more than prose. It streams interactive UI
 **surfaces** (cards, lists, forms, buttons) that a client renders incrementally
 as the model responds. The entire Go integration is a single model middleware:
-add `&a2ui.Surfaces{}` to a generate/agent's `ai.WithUse` and nothing else changes.
+add `&a2uix.Surfaces{}` to a generate/agent's `ai.WithUse` and nothing else changes.
 
 ## Go is server-only: bring your own client
 
@@ -40,8 +42,8 @@ catalog under the **same catalog id** the Go server advertises.
 
 ## Server: add the `a2ui` middleware
 
-Add `&a2ui.Surfaces{}` to the generate call (or agent inline prompt) via
-`ai.WithUse`. That is the whole server-side setup. Registering `&a2ui.A2UI{}`
+Add `&a2uix.Surfaces{}` to the generate call (or agent inline prompt) via
+`ai.WithUse`. That is the whole server-side setup. Registering `&a2uix.A2UI{}`
 in `genkit.Init` is **optional**: it only surfaces the middleware and catalogs in
 the Dev UI. The middleware works via `ai.WithUse` regardless.
 
@@ -54,14 +56,14 @@ import (
 	"github.com/genkit-ai/genkit/go/ai/exp/localstore"
 	"github.com/genkit-ai/genkit/go/genkit"
 	genkitx "github.com/genkit-ai/genkit/go/genkit/exp"
-	"github.com/genkit-ai/genkit/go/plugins/a2ui"
+	a2uix "github.com/genkit-ai/genkit/go/plugins/a2ui/exp"
 	"github.com/genkit-ai/genkit/go/plugins/googlegenai"
 )
 
 ctx := context.Background()
-// &a2ui.Plugin{} is optional (Dev UI only); the middleware works without it.
+// &a2uix.A2UI{} is optional (Dev UI only); the middleware works without it.
 g := genkit.Init(ctx,
-	genkit.WithPlugins(&googlegenai.GoogleAI{}, &a2ui.A2UI{}),
+	genkit.WithPlugins(&googlegenai.GoogleAI{}, &a2uix.A2UI{}),
 	genkit.WithExperimental(),
 )
 
@@ -72,7 +74,7 @@ uiAgent := genkitx.DefineAgent(g, "uiAgent",
 			"You help users. Render an A2UI surface whenever a result is " +
 				"clearer shown than told (weather, comparisons, lists, forms). " +
 				"Keep prose brief; put the substance in the UI."),
-		ai.WithUse(&a2ui.Surfaces{}), // defaults to the bundled basic catalog
+		ai.WithUse(&a2uix.Surfaces{}), // defaults to the bundled basic catalog
 	},
 	// Server-managed state: the client just passes a session id (remoteAgent
 	// handles that), history lives in the store.
@@ -86,7 +88,7 @@ It works identically on a one-shot `genkit.Generate`:
 resp, err := genkit.Generate(ctx, g,
 	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Show me the weather in Tokyo"),
-	ai.WithUse(&a2ui.Surfaces{}),
+	ai.WithUse(&a2uix.Surfaces{}),
 )
 ```
 
@@ -100,7 +102,7 @@ re-invokes the model) **outside** A2UI so each attempt gets a fresh A2UI turn.
 ```go
 ai.WithUse(
 	&middleware.Retry{MaxRetries: 5}, // outer: fresh A2UI turn per attempt
-	&a2ui.Surfaces{},                   // inner
+	&a2uix.Surfaces{},                   // inner
 )
 ```
 
@@ -137,58 +139,58 @@ curl -N -X POST 'http://localhost:8080/api/uiAgent?stream=true' \
 
 ### Config options
 
-`&a2ui.Surfaces{}` fields (all optional):
+`&a2uix.Surfaces{}` fields (all optional):
 
 | Field          | Default                             | Description                                                                                                  |
 | -------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `Catalog`      | nil                                 | Inline `*a2ui.Catalog`. Wins over `CatalogID`, but is not serialized, so prefer `CatalogID` + `LoadCatalog`. |
-| `CatalogID`    | `a2ui.DefaultCatalogID` (`"basic"`) | Id of a catalog registered with `a2ui.LoadCatalog`. Resolved from the registry at call time.                 |
-| `Instructions` | `a2ui.InstructionsSystem`           | Where catalog capabilities are injected. `a2ui.InstructionsNone` injects nothing (supply your own).          |
-| `Validate`     | `a2ui.ValidateWarn`                 | `ValidateWarn` logs and drops bad blocks; `ValidateStrict` returns an error; `ValidateOff` skips checking.   |
+| `Catalog`      | nil                                 | Inline `*a2uix.Catalog`. Wins over `CatalogID`, but is not serialized, so prefer `CatalogID` + `LoadCatalog`. |
+| `CatalogID`    | `a2uix.DefaultCatalogID` (`"basic"`) | Id of a catalog registered with `a2uix.LoadCatalog`. Resolved from the registry at call time.                 |
+| `Instructions` | `a2uix.InstructionsSystem`           | Where catalog capabilities are injected. `a2uix.InstructionsNone` injects nothing (supply your own).          |
+| `Validate`     | `a2uix.ValidateWarn`                 | `ValidateWarn` logs and drops bad blocks; `ValidateStrict` returns an error; `ValidateOff` skips checking.   |
 | `SurfaceID`    | fresh UUID                          | Surface-id policy. Set a fixed string to reuse one id per surface; empty mints a fresh UUID per surface.     |
-| `Version`      | `a2ui.DefaultVersion` (`"v0.9"`)    | Protocol version stamped on envelopes. Validated against `a2ui.SupportedVersions`.                           |
+| `Version`      | `a2uix.DefaultVersion` (`"v0.9"`)    | Protocol version stamped on envelopes. Validated against `a2uix.SupportedVersions`.                           |
 
-Use `Validate: a2ui.ValidateStrict` during development to fail fast on malformed
+Use `Validate: a2uix.ValidateStrict` during development to fail fast on malformed
 JSON or components outside the catalog. See [Security](#security-and-the-trust-boundary)
 for what strict does and does not check.
 
 ## Custom catalogs
 
 The `CatalogID` is a **catalog id** resolved from the Genkit registry. The
-bundled basic catalog (`a2ui.BasicCatalog()`, id `a2ui.BasicCatalogID`, mirroring
+bundled basic catalog (`a2uix.BasicCatalog()`, id `a2uix.BasicCatalogID`, mirroring
 `@a2ui/web_core`'s basic catalog) is the default and needs no registration. A
 catalog describes the components the model may emit:
 
 - `ID`: globally-unique URI (also used as `catalogId` on `createSurface`).
-- `Components`: each an `a2ui.CatalogComponent` with `Name` (matches the renderer
+- `Components`: each an `a2uix.CatalogComponent` with `Name` (matches the renderer
   type), `Description` (one-line summary), and `Props` (a compact, model-facing
   text description of the component's props, kept as plain text to minimize
   prompt tokens).
 
-Register a catalog with `a2ui.LoadCatalog`, then reference it by id. Start from
+Register a catalog with `a2uix.LoadCatalog`, then reference it by id. Start from
 the basic catalog and add your own component:
 
 ```go
-import "github.com/genkit-ai/genkit/go/plugins/a2ui"
+import a2uix "github.com/genkit-ai/genkit/go/plugins/a2ui/exp"
 
-weatherCatalog := a2ui.BasicCatalog()
+weatherCatalog := a2uix.BasicCatalog()
 weatherCatalog.ID = "https://my-app.org/catalogs/weather.json"
-weatherCatalog.Components = append(weatherCatalog.Components, a2ui.CatalogComponent{
+weatherCatalog.Components = append(weatherCatalog.Components, a2uix.CatalogComponent{
 	Name:        "Gauge",
 	Description: "A circular gauge visualizing a single numeric value.",
 	Props:       "value: number or { path } binding (required); min?: number; max?: number; label?: string; unit?: string.",
 })
 
-if err := a2ui.LoadCatalog(g, weatherCatalog); err != nil {
+if err := a2uix.LoadCatalog(g, weatherCatalog); err != nil {
 	log.Fatalf("loading catalog: %v", err)
 }
 
 uiAgent := genkitx.DefineAgent(g, "uiAgent",
 	aix.InlinePrompt{
 		ai.WithModelName("googleai/gemini-flash-latest"),
-		ai.WithUse(&a2ui.Surfaces{
+		ai.WithUse(&a2uix.Surfaces{
 			CatalogID: weatherCatalog.ID,
-			Validate:  a2ui.ValidateStrict,
+			Validate:  a2uix.ValidateStrict,
 		}),
 	},
 	aix.WithSessionStore(localstore.NewInMemorySessionStore[any]()),
@@ -196,16 +198,16 @@ uiAgent := genkitx.DefineAgent(g, "uiAgent",
 ```
 
 You can also load a catalog from a JSON file with
-`a2ui.LoadCatalogFile(g, "./my-catalog.json")` (an object with an `id` string and
+`a2uix.LoadCatalogFile(g, "./my-catalog.json")` (an object with an `id` string and
 a `components` array). To surface the bundled basic catalog in the Dev UI
-alongside custom ones, call `a2ui.RegisterBasicCatalog(g)` (optional; the
+alongside custom ones, call `a2uix.RegisterBasicCatalog(g)` (optional; the
 middleware falls back to it either way). `LoadCatalog` is idempotent per id.
 
 The **client must register a matching renderer under the same catalog id**, and
 each component `Name` must match on both sides. Otherwise the model emits a
 component the client cannot render. See the A2UI reference in the JS or Dart
 skill for how to register a custom component (a genui `CatalogItem` in Dart, an
-`@a2ui/*` renderer in JS). Catalogs live in the registry under value type `a2ui.CatalogValueType`
+`@a2ui/*` renderer in JS). Catalogs live in the registry under value type `a2uix.CatalogValueType`
 (`"a2ui-catalog"`); the Dev UI lists them at `GET /api/values?type=a2ui-catalog`.
 
 ## Security and the trust boundary
@@ -227,21 +229,21 @@ such as an `Image`'s url or a `Text`'s inline Markdown pass through untouched.
   model can be echoed back through an action's `context`.
 
 For server-side control over props (for example, allow-listing image hosts), add
-your own model middleware after `&a2ui.Surfaces{}` to inspect and rewrite the
+your own model middleware after `&a2uix.Surfaces{}` to inspect and rewrite the
 emitted a2ui parts.
 
 ## How it works
 
 A2UI rides on its own part channel: a Genkit `data` part with mime type
-`application/a2ui+json` (`a2ui.A2UIMimeType`) whose data is
-`{ "envelopes": [...] }`. On each model call, `&a2ui.Surfaces{}`:
+`application/a2ui+json` (`a2uix.A2UIMimeType`) whose data is
+`{ "envelopes": [...] }`. On each model call, `&a2uix.Surfaces{}`:
 
 1. Sanitizes inbound a2ui parts (a surface action sent back as the next turn, or
    replayed history) into model-readable text, so a model that does not
    understand the a2ui mime type can still reason about prior surfaces and user
    actions.
 2. Injects the catalog's capabilities into the system prompt (unless
-   `Instructions: a2ui.InstructionsNone`).
+   `Instructions: a2uix.InstructionsNone`).
 3. Intercepts the model output (streamed chunks and the final message).
 4. Extracts `a2ui` fenced code blocks from the model's text.
 5. Validates them against the catalog (per `Validate`).
