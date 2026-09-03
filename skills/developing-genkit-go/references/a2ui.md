@@ -137,7 +137,7 @@ curl -N -X POST 'http://localhost:8080/api/uiAgent?stream=true' \
 
 ### Config options
 
-`&a2ui.Config{}` fields (all optional):
+`&a2ui.Surfaces{}` fields (all optional):
 
 | Field          | Default                             | Description                                                                                                  |
 | -------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
