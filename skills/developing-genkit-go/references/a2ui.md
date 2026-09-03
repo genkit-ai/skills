@@ -61,7 +61,7 @@ import (
 ctx := context.Background()
 // &a2ui.Plugin{} is optional (Dev UI only); the middleware works without it.
 g := genkit.Init(ctx,
-	genkit.WithPlugins(&googlegenai.GoogleAI{}, &a2ui.Plugin{}),
+	genkit.WithPlugins(&googlegenai.GoogleAI{}, &a2ui.A2UI{}),
 	genkit.WithExperimental(),
 )
 
