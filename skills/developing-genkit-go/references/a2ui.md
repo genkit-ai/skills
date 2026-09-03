@@ -86,7 +86,7 @@ It works identically on a one-shot `genkit.Generate`:
 resp, err := genkit.Generate(ctx, g,
 	ai.WithModelName("googleai/gemini-flash-latest"),
 	ai.WithPrompt("Show me the weather in Tokyo"),
-	ai.WithUse(&a2ui.Config{}),
+	ai.WithUse(&a2ui.Surfaces{}),
 )
 ```
 
