@@ -100,7 +100,7 @@ re-invokes the model) **outside** A2UI so each attempt gets a fresh A2UI turn.
 ```go
 ai.WithUse(
 	&middleware.Retry{MaxRetries: 5}, // outer: fresh A2UI turn per attempt
-	&a2ui.Config{},                   // inner
+	&a2ui.Surfaces{},                   // inner
 )
 ```
 
