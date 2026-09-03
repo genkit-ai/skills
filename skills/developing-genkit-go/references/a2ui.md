@@ -114,6 +114,7 @@ the turn endpoint plus its `/getSnapshot` and `/abort` companions.
 mux := http.NewServeMux()
 mux.HandleFunc("POST /api/uiAgent", genkit.Handler(uiAgent))
 mux.HandleFunc("POST /api/uiAgent/getSnapshot", genkit.Handler(uiAgent.GetSnapshotAction()))
+mux.HandleFunc("POST /api/uiAgent/waitForSnapshot", genkit.Handler(uiAgent.WaitForSnapshotAction()))
 mux.HandleFunc("POST /api/uiAgent/abort", genkit.Handler(uiAgent.AbortAction()))
 
 log.Fatal(server.Start(ctx, "127.0.0.1:8080", mux))
