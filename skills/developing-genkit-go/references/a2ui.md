@@ -72,7 +72,7 @@ uiAgent := genkitx.DefineAgent(g, "uiAgent",
 			"You help users. Render an A2UI surface whenever a result is " +
 				"clearer shown than told (weather, comparisons, lists, forms). " +
 				"Keep prose brief; put the substance in the UI."),
-		ai.WithUse(&a2ui.Config{}), // defaults to the bundled basic catalog
+		ai.WithUse(&a2ui.Surfaces{}), // defaults to the bundled basic catalog
 	},
 	// Server-managed state: the client just passes a session id (remoteAgent
 	// handles that), history lives in the store.
