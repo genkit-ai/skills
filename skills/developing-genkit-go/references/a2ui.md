@@ -11,7 +11,7 @@ The `a2ui` package (`github.com/genkit-ai/genkit/go/plugins/a2ui`) brings
 An A2UI-enabled agent streams more than prose. It streams interactive UI
 **surfaces** (cards, lists, forms, buttons) that a client renders incrementally
 as the model responds. The entire Go integration is a single model middleware:
-add `&a2ui.Config{}` to a generate/agent's `ai.WithUse` and nothing else changes.
+add `&a2ui.Surfaces{}` to a generate/agent's `ai.WithUse` and nothing else changes.
 
 ## Go is server-only: bring your own client
 
