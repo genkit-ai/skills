@@ -227,7 +227,7 @@ such as an `Image`'s url or a `Text`'s inline Markdown pass through untouched.
   model can be echoed back through an action's `context`.
 
 For server-side control over props (for example, allow-listing image hosts), add
-your own model middleware after `&a2ui.Config{}` to inspect and rewrite the
+your own model middleware after `&a2ui.Surfaces{}` to inspect and rewrite the
 emitted a2ui parts.
 
 ## How it works
