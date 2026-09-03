@@ -31,8 +31,8 @@ artifacts, and multi-agent delegation). Server APIs come from
 `package:genkit/client.dart`. The `remoteAgent` client works from any Dart app,
 including **Flutter**, and the backend is fully interchangeable — it can talk to
 a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
-protocol. A few Dart specifics: interrupts are modeled as tools that call
-`ctx.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
+protocol. A few Dart specifics: interrupts are modeled as tools that return
+`.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
 the `agents()` middleware from `package:genkit_middleware`, and there is no
 `artifacts()` middleware yet (define artifact tools directly).
 
@@ -40,7 +40,7 @@ For more details see:
 
 -   [Agents](references/agents.md): defining/serving an agent and client-managed state (start here).
 -   [Sessions & persistence](references/agents-sessions.md): session stores (`InMemorySessionStore`/`FileSessionStore`/`FirestoreSessionStore`).
--   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input via `ctx.interrupt` and resuming.
+-   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input via `.interrupt(...)` and resuming.
 -   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
 -   [Background agents](references/agents-background.md): detaching long-running turns and polling.
 -   [Working with state](references/agents-state.md): typed custom session state, auto-synced to the client.

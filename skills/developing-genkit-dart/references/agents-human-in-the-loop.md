@@ -9,8 +9,9 @@ never runs to completion on the server; it pauses the turn. You then **resume**
 from the exact point it paused.
 
 > **Dart has no `defineInterrupt`.** Model an interrupt as a normal tool whose
-> body calls `ctx.interrupt(...)`. Because the tool never returns a value, omit
-> `outputSchema` — the output is supplied by the caller on resume.
+> body returns `.interrupt(data)`. Omit `outputSchema`; the output is supplied by
+> the caller on resume. (`ctx.interrupt(...)` still works but is soft-deprecated;
+> prefer `return .interrupt(...)`.)
 
 Interrupts are **orthogonal to persistence** — they work the same whether the
 agent uses a [session store](agents-sessions.md) or
@@ -23,7 +24,7 @@ Flow: `chat.send(text: ...)` → response has `res.interrupts` → collect human
 
 ## Define an interrupt (a tool that interrupts)
 
-Define it like a tool and add it to the agent's `tools`. `ctx.interrupt(...)`
+Define it like a tool and add it to the agent's `tools`. Returning `.interrupt(...)`
 pauses the turn; its argument is the data shown to the human.
 
 ```dart
@@ -60,7 +61,7 @@ final userApproval = ai.defineTool(
   name: 'userApproval',
   description: 'Ask the user for approval before a sensitive action.',
   inputSchema: UserApprovalInput.$schema,
-  fn: (input, ctx) async => ctx.interrupt(),
+  fn: (input, ctx) async => .interrupt(),
 );
 
 /// Executes the transfer. Only reached after the user approves.
@@ -69,10 +70,10 @@ final transferMoney = ai.defineTool(
   description: 'Transfer money to a specified account.',
   inputSchema: TransferMoneyInput.$schema,
   outputSchema: TransferMoneyOutput.$schema,
-  fn: (input, _) async => TransferMoneyOutput(
+  fn: (input, _) async => .response(TransferMoneyOutput(
     success: true,
     transactionId: 'txn-${DateTime.now().millisecondsSinceEpoch}',
-  ),
+  )),
 );
 
 final bankingAgent = ai.defineAgent(
@@ -193,7 +194,7 @@ await chat.resume(
 );
 ```
 
-If instead you write your own `ctx.interrupt(...)` gate inside a tool (as in the
+If instead you write your own `.interrupt(...)` gate inside a tool (as in the
 `coding_agent` sample), you inspect the resume payload yourself via the
 `ctx.resumed` getter:
 
