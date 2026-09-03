@@ -41,7 +41,7 @@ catalog under the **same catalog id** the Go server advertises.
 ## Server: add the `a2ui` middleware
 
 Add `&a2ui.Surfaces{}` to the generate call (or agent inline prompt) via
-`ai.WithUse`. That is the whole server-side setup. Registering `&a2ui.Plugin{}`
+`ai.WithUse`. That is the whole server-side setup. Registering `&a2ui.A2UI{}`
 in `genkit.Init` is **optional**: it only surfaces the middleware and catalogs in
 the Dev UI. The middleware works via `ai.WithUse` regardless.
 
