@@ -82,7 +82,7 @@ final addTask = ai.defineTool(
       state.nextId += 1;
       return state;
     });
-    return newTask;
+    return .response(newTask);
   },
 );
 ```
@@ -141,10 +141,10 @@ final toggleTask = ai.defineTool(
   name: 'toggleTask',
   description: 'Toggle a task done/undone by its ID.',
   inputSchema: ToggleTaskInput.$schema,
-  fn: (input, _) async => _mutateTaskById(input.id, (tasks, idx) {
+  fn: (input, _) async => .response(_mutateTaskById(input.id, (tasks, idx) {
     tasks[idx].done = !tasks[idx].done;
     return {'success': true, 'task': tasks[idx].toJson()};
-  }),
+  })),
 );
 ```
 

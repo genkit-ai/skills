@@ -88,7 +88,7 @@ void main() async {
     name: 'add',
     description: 'Add two numbers together',
     inputSchema: .map(.string(), .dynamicSChema()),
-    fn: (input, _) async => (input['a'] + input['b']).toString(),
+    fn: (input, _) async => .response((input['a'] + input['b']).toString()),
   );
 
   ai.defineResource(

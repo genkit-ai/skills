@@ -67,7 +67,7 @@ final weatherTool = ai.defineTool(
   inputSchema: WeatherInput.$schema,
   fn: (input, _) async {
     // Call your weather API here
-    return 'Weather in ${input.location}: 72°F and sunny';
+    return .response('Weather in ${input.location}: 72°F and sunny');
   },
 );
 
@@ -77,6 +77,25 @@ final response = await ai.generate(
   toolNames: ['getWeather'], // Use the tools
 );
 ```
+
+> **Tool functions return a `ToolResult`.** A tool's `fn` returns a
+> `ToolResult<Output>`, built with dot-shorthand:
+>
+> - `return .response(output)` for a normal result.
+> - `return .response(output, parts: [...])` to attach media parts alongside the
+>   structured output (multipart), e.g. an image the tool produced.
+> - `return .interrupt(data)` to pause the generation loop (see
+>   [human-in-the-loop](agents-human-in-the-loop.md)).
+>
+> ```dart
+> fn: (input, _) async => .response(
+>   {'result': 'captured'},
+>   parts: [MediaPart(media: Media(contentType: 'image/png', url: dataUri))],
+> );
+> ```
+>
+> Reading a tool's direct result (e.g. via `tool.call`) also yields a
+> `ToolResult`; read `(result as ToolResponseResult).output`.
 
 ## Structured Output
 
