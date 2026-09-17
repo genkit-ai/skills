@@ -9,13 +9,15 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 
 void main() async {
-  // Initialize Genkit with the Google AI plugin
-  final ai = Genkit(plugins: [googleAI()]);
+  // Initialize Genkit with the Google AI plugin. RetryPlugin() (core genkit)
+  // registers the `retry` middleware; transient "high demand" errors are common.
+  final ai = Genkit(plugins: [googleAI(), RetryPlugin()]);
 
   // Generate text
   final response = await ai.generate(
     model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Tell me a joke about a developer.',
+    use: [retry()], // recommended for reliable runs
   );
 
   print(response.text);
@@ -40,7 +42,7 @@ final response = await ai.generate(
 
 ```dart
 final embeddings = await ai.embedMany(
-  embedder: googleAI.textEmbedding('text-embedding-004'),
+  embedder: googleAI.textEmbedding('gemini-embedding-001'),
   documents: [
     DocumentData(content: [TextPart(text: 'Hello world')]),
   ],

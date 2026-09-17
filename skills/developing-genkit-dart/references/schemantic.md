@@ -27,6 +27,10 @@ dart pub add dev:build_runner
 > `.g.dart` files, with no error explaining why. If you see zero outputs, confirm
 > `schemantic_builder` is in your `dev_dependencies`.
 
+> **Note:** plain `dart run build_runner build` is correct. Recent `build_runner`
+> versions removed `--delete-conflicting-outputs` (it is now ignored and warns
+> "These options have been removed and were ignored"), so do not pass it.
+
 ## Basic Usage
 
 1. **Defining a schema:**

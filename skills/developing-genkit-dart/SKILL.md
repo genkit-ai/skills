@@ -96,6 +96,8 @@ genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
 ```
 This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Note: `flow:run` runs **flows** (`ai.defineFlow`), not agents; you can't `flow:run` an agent (`ai.defineAgent`) directly. To exercise an agent from the CLI, wrap one turn in a throwaway flow and run that (see [Agents](references/agents.md)). Traces for this run can be inspected using the trace commands below.
 
+**Gotcha: top-level `final` declarations are lazy.** Flows and agents defined as top-level `final` register with Genkit only when the symbol is first evaluated. An empty `main()` registers nothing, so `flow:run` fails with `Process exited before runtime was ready`. Reference the flow/agent symbols from `main()` (or import a module that does) so their `define*` calls actually run.
+
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash
 genkit trace:list                        # find recent trace IDs

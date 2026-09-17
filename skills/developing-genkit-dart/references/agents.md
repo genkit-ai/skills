@@ -136,6 +136,13 @@ Common `defineAgent` options:
 > abstract classes with a generated `.g.dart` part). See
 > [references/schemantic.md](schemantic.md).
 
+> **An agent needs a model.** Set `model:` on the agent, or a default `model:` on
+> the shared `Genkit` instance (as the [Setup](#setup) snippet does). Without
+> either, the turn fails with
+> `AgentError(INVALID_ARGUMENT): Model must be provided`. The examples here rely
+> on the instance default, so if you copy an agent block without it, add a
+> `model:`.
+
 ## Agents and middleware go hand in hand
 
 Agents and [middleware](genkit_middleware.md) are built for each other: the

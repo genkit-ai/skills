@@ -10,13 +10,16 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_openai/genkit_openai.dart';
 
 void main() async {
+  // RetryPlugin() (core genkit) registers the `retry` middleware.
   final ai = Genkit(plugins: [
     openAI(apiKey: Platform.environment['OPENAI_API_KEY']),
+    RetryPlugin(),
   ]);
 
   final response = await ai.generate(
     model: openAI.model('gpt-5'),
     prompt: 'Tell me a joke.',
+    use: [retry()], // recommended for reliable runs
   );
 }
 ```

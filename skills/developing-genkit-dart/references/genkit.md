@@ -9,10 +9,22 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart'; // Or any other plugin
 
 void main() async {
-  // Pass plugins to use into the Genkit constructor
-  final ai = Genkit(plugins: [googleAI()]);
+  // Pass plugins to use into the Genkit constructor. RetryPlugin() ships with
+  // core genkit and registers the `retry` middleware (see below).
+  final ai = Genkit(plugins: [googleAI(), RetryPlugin()]);
 }
 ```
+
+## Reliability: retry transient errors
+
+Model backends routinely return transient errors (Gemini "high demand" surfaces
+as `INTERNAL`, plus `UNAVAILABLE` / `RESOURCE_EXHAUSTED` under load). In practice
+`retry()` is close to mandatory for reliable runs. It is a **core** middleware
+(no extra package): register `RetryPlugin()` once, then add `use: [retry()]` to a
+call. By default it retries `UNAVAILABLE`, `DEADLINE_EXCEEDED`,
+`RESOURCE_EXHAUSTED`, `ABORTED`, and `INTERNAL`, and it works the same on
+`generate`, `generateStream`, prompts, and flows. The examples below add it where
+it matters.
 
 ## Generate Text
 
@@ -20,6 +32,7 @@ void main() async {
 final response = await ai.generate(
   model: googleAI.gemini('gemini-flash-latest'), // Needs a model reference from a plugin
   prompt: 'Explain quantum computing in simple terms.',
+  use: [retry()], // recommended; stream/embed/prompts/flows take the same `use:`
 );
 
 print(response.text);
@@ -43,7 +56,7 @@ final embeddings = await ai.embedMany(
   documents: [
     DocumentData(content: [TextPart(text: 'Hello world')]),
   ],
-  embedder: googleAI.textEmbedding('text-embedding-004'),
+  embedder: googleAI.textEmbedding('gemini-embedding-001'),
 );
 
 print(embeddings.first.embedding);
@@ -244,6 +257,12 @@ final jokeFlow = ai.defineFlow(
 final joke = await jokeFlow('programming');
 print(joke);
 ```
+
+> **Top-level `final` flows are lazy.** A flow declared as a top-level `final`
+> registers only when the symbol is first evaluated, so an empty `main()`
+> registers nothing and `genkit flow:run` fails with `Process exited before
+> runtime was ready`. Reference the flow from `main()` (or import a module that
+> does) so its `defineFlow` call runs.
 
 ### Streaming Flows
 Stream data from your flows using `context.sendChunk(...)` and returning the final value:

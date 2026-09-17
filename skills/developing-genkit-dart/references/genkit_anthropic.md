@@ -12,13 +12,18 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_anthropic/genkit_anthropic.dart';
 
 void main() async {
+  // RetryPlugin() (core genkit) registers the `retry` middleware.
   final ai = Genkit(
-    plugins: [anthropic(apiKey: Platform.environment['ANTHROPIC_API_KEY']!)],
+    plugins: [
+      anthropic(apiKey: Platform.environment['ANTHROPIC_API_KEY']!),
+      RetryPlugin(),
+    ],
   );
 
   final response = await ai.generate(
     model: anthropic.model('claude-sonnet-4-5'),
     prompt: 'Tell me a joke about a developer.',
+    use: [retry()], // recommended for reliable runs
   );
   
   print(response.text);
