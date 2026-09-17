@@ -1,7 +1,9 @@
 # Working with Artifacts
 
-> The `Artifact` type comes from `package:genkit/genkit.dart`. Read
-> [agents.md](agents.md) first.
+> The `Artifact` type is stable and comes from `package:genkit/genkit.dart`, but
+> the surrounding agent APIs (`defineAgent`, `currentSession`,
+> `InMemorySessionStore`) are experimental and come from
+> `package:genkit/experimental.dart`. Read [agents.md](agents.md) first.
 
 **Artifacts** are named, content-bearing deliverables an agent produces during a
 session — files, reports, code, etc. They live in the session (deduplicated by
@@ -28,6 +30,7 @@ name) and are returned in `res.artifacts` / tracked on the client's
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, currentSession
 import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
@@ -138,6 +141,7 @@ arrives.
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent
 
 final agent = remoteAgent(url: '/api/workspaceAgent');
 final chat = agent.chat();

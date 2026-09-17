@@ -120,6 +120,110 @@ final person = response.output; // Typed Person object
 print('Name: ${person.name}, Age: ${person.age}');
 ```
 
+## Errors and finish reasons
+
+`generate` and `generateStream` do **not** throw for model errors, throwing
+tools, cancellation, or hitting `maxTurns`. They resolve to a response whose
+`finishReason` tells you what happened; branch on it instead of wrapping the
+call in `try`/`catch`:
+
+```dart
+final res = await ai.generate(
+  model: googleAI.gemini('gemini-flash-latest'),
+  prompt: 'hi',
+  toolNames: ['myTool'],
+);
+
+switch (res.finishReason) {
+  case FinishReason.failed:
+    // A model error or a throwing tool. `res.error` is a structured
+    // RuntimeError (a GenkitException keeps its status; anything else maps to
+    // INTERNAL). `res.cause` holds the original thrown object for in-process
+    // inspection (e.g. `res.cause is SocketException`); it does not cross the
+    // HTTP/reflection boundary.
+    print(res.error?.status);
+  case FinishReason.aborted:
+    // Cancelled, or hit maxTurns.
+    print('aborted: ${res.finishMessage}');
+  default:
+    print(res.text);
+}
+```
+
+Only `ToolInterruptException` (a tool returning `.interrupt(...)`) is still
+treated as a turn outcome rather than a failure. See
+[human-in-the-loop](agents-human-in-the-loop.md).
+
+### Resume from the last-good state
+
+On a `failed` or `aborted` response, `res.messages` holds the **last-good
+conversation state**: the request messages plus every tool turn that completed
+before the failure/abort (the failing turn's own partial output is dropped).
+You do not have to start over. Feed `res.messages` straight back into a fresh
+`generate` (with a new, uncancelled token if you were cancelling) to continue
+from where it stopped:
+
+```dart
+if (res.finishReason == FinishReason.failed ||
+    res.finishReason == FinishReason.aborted) {
+  final resumed = await ai.generate(
+    model: googleAI.gemini('gemini-flash-latest'),
+    messages: res.messages, // last-good history: pick up where it stopped
+  );
+}
+```
+
+## Cancellation
+
+`generate`, `generateStream`, and action calls accept a `CancellationToken`. The
+caller owns a `CancellationController` and hands its token to the call. These are
+stable core types from `package:genkit/genkit.dart` (and `client.dart`).
+
+```dart
+final controller = CancellationController();
+
+final stream = ai.generateStream(
+  model: googleAI.gemini('gemini-flash-latest'),
+  prompt: 'Write a long, detailed essay about the history of the internet.',
+  cancel: controller.token,
+);
+
+controller.cancel('user pressed stop');
+
+// Chunks emitted before the cancel still arrive; the stream then closes.
+await for (final chunk in stream) {
+  stdout.write(chunk.text);
+}
+
+final res = await stream.onResult;
+if (res.finishReason == FinishReason.aborted) {
+  // res.messages holds the last-good history, so you can resume later.
+  print('\nCancelled: ${res.finishMessage}');
+}
+```
+
+## Telemetry (instrumentation)
+
+Telemetry is a pluggable abstraction, not a hardcoded OpenTelemetry dependency.
+By default Genkit is not instrumented. In the dev environment (under
+`genkit start`) a built-in provider is auto-injected so the Developer UI receives
+traces with no setup, so most users never touch this API. For production, stack
+one or more `Instrumentation` providers before creating `Genkit`:
+
+```dart
+import 'package:genkit/telemetry.dart';
+
+void main() {
+  configureInstrumentation(myInstrumentation());
+  final ai = Genkit(plugins: [googleAI()]);
+  // ...
+}
+```
+
+Providers compose as a middleware chain, so multiple can be active at once. A
+third-party platform can implement `Instrumentation` without taking an OTel
+dependency.
+
 ## Define Flows
 Wrap your AI logic in flows for better observability, testing, and deployment:
 

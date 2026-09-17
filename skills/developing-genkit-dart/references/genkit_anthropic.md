@@ -39,3 +39,13 @@ final response = await ai.generate(
 // The thinking content is available in the message parts
 print(response.message?.content);
 ```
+
+> **Multi-turn reasoning is preserved.** Thinking blocks are re-sent on later
+> turns of a thinking + tool loop, so reasoning is not dropped on the second
+> turn. The signature metadata key is `thoughtSignature` (matching the Gemini
+> plugins and Genkit JS), and redacted thinking comes back as
+> `CustomPart(custom: {redactedThinking})`. History persisted by older versions
+> still replays.
+
+> **Overloads are retried.** HTTP 529 (overloaded) maps to `UNAVAILABLE`, so the
+> `retry()` middleware retries it instead of surfacing a non-retriable error.

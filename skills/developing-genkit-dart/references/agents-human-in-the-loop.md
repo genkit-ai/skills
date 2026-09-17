@@ -29,6 +29,7 @@ pauses the turn; its argument is the data shown to the human.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
@@ -152,6 +153,7 @@ same `chat` continues exactly where it paused.
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentInterrupt
 
 final agent = remoteAgent(url: '/api/bankingAgent');
 final chat = agent.chat();

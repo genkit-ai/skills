@@ -25,6 +25,8 @@ Give each sub-agent a `description` — it's auto-discovered from registry metad
 and shown to the orchestrator so the model knows when to delegate.
 
 ```dart
+import 'package:genkit/experimental.dart'; // defineAgent
+
 import 'genkit.dart';
 
 final researcher = ai.defineAgent(
@@ -52,6 +54,7 @@ their descriptions are auto-discovered from the registry.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:genkit_middleware/agents.dart';
 
 import 'genkit.dart';

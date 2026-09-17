@@ -14,6 +14,7 @@ To branch, open a new `chat` attached to an earlier snapshot via
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 
 import 'genkit.dart';
 
@@ -45,6 +46,7 @@ let the user pick one, and continue from the chosen snapshot.
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentChat
 
 final agent = remoteAgent(url: '/api/branchingAgent');
 String? snapshotId; // current branch point
@@ -83,6 +85,7 @@ surfaces `.messages`, `.artifacts`, and typed `.custom` state directly (use
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentSnapshot
 
 final agent = remoteAgent(url: '/api/branchingAgent');
 

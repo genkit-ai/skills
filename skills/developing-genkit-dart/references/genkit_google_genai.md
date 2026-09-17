@@ -22,6 +22,20 @@ void main() async {
 }
 ```
 
+## Model refs and Gemma
+
+`googleAI.gemini('<name>')` builds a ref for any Gemini model. Gemma models the
+Gemini API serves have a dedicated `googleAI.gemma('<name>')` alias (it reads
+correctly at call sites), and `GoogleAiModels` exposes typed refs for the curated
+Gemini and Gemma entries:
+
+```dart
+final response = await ai.generate(
+  model: googleAI.gemma('gemma-4-31b-it'), // or GoogleAiModels.gemma431b
+  prompt: 'Tell me a joke about a developer.',
+);
+```
+
 ## Embeddings
 
 ```dart

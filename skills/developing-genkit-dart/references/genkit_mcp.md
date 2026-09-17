@@ -1,6 +1,13 @@
 # Genkit MCP (`genkit_mcp`)
 
-MCP (Model Context Protocol) integration for Genkit Dart.
+MCP (Model Context Protocol) integration for Genkit Dart, built on `mcp_dart`.
+It prefers the stateless MCP 2026-07-28 protocol and falls back to
+initialization-based peers automatically.
+
+> **Namespaced tool names are shortened on the wire.** A tool like
+> `my-server/weatherTool` is presented to the model as `weatherTool`; the full
+> name is preserved in `metadata.originalName` and tool requests still resolve
+> correctly.
 
 ## MCP Host (Recommended)
 Connect to one or more MCP servers and aggregate their capabilities into the Genkit registry automatically.
@@ -39,6 +46,24 @@ void main() async {
     toolNames: ['my-host:tool/fs/read_file'],
   );
 }
+```
+
+### Connect over Streamable HTTP
+
+Point `McpServerConfig` at a URL instead of a command to connect over Streamable
+HTTP. (There is no public `StreamableHttpClientTransport` to construct directly;
+custom client transports implement the `McpClientTransport` interface.)
+
+```dart
+final host = defineMcpHost(
+  ai,
+  McpHostOptionsWithCache(
+    name: 'my-host',
+    mcpServers: {
+      'remote': McpServerConfig(url: Uri.parse('https://mcp.example.com/mcp')),
+    },
+  ),
+);
 ```
 
 ## MCP Client (Advanced / Single Server)
@@ -113,3 +138,17 @@ final transport = await StreamableHttpServerTransport.bind(
 );
 await server.start(transport);
 ```
+
+> **DNS-rebinding protection and batch rejection are on by default.** Loopback
+> hosts work unconfigured, but a non-loopback deployment must set `allowedHosts`
+> (and should set `allowedOrigins`) or requests are rejected. Legacy clients that
+> send JSON-RPC batches can opt out with `rejectBatchJsonRpcPayloads: false`.
+>
+> ```dart
+> final transport = await StreamableHttpServerTransport.bind(
+>   address: InternetAddress.anyIPv4,
+>   port: 3000,
+>   allowedHosts: ['mcp.example.com'],
+>   allowedOrigins: ['https://app.example.com'],
+> );
+> ```

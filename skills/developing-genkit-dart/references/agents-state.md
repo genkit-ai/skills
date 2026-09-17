@@ -15,6 +15,7 @@ when a snapshot is loaded.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, currentSession
 import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
@@ -182,6 +183,7 @@ streamed chunk (`chunk.custom`), and read the authoritative state off
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent
 
 final agent = remoteAgent(url: '/api/taskAgent');
 final chat = agent.chat(

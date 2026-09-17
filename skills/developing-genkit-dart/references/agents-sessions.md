@@ -1,9 +1,10 @@
 # Agent Sessions & Persistence
 
-> `InMemorySessionStore` and `Session`/`SessionStore`
-> come from `package:genkit/genkit.dart`; `FileSessionStore` from
-> `package:genkit/io.dart` (needs `dart:io`); `FirestoreSessionStore` from
-> `package:genkit_google_cloud`. See [agents.md](agents.md) for the basics first.
+> Sessions are experimental. `InMemorySessionStore` and `Session`/`SessionStore`
+> come from `package:genkit/experimental.dart`; `FileSessionStore` from
+> `package:genkit/experimental_io.dart` (needs `dart:io`); `FirestoreSessionStore`
+> from `package:genkit_google_cloud`. See [agents.md](agents.md) for the basics
+> and the experimental-import note first.
 
 When an agent has a `store`, the **server** owns the session history. Each turn
 produces an immutable **snapshot**; the snapshot chain is what carries
@@ -14,8 +15,8 @@ a store — see [human-in-the-loop](agents-human-in-the-loop.md).)
 ## Pick a store
 
 ```dart
-import 'package:genkit/genkit.dart'; // InMemorySessionStore
-import 'package:genkit/io.dart'; // FileSessionStore (dart:io)
+import 'package:genkit/experimental.dart'; // InMemorySessionStore
+import 'package:genkit/experimental_io.dart'; // FileSessionStore (dart:io)
 
 // In-memory: great for tests/dev; lost on restart.
 final memStore = InMemorySessionStore();
@@ -69,6 +70,7 @@ the `state` argument (a `SessionState`, whose `custom` field holds your data).
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
@@ -118,6 +120,7 @@ session length (scales to long-lived chat/coding agents).
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent
 import 'package:genkit_google_cloud/firestore_session_store.dart';
 
 import 'genkit.dart';
@@ -158,6 +161,7 @@ agents) to subscribe to snapshot status changes.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // SessionStore, SessionSnapshot, SnapshotMutator
 
 class MySessionStore implements SessionStore {
   @override

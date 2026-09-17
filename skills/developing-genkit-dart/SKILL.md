@@ -26,11 +26,16 @@ via `definePromptAgent`.
 
 Genkit Dart has an **agent** API for persistent, multi-turn conversations
 (sessions, snapshots, interrupts, branching, background execution, custom state,
-artifacts, and multi-agent delegation). Server APIs come from
-`package:genkit/genkit.dart` and the browser/HTTP client from
-`package:genkit/client.dart`. The `remoteAgent` client works from any Dart app,
-including **Flutter**, and the backend is fully interchangeable — it can talk to
-a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
+artifacts, and multi-agent delegation). The agent/session/snapshot APIs are
+**experimental** and live behind opt-in imports: server APIs come from
+`package:genkit/experimental.dart` (alongside `package:genkit/genkit.dart`), the
+browser/HTTP client from `package:genkit/experimental_client.dart` (alongside
+`package:genkit/client.dart`), and `dart:io` extras like `FileSessionStore` from
+`package:genkit/experimental_io.dart`. These entry points are `@experimental`, so
+importing them raises an `experimental_member_use` analyzer warning you can
+silence in `analysis_options.yaml`. The `remoteAgent` client works from any Dart
+app, including **Flutter**, and the backend is fully interchangeable — it can talk
+to a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
 protocol. A few Dart specifics: interrupts are modeled as tools that return
 `.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
 the `agents()` middleware from `package:genkit_middleware`, and there is no
