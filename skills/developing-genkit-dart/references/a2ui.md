@@ -44,6 +44,7 @@ before referencing it via `a2ui()`.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:genkit_a2ui/a2ui.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 
@@ -109,6 +110,7 @@ so read them from `chunk.raw.modelChunk?.content`.
 ```dart
 import 'package:a2ui_core/a2ui_core.dart' as core;
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentApi
 import 'package:genkit_a2ui/client.dart';
 import 'package:genui/genui.dart' hide basicCatalogId, DataPart;
 

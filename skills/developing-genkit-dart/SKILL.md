@@ -26,11 +26,16 @@ via `definePromptAgent`.
 
 Genkit Dart has an **agent** API for persistent, multi-turn conversations
 (sessions, snapshots, interrupts, branching, background execution, custom state,
-artifacts, and multi-agent delegation). Server APIs come from
-`package:genkit/genkit.dart` and the browser/HTTP client from
-`package:genkit/client.dart`. The `remoteAgent` client works from any Dart app,
-including **Flutter**, and the backend is fully interchangeable — it can talk to
-a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
+artifacts, and multi-agent delegation). The agent/session/snapshot APIs are
+**experimental** and live behind opt-in imports: server APIs come from
+`package:genkit/experimental.dart` (alongside `package:genkit/genkit.dart`), the
+browser/HTTP client from `package:genkit/experimental_client.dart` (alongside
+`package:genkit/client.dart`), and `dart:io` extras like `FileSessionStore` from
+`package:genkit/experimental_io.dart`. These entry points are `@experimental`, so
+importing them raises an `experimental_member_use` analyzer warning you can
+silence in `analysis_options.yaml`. The `remoteAgent` client works from any Dart
+app, including **Flutter**, and the backend is fully interchangeable — it can talk
+to a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
 protocol. A few Dart specifics: interrupts are modeled as tools that return
 `.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
 the `agents()` middleware from `package:genkit_middleware`, and there is no
@@ -90,6 +95,8 @@ genkit start --noui -- dart run main.dart   # same, without the Dev UI (still a 
 genkit flow:run myFlow '{"data": "input"}' -- dart run main.dart
 ```
 This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Note: `flow:run` runs **flows** (`ai.defineFlow`), not agents; you can't `flow:run` an agent (`ai.defineAgent`) directly. To exercise an agent from the CLI, wrap one turn in a throwaway flow and run that (see [Agents](references/agents.md)). Traces for this run can be inspected using the trace commands below.
+
+**Gotcha: top-level `final` declarations are lazy.** Flows and agents defined as top-level `final` register with Genkit only when the symbol is first evaluated. An empty `main()` registers nothing, so `flow:run` fails with `Process exited before runtime was ready`. Reference the flow/agent symbols from `main()` (or import a module that does) so their `define*` calls actually run.
 
 **Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
 ```bash

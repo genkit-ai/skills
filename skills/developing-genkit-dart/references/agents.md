@@ -1,7 +1,27 @@
 # Agents
 
-> Server APIs come from `package:genkit/genkit.dart`; the browser/HTTP client
-> comes from `package:genkit/client.dart`.
+> **Agents are experimental.** The agent/session/snapshot APIs are NOT covered
+> by semantic-versioning stability and live behind opt-in imports:
+>
+> - Server (agents, sessions, snapshots): `package:genkit/experimental.dart`
+>   (alongside the stable `package:genkit/genkit.dart`).
+> - Browser/HTTP client (`remoteAgent`, `AgentChat`, ...):
+>   `package:genkit/experimental_client.dart` (alongside
+>   `package:genkit/client.dart`).
+> - `dart:io` extras (`FileSessionStore`): `package:genkit/experimental_io.dart`.
+>
+> The entry points are marked `@experimental`, so importing them produces an
+> `experimental_member_use` analyzer warning on the import line. Opt out once you
+> accept the churn by adding to `analysis_options.yaml`:
+>
+> ```yaml
+> analyzer:
+>   errors:
+>     experimental_member_use: ignore
+> ```
+>
+> `CancellationController` / `CancellationToken` are stable and stay on
+> `package:genkit/genkit.dart` / `client.dart`, not behind these imports.
 
 An **agent** is a persistent, multi-turn conversation primitive built on top of
 prompts + tools. Compared to a bare `ai.generate`/`ai.definePrompt` loop, an
@@ -60,6 +80,7 @@ single registered action.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:schemantic/schemantic.dart';
 
 import 'genkit.dart';
@@ -115,6 +136,13 @@ Common `defineAgent` options:
 > abstract classes with a generated `.g.dart` part). See
 > [references/schemantic.md](schemantic.md).
 
+> **An agent needs a model.** Set `model:` on the agent, or a default `model:` on
+> the shared `Genkit` instance (as the [Setup](#setup) snippet does). Without
+> either, the turn fails with
+> `AgentError(INVALID_ARGUMENT): Model must be provided`. The examples here rely
+> on the instance default, so if you copy an agent block without it, add a
+> `model:`.
+
 ## Agents and middleware go hand in hand
 
 Agents and [middleware](genkit_middleware.md) are built for each other: the
@@ -124,6 +152,7 @@ approval, retries — each is one line.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:genkit_middleware/filesystem.dart';
 import 'package:genkit_middleware/skills.dart';
 import 'package:genkit_middleware/tool_approval.dart';
@@ -258,6 +287,7 @@ agent.
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentError
 
 final weather = remoteAgent(url: 'http://localhost:8080/api/weatherAgent');
 
@@ -310,6 +340,7 @@ A minimal streaming chat widget — pump `turn.stream` into the UI with
 ```dart
 import 'package:flutter/material.dart';
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, AgentApi
 
 class ChatView extends StatefulWidget {
   const ChatView({super.key});
@@ -364,6 +395,8 @@ no `SessionStore`, no snapshot ids to manage.
 
 ```dart
 // Server: no `store` → stateless. Client owns the state blob.
+import 'package:genkit/experimental.dart'; // defineAgent
+
 final weatherAgentStateless = ai.defineAgent(
   name: 'weatherAgentStateless',
   system: 'You are a helpful weather assistant. Use the getWeather tool. '
@@ -376,6 +409,7 @@ final weatherAgentStateless = ai.defineAgent(
 ```dart
 // Client: reuse one `chat` and the state threads automatically.
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent
 
 final agent = remoteAgent(url: '$base/api/weatherAgentStateless');
 final chat = agent.chat();

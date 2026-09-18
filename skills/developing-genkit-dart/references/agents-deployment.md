@@ -22,6 +22,7 @@ When serving several agents, a small helper keeps registration consistent.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // Agent type
 import 'package:genkit_shelf/genkit_shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
@@ -106,8 +107,10 @@ the agent — as `mountAgent(...)` does — ensures the `defineAgent` call runs.
 
 - The wire body matches the Genkit client: `{ "data": <input>, "init": <init> }`.
 - For persistence across restarts, use `FileSessionStore`
-  (`package:genkit/io.dart`) or `FirestoreSessionStore`
+  (`package:genkit/experimental_io.dart`) or `FirestoreSessionStore`
   (`package:genkit_google_cloud`) instead of `InMemorySessionStore`. See
   [sessions](agents-sessions.md).
 - Consuming these endpoints from Dart/Flutter/web uses `remoteAgent` from
-  `package:genkit/client.dart` — see [agents.md](agents.md#consume-an-agent-from-a-client-remoteagent).
+  `package:genkit/experimental_client.dart` (alongside
+  `package:genkit/client.dart`) — see
+  [agents.md](agents.md#consume-an-agent-from-a-client-remoteagent).

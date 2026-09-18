@@ -25,6 +25,8 @@ Give each sub-agent a `description` — it's auto-discovered from registry metad
 and shown to the orchestrator so the model knows when to delegate.
 
 ```dart
+import 'package:genkit/experimental.dart'; // defineAgent
+
 import 'genkit.dart';
 
 final researcher = ai.defineAgent(
@@ -52,6 +54,7 @@ their descriptions are auto-discovered from the registry.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 import 'package:genkit_middleware/agents.dart';
 
 import 'genkit.dart';
@@ -98,6 +101,37 @@ final res = await turn.response;
 - `historyLength`: number of recent user/model messages forwarded to sub-agents
   as context. `0`/omitted sends only the task description.
 - `artifactStrategy`: `'inline'` (default) or `'session'` — see below.
+- `async`: enable background delegation — see below.
+
+## Background (async) delegation
+
+Set `async: true` to let the orchestrator run sub-agents in the background. Each
+delegation tool then accepts a `background` flag that starts the sub-agent and
+returns a `taskId` immediately, and the middleware adds
+`check_background_tasks`, `wait_for_background_tasks`, and
+`abort_background_tasks` tools so the model can launch several tasks in parallel
+and collect them later. A `continue_task` tool lets the model retry a
+failed/aborted task or follow up on a completed one.
+
+```dart
+final orchestratorAgent = ai.defineAgent(
+  name: 'orchestratorAgent',
+  system: 'Delegate independent tasks in the background, then collect the '
+      'results before answering.',
+  use: [
+    agents(
+      agents: ['researcher', 'coder'],
+      async: true, // adds background delegation + the background-task tools
+    ),
+  ],
+  store: InMemorySessionStore(),
+);
+```
+
+> Background delegation requires **server-managed sub-agents** — each sub-agent
+> needs a session `store` that supports detach (see
+> [background agents](agents-background.md)). A sub-agent without a store cannot
+> be run in the background.
 
 ## Sharing artifacts between agents
 

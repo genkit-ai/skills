@@ -13,6 +13,7 @@ The client polls for completion and can abort.
 
 ```dart
 import 'package:genkit/genkit.dart';
+import 'package:genkit/experimental.dart'; // defineAgent, InMemorySessionStore
 
 import 'genkit.dart';
 
@@ -52,6 +53,7 @@ On the client (`package:genkit/client.dart`), `chat.detach(text: ...)` (or
 
 ```dart
 import 'package:genkit/client.dart';
+import 'package:genkit/experimental_client.dart'; // remoteAgent, DetachedTask
 
 final agent = remoteAgent(url: '/api/backgroundAgent');
 
