@@ -16,7 +16,7 @@ instance:
 ```dart
 import 'package:genkit_middleware/agents.dart';
 
-final ai = Genkit(plugins: [googleAI(), AgentsPlugin(), RetryPlugin()]);
+final ai = Genkit(plugins: [googleAI(), AgentsPlugin()]); // retry() is built in
 ```
 
 ## 1. Define the sub-agents

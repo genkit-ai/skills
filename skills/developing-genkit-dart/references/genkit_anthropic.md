@@ -12,11 +12,9 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_anthropic/genkit_anthropic.dart';
 
 void main() async {
-  // RetryPlugin() (core genkit) registers the `retry` middleware.
   final ai = Genkit(
     plugins: [
       anthropic(apiKey: Platform.environment['ANTHROPIC_API_KEY']!),
-      RetryPlugin(),
     ],
   );
 

@@ -45,8 +45,8 @@ supported too, e.g. `name: string, the person to greet`.
 
 ## Loading and calling a prompt
 
-`ai.prompt(name, {variant})` returns a `Future<ExecutablePrompt>`. The resolved
-`ExecutablePrompt` is a **callable object** — invoke it like a function. The
+`ai.prompt(name, {variant})` returns a `Future<Prompt<Input, Output>>`. The
+resolved `Prompt` is a **callable object**: invoke it like a function. The
 input is a **positional** argument (there is no `input:` named parameter).
 
 ```dart
@@ -58,6 +58,28 @@ final response = await greetingPrompt({
 });
 print(response.text);
 ```
+
+### Typed output
+
+`response.output` is typed by the prompt's `Output`. A `.prompt` file's
+`output.schema` has no Dart type, so pass `outputParserSchema` to parse into
+one (it is never sent to the model; the file's schema is):
+
+```dart
+// Inferred as Prompt<dynamic, Recipe>
+final recipePrompt = await ai.prompt(
+  'recipe',
+  outputParserSchema: Recipe.$schema,
+);
+final Recipe? recipe = (await recipePrompt({'food': 'pasta'})).output;
+
+// Code-defined with outputSchema: already typed, just name the types.
+final joke = await ai.prompt<JokeInput, Joke>('joke');
+```
+
+`ai.definePrompt(..., outputSchema: Joke.$schema)` returns a
+`Prompt<JokeInput, Joke>` directly. A prompt's `.ref` is a `PromptRef`
+(`name`, `metadata`).
 
 ### Streaming
 
@@ -173,14 +195,16 @@ accurate, up-to-date information. Keep your tone {{tone}}.
   equivalent `ai.generate` options.
 - `use`: list of middleware refs. Each entry is a bare string (middleware name)
   or a map with `name` and optional `config`. Names resolve against middleware
-  registered on the Genkit instance — register the middleware plugin so the name
-  is available:
+  registered on the Genkit instance. `retry` (above) is built in; for
+  `genkit_middleware` names, register the plugin so the name is available:
 
 ```dart
+import 'package:genkit_middleware/skills.dart';
+
 final ai = Genkit(
   plugins: [
     googleAI(),
-    RetryPlugin(), // registers the `retry` middleware
+    SkillsPlugin(), // makes `use: [skills]` resolve
   ],
   promptDir: './prompts',
 );

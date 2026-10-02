@@ -9,15 +9,15 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart';
 
 void main() async {
-  // Initialize Genkit with the Google AI plugin. RetryPlugin() (core genkit)
-  // registers the `retry` middleware; transient "high demand" errors are common.
-  final ai = Genkit(plugins: [googleAI(), RetryPlugin()]);
+  // Initialize Genkit with the Google AI plugin.
+  final ai = Genkit(plugins: [googleAI()]);
 
   // Generate text
   final response = await ai.generate(
     model: googleAI.gemini('gemini-flash-latest'),
     prompt: 'Tell me a joke about a developer.',
-    use: [retry()], // recommended for reliable runs
+    // Built-in; transient "high demand" errors are common.
+    use: [retry()],
   );
 
   print(response.text);
@@ -28,12 +28,12 @@ void main() async {
 
 `googleAI.gemini('<name>')` builds a ref for any Gemini model. Gemma models the
 Gemini API serves have a dedicated `googleAI.gemma('<name>')` alias (it reads
-correctly at call sites), and `GoogleAiModels` exposes typed refs for the curated
-Gemini and Gemma entries:
+correctly at call sites). Refer to models by name; there are no
+`GoogleAiModels` constants.
 
 ```dart
 final response = await ai.generate(
-  model: googleAI.gemma('gemma-4-31b-it'), // or GoogleAiModels.gemma431b
+  model: googleAI.gemma('gemma-4-31b-it'),
   prompt: 'Tell me a joke about a developer.',
 );
 ```
@@ -41,7 +41,7 @@ final response = await ai.generate(
 ## Embeddings
 
 ```dart
-final embeddings = await ai.embedMany(
+final embeddings = await ai.embed(
   embedder: googleAI.textEmbedding('gemini-embedding-001'),
   documents: [
     DocumentData(content: [TextPart(text: 'Hello world')]),

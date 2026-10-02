@@ -11,8 +11,30 @@ metadata:
 Genkit Dart is an AI SDK for Dart that provides a unified interface for code generation, structured outputs, tools, flows, and AI agents.
 
 ## Core Features and Usage
-If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embedMany`), streaming, or calling remote flow endpoints, please load the core framework reference: 
+If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embed`), streaming, or calling remote flow endpoints, please load the core framework reference: 
 [references/genkit.md](references/genkit.md)
+
+## 1.0 vs pre-1.0 APIs
+
+This skill targets Genkit Dart **1.0** (`genkit: ^1.0.0`). Older code and
+training data use pre-1.0 names that no longer compile; the common ones:
+
+- HTTP: `startFlowServer` / per-route `shelfHandler` / `shelf_cors_headers` are
+  now `GenkitRouter` + `serve()` or `asShelfHandler()`, with `CorsOptions`;
+  context providers take `RequestData` ([genkit_shelf.md](references/genkit_shelf.md)).
+- `StatusCodes.UNAUTHENTICATED` is `StatusCode.unauthenticated` (lowerCamelCase,
+  same for `EvalStatus.pass`, `ToolChoice.required`).
+- No `RetryPlugin`; `retry()` is built in and takes `Duration`s
+  (`initialDelay`, `maxDelay`, also `cacheTtl` elsewhere).
+- Renames: `GenerateResponseHelper` -> `GenerateResult` (`modelResponse`,
+  `chunk.modelChunk`), `ExecutablePrompt` -> `Prompt<Input, Output>`,
+  `embedMany` -> `embed`, `ToolFnArgs` -> `ToolFnArg`, `toolOutputSchema` ->
+  `outputSchema`, `underlyingException` -> `cause`, `modelInfo:` -> `info:`,
+  `RemoteAction.dispose()` -> `close()`.
+- Removed: `ToolInterruptException` / `ctx.interrupt()` (return `.interrupt(...)`),
+  `GoogleAiModels` / `OpenAIModels` constants (use `googleAI.gemini('...')`,
+  `openAI.model('...')`). Simulated constrained output is opt-in via
+  `simulateConstrainedGeneration()`.
 
 ## Prompts (Dotprompt)
 
@@ -53,7 +75,7 @@ For more details see:
 -   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
 -   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents with the `agents()` middleware.
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
--   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit_shelf` (multiple agents, CORS).
+-   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `GenkitRouter.addAgent` (multiple agents, shelf, CORS).
 
 ## Generative UI (A2UI)
 
@@ -129,7 +151,7 @@ When asked to use any given plugin, always verify usage by referring to its corr
 | `genkit_middleware` | [references/genkit_middleware.md](references/genkit_middleware.md) | Load for Tooling for specific agentic behavior: `filesystem`, `skills`, and `toolApproval` interrupts. |
 | `genkit_mcp` | [references/genkit_mcp.md](references/genkit_mcp.md) | Load for Model Context Protocol integration (Server, Host, and Client capabilities). |
 | `genkit_chrome` | [references/genkit_chrome.md](references/genkit_chrome.md) | Load for Running Gemini Nano locally inside the Chrome browser using the Prompt API. |
-| `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for Integrating Genkit Flow actions over HTTP using Dart Shelf. |
+| `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for serving flows/models/agents over HTTP: `GenkitRouter` (core `package:genkit/io.dart`, standalone `dart:io`) and mounting it into Shelf apps. |
 | `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for Firebase AI plugin interface (Gemini API via Vertex AI). |
 | `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on the client with `genui`. |
 

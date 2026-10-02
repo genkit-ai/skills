@@ -9,22 +9,33 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_google_genai/genkit_google_genai.dart'; // Or any other plugin
 
 void main() async {
-  // Pass plugins to use into the Genkit constructor. RetryPlugin() ships with
-  // core genkit and registers the `retry` middleware (see below).
-  final ai = Genkit(plugins: [googleAI(), RetryPlugin()]);
+  // Pass plugins to use into the Genkit constructor. Built-in middleware such
+  // as `retry` needs no plugin.
+  final ai = Genkit(plugins: [googleAI()]);
 }
 ```
 
 ## Reliability: retry transient errors
 
 Model backends routinely return transient errors (Gemini "high demand" surfaces
-as `INTERNAL`, plus `UNAVAILABLE` / `RESOURCE_EXHAUSTED` under load). In practice
-`retry()` is close to mandatory for reliable runs. It is a **core** middleware
-(no extra package): register `RetryPlugin()` once, then add `use: [retry()]` to a
-call. By default it retries `UNAVAILABLE`, `DEADLINE_EXCEEDED`,
-`RESOURCE_EXHAUSTED`, `ABORTED`, and `INTERNAL`, and it works the same on
-`generate`, `generateStream`, prompts, and flows. The examples below add it where
-it matters.
+as `StatusCode.internal`, plus `unavailable` / `resourceExhausted` under load).
+In practice `retry()` is close to mandatory for reliable runs. It is a **core**
+middleware, always registered (no plugin, no extra package): just add
+`use: [retry()]` to a call. By default it retries `unavailable`,
+`deadlineExceeded`, `resourceExhausted`, `aborted`, and `internal`, and it works
+the same on `generate`, `generateStream`, prompts, and flows. The examples below
+add it where it matters.
+
+```dart
+retry(
+  maxRetries: 5,
+  initialDelay: const Duration(milliseconds: 500), // Durations, not ms ints
+  maxDelay: const Duration(seconds: 30),
+  statuses: [StatusCode.unavailable, StatusCode.resourceExhausted],
+  // noRetryModel: true, // skip model retries (on by default)
+  // retryTools: true,   // also retry failed tools (off by default)
+)
+```
 
 ## Generate Text
 
@@ -51,8 +62,12 @@ await for (final chunk in stream) {
 ```
 
 ## Embed Text
+
+`ai.embed` takes either `document:` (one) or `documents:` (many) and always
+returns `List<Embedding>`. There is no `embedMany`.
+
 ```dart
-final embeddings = await ai.embedMany(
+final embeddings = await ai.embed(
   documents: [
     DocumentData(content: [TextPart(text: 'Hello world')]),
   ],
@@ -163,8 +178,8 @@ switch (res.finishReason) {
 }
 ```
 
-Only `ToolInterruptException` (a tool returning `.interrupt(...)`) is still
-treated as a turn outcome rather than a failure. See
+Only a tool returning `.interrupt(...)` is treated as a turn outcome
+(`FinishReason.interrupted`) rather than a failure. See
 [human-in-the-loop](agents-human-in-the-loop.md).
 
 ### Resume from the last-good state
@@ -508,8 +523,8 @@ void example() {
   );
 
   // --- Generate Response ---
-  // ai.generate() returns a GenerateResponseHelper which provides ergonomic getters
-  // over the underlying ModelResponse:
+  // ai.generate() returns a read-only GenerateResult<Output> view over the
+  // underlying ModelResponse:
   final response = await ai.generate(...);
   
   print(response.text); // Concatenated text
@@ -518,5 +533,10 @@ void example() {
   print(response.interrupts); // Tool requests that triggered an interrupt
   print(response.messages); // Full history of the conversation, including the request and response
   print(response.output); // Structured typed output (if outputSchema was used)
+  print(response.usage?.inputTokens); // int? token counts
+  print(response.modelResponse); // the raw ModelResponse (modelRequest too)
+
+  // Stream chunks are GenerateResponseChunk<Output>; `chunk.modelChunk` is the
+  // raw ModelResponseChunk (e.g. to forward with ctx.sendChunk in a model).
 }
 ```
