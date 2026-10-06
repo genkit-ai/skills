@@ -81,14 +81,16 @@ Serve the agent over HTTP with `GenkitRouter` (see
 import 'package:genkit/experimental_io.dart';
 import 'package:genkit/io.dart';
 
-final genkit = GenkitRouter()..addAgent(uiAgent, path: '/api/uiAgent');
-await genkit.serve(
-  port: 8080,
-  // Flutter web runs on another origin.
-  cors: const CorsOptions(
-    allowedHeaders: ['Content-Type', 'Accept', 'X-Genkit-Stream-Id'],
-  ),
-);
+void main() async {
+  final genkit = GenkitRouter()..addAgent(uiAgent, path: '/api/uiAgent');
+  await genkit.serve(
+    port: 8080,
+    // Flutter web runs on another origin.
+    cors: const CorsOptions(
+      allowedHeaders: ['Content-Type', 'Accept', 'X-Genkit-Stream-Id'],
+    ),
+  );
+}
 ```
 
 ### Options

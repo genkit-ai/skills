@@ -12,9 +12,10 @@ HTTP serving lives in core `package:genkit/io.dart` (`GenkitRouter`, plain
 ```dart
 import 'package:genkit/genkit.dart';
 import 'package:genkit/io.dart';
+import 'package:genkit_google_genai/genkit_google_genai.dart';
 
 void main() async {
-  final ai = Genkit();
+  final ai = Genkit(plugins: [googleAI()]);
 
   final flow = ai.defineFlow(
     name: 'myFlow',
@@ -23,9 +24,13 @@ void main() async {
     fn: (String input, _) async => 'Hello $input',
   );
 
+  // Any action can be served, including models (here for remote clients
+  // using defineRemoteModel).
+  final geminiFlash = googleAI().model('gemini-flash-latest');
+
   final genkit = GenkitRouter()
     ..addAction(flow) // POST /myFlow (stream with ?stream=true)
-    ..addAction(geminiFlash, path: '/v1/gemini'); // models/tools/etc. work too
+    ..addAction(geminiFlash, path: '/v1/gemini');
 
   await genkit.serve(
     port: 8080, // default: $PORT, then 3400. Host defaults to 0.0.0.0.
@@ -49,19 +54,22 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
 
-final genkit = GenkitRouter()
-  ..addAction(flow) // served at /api/myFlow below
-  ..addAction(geminiFlash, contextProvider: bearerAuth);
+void main() async {
+  // `flow`, `geminiFlash`: as above. `bearerAuth`: see Auth below.
+  final genkit = GenkitRouter()
+    ..addAction(flow) // served at /api/myFlow below
+    ..addAction(geminiFlash, contextProvider: bearerAuth);
 
-final app = Router()
-  ..get('/health', (Request request) => Response.ok('OK'))
-  ..mount('/api/', genkit.asShelfHandler(cors: const CorsOptions()));
+  final app = Router()
+    ..get('/health', (Request request) => Response.ok('OK'))
+    ..mount('/api/', genkit.asShelfHandler(cors: const CorsOptions()));
 
-await io.serve(
-  const Pipeline().addMiddleware(logRequests()).addHandler(app.call),
-  InternetAddress.anyIPv4,
-  8080,
-);
+  await io.serve(
+    const Pipeline().addMiddleware(logRequests()).addHandler(app.call),
+    InternetAddress.anyIPv4,
+    8080,
+  );
+}
 ```
 
 Unknown paths get a `404`, so it also works in a shelf `Cascade`. To serve one

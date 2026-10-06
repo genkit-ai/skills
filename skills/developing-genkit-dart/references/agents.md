@@ -252,9 +252,11 @@ Use `GenkitRouter` (`package:genkit/io.dart`) with `addAgent`
 import 'package:genkit/experimental_io.dart';
 import 'package:genkit/io.dart';
 
-final genkit = GenkitRouter()
-  ..addAgent(weatherAgent, path: '/api/weatherAgent');
-await genkit.serve(port: 8080); // plain dart:io, no shelf needed
+void main() async {
+  final genkit = GenkitRouter()
+    ..addAgent(weatherAgent, path: '/api/weatherAgent');
+  await genkit.serve(port: 8080); // plain dart:io, no shelf needed
+}
 ```
 
 In a shelf app: `Router()..mount('/api/', genkit.asShelfHandler())` (from
