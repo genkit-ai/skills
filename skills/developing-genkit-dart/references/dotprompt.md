@@ -84,6 +84,22 @@ final response = await greetingPrompt({
 print(response.text);
 ```
 
+Per-call generation options are **named parameters** after the input, with the
+same names as `ai.generate`: `config`, `model`, `messages`, `tools`,
+`toolNames`, `toolChoice`, `returnToolRequests`, `maxTurns`, `output`,
+`context`, `use`, `cancel` (`render` takes all but `context`/`cancel`). There is
+no options object to wrap them in.
+
+```dart
+final followUp = await greetingPrompt(
+  {'name': 'World', 'style': 'cheerful'},
+  config: {'temperature': 0.2}, // merged per key with the prompt's config
+  messages: history, // prior turns
+  tools: [lookupTool], // appended to the prompt's tools (same for toolNames/use)
+  use: [retry()],
+);
+```
+
 ### Typed output
 
 `response.output` is typed by the prompt's `Output`. A `.prompt` file's

@@ -30,7 +30,8 @@ training data use pre-1.0 names that no longer compile; the common ones:
   `chunk.modelChunk`), `ExecutablePrompt` -> `Prompt<Input, Output>`,
   `embedMany` -> `embed`, `ToolFnArgs` -> `ToolFnArg`, `toolOutputSchema` ->
   `outputSchema`, `underlyingException` -> `cause`, `modelInfo:` -> `info:`,
-  `RemoteAction.dispose()` -> `close()`, `defineMiddleware` ->
+  `RemoteAction.dispose()` -> `close()`, `prompt(input, PromptGenerateOptions(config: ...))`
+  -> `prompt(input, config: ...)` (named options, like `generate`), `defineMiddleware` ->
   `ai.defineGenerateMiddleware` (app) / `generateMiddleware` (plugins).
 - Provider config types are prefixed: `GeminiThinkingConfig`,
   `GeminiSafetySettings`, `GeminiGoogleSearch`, `GeminiSpeechConfig`,
