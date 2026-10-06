@@ -30,11 +30,17 @@ training data use pre-1.0 names that no longer compile; the common ones:
   `chunk.modelChunk`), `ExecutablePrompt` -> `Prompt<Input, Output>`,
   `embedMany` -> `embed`, `ToolFnArgs` -> `ToolFnArg`, `toolOutputSchema` ->
   `outputSchema`, `underlyingException` -> `cause`, `modelInfo:` -> `info:`,
-  `RemoteAction.dispose()` -> `close()`.
+  `RemoteAction.dispose()` -> `close()`, `defineMiddleware` ->
+  `ai.defineGenerateMiddleware` (app) / `generateMiddleware` (plugins).
+- Provider config types are prefixed: `GeminiThinkingConfig`,
+  `GeminiSafetySettings`, `GeminiGoogleSearch`, `GeminiSpeechConfig`,
+  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`.
 - Removed: `ToolInterruptException` / `ctx.interrupt()` (return `.interrupt(...)`),
   `GoogleAiModels` / `OpenAIModels` constants (use `googleAI.gemini('...')`,
   `openAI.model('...')`). Simulated constrained output is opt-in via
   `simulateConstrainedGeneration()`.
+- `.prompt` Picoschema is spec-compliant: `name: type, description`, never
+  `name(description): type` ([dotprompt.md](references/dotprompt.md)).
 
 ## Prompts (Dotprompt)
 

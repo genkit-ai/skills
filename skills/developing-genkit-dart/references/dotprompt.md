@@ -40,8 +40,33 @@ Greet {{name}}.
 ```
 
 Schema fields use Picoschema (the compact form above) or you can reference a
-named schema registered with `defineSchema`. The `type, description` form is
-supported too, e.g. `name: string, the person to greet`.
+named schema registered with `defineSchema`. A top-level `type` or
+`properties` key makes it plain JSON Schema instead.
+
+Picoschema follows the [spec](https://genkit.dev/docs/dotprompt/#picoschema),
+same as JS/Go/Python:
+
+```yaml
+schema:
+  name: string, the person to greet     # description goes after a comma
+  nickname?: string                      # optional (and nullable)
+  tags(array, relevant tags): string     # array of strings
+  steps(array):                          # array of objects
+    instruction: string
+  address?(object):                      # nested object
+    city: string
+  status(enum, approval status): [PENDING, APPROVED]
+  extra?: any
+  (*): string                            # wildcard: additionalProperties
+```
+
+The parenthetical is only for a type keyword (`array`, `object`, `enum`) plus an
+optional description. `email(the user email): string` is **invalid**; write
+`email: string, the user email`. A prompt with an invalid schema logs a warning
+when the folder loads and throws `GenkitException` (`invalidArgument`) when it
+is rendered; other prompts keep working. A schema name that is still not
+registered with `defineSchema` at render time throws too (`failedPrecondition`);
+names may be registered after the folder loads.
 
 ## Loading and calling a prompt
 

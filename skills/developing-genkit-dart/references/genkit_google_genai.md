@@ -46,8 +46,33 @@ final embeddings = await ai.embed(
   documents: [
     DocumentData(content: [TextPart(text: 'Hello world')]),
   ],
+  // Optional per-request tuning.
+  options: GoogleGenAiEmbedderOptions(outputDimensionality: 768),
 );
 ```
+
+## Config types are provider-prefixed
+
+Nested config classes carry a `Gemini` prefix (embedder options use
+`GoogleGenAi`). Unprefixed names like `ThinkingConfig` do not exist here.
+
+```dart
+config: GeminiOptions(
+  thinkingConfig: GeminiThinkingConfig(thinkingLevel: 'MINIMAL'),
+  safetySettings: [
+    GeminiSafetySettings(
+      category: 'HARM_CATEGORY_HATE_SPEECH',
+      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+    ),
+  ],
+  googleSearch: GeminiGoogleSearch(),
+),
+```
+
+Also: `GeminiFunctionCallingConfig`, `GeminiFileSearch`, `GeminiSpeechConfig`,
+`GeminiVoiceConfig`, `GeminiPrebuiltVoiceConfig`,
+`GeminiMultiSpeakerVoiceConfig`, `GeminiSpeakerVoiceConfig`. The same types are
+re-exported by `genkit_vertexai`.
 
 ## Image Generation
 
@@ -92,9 +117,9 @@ ai.defineFlow(
       prompt: prompt,
       config: GeminiTtsOptions(
         responseModalities: ['AUDIO'],
-        speechConfig: SpeechConfig(
-          voiceConfig: VoiceConfig(
-            prebuiltVoiceConfig: PrebuiltVoiceConfig(voiceName: 'Puck'),
+        speechConfig: GeminiSpeechConfig(
+          voiceConfig: GeminiVoiceConfig(
+            prebuiltVoiceConfig: GeminiPrebuiltVoiceConfig(voiceName: 'Puck'),
           ),
         ),
       ),
