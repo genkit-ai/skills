@@ -31,8 +31,12 @@ plus `a2ui_core`, and `genkit` + `genkit_a2ui` for the client helpers
 (`remoteAgent`, `a2uiEnvelopesFromParts`, `actionToMessage`):
 
 ```bash
-flutter pub add genkit genkit_a2ui genui a2ui_core
+flutter pub add genkit genkit_a2ui 'genui:^0.10.4' 'a2ui_core:^0.1.1'
 ```
+
+Pin these versions: the client code below targets the `genui` 0.10 API with
+`a2ui_core` 0.1. An unpinned add can resolve an older `genui` and a newer,
+incompatible `a2ui_core`, and the snippets then fail to compile.
 
 ## Server: add the `a2ui()` middleware
 

@@ -165,11 +165,17 @@ final res = await ai.generate(
 switch (res.finishReason) {
   case FinishReason.failed:
     // A model error or a throwing tool. `res.error` is a structured
-    // RuntimeError (a GenkitException keeps its status; anything else maps to
-    // INTERNAL). `res.cause` holds the original thrown object for in-process
-    // inspection (e.g. `res.cause is SocketException`); it does not cross the
-    // HTTP/reflection boundary.
+    // RuntimeError; `res.cause` is the thrown object (in-process only, it
+    // does not cross the HTTP/reflection boundary).
+    // - Model error: `cause` is what the model call threw. A GenkitException
+    //   keeps its status; anything else maps to INTERNAL.
+    // - Throwing tool: `cause` is a GenkitException (INTERNAL,
+    //   'tool "x" failed: ...') wrapping the tool's error, so the original
+    //   is one level down, on its own `.cause`.
     print(res.error?.status);
+    final cause = res.cause;
+    final original = cause is GenkitException ? cause.cause ?? cause : cause;
+    if (original is SocketException) {/* retry later */}
   case FinishReason.aborted:
     // Cancelled, or hit maxTurns.
     print('aborted: ${res.finishMessage}');

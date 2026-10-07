@@ -66,8 +66,8 @@ importing them raises an `experimental_member_use` analyzer warning you can
 silence in `analysis_options.yaml`. The `remoteAgent` client works from any Dart
 app, including **Flutter**, and the backend is fully interchangeable — it can talk
 to a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
-protocol. A few Dart specifics: interrupts are modeled as tools that return
-`.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
+protocol. A few Dart specifics: interrupts are `ai.defineInterrupt(...)` or
+tools that return `.interrupt(...)` (there is no `ctx.interrupt()`), sub-agent delegation uses
 the `agents()` middleware from `package:genkit_middleware`, and there is no
 `artifacts()` middleware yet (define artifact tools directly).
 
@@ -153,6 +153,7 @@ When asked to use any given plugin, always verify usage by referring to its corr
 | Plugin Name | Reference Link | Description |
 | ---- | ---- | ---- |
 | `genkit_google_genai` | [references/genkit_google_genai.md](references/genkit_google_genai.md) | Load for Google Gemini plugin interface usage. |
+| `genkit_vertexai` | [references/genkit_vertexai.md](references/genkit_vertexai.md) | Load for Gemini via Vertex AI (Google Cloud auth, versioned model IDs, embeddings incl. multimodal). |
 | `genkit_anthropic` | [references/genkit_anthropic.md](references/genkit_anthropic.md) | Load for Anthropic plugin interface for Claude models. |
 | `genkit_openai` | [references/genkit_openai.md](references/genkit_openai.md) | Load for OpenAI plugin interface for GPT models, Groq, and custom compatible endpoints. |
 | `genkit_middleware` | [references/genkit_middleware.md](references/genkit_middleware.md) | Load for Tooling for specific agentic behavior: `filesystem`, `skills`, and `toolApproval` interrupts. |

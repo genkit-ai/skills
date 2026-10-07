@@ -112,7 +112,7 @@ void main() async {
   ai.defineTool(
     name: 'add',
     description: 'Add two numbers together',
-    inputSchema: .map(.string(), .dynamicSChema()),
+    inputSchema: .map(.string(), .dynamicSchema()),
     fn: (input, _) async => .response((input['a'] + input['b']).toString()),
   );
 

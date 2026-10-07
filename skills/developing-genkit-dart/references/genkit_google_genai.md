@@ -58,7 +58,8 @@ Nested config classes carry a `Gemini` prefix (embedder options use
 
 ```dart
 config: GeminiOptions(
-  thinkingConfig: GeminiThinkingConfig(thinkingLevel: 'MINIMAL'),
+  // Allowed levels depend on the model ('LOW' is widely supported).
+  thinkingConfig: GeminiThinkingConfig(thinkingLevel: 'LOW'),
   safetySettings: [
     GeminiSafetySettings(
       category: 'HARM_CATEGORY_HATE_SPEECH',
