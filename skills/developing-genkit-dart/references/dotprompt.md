@@ -40,13 +40,38 @@ Greet {{name}}.
 ```
 
 Schema fields use Picoschema (the compact form above) or you can reference a
-named schema registered with `defineSchema`. The `type, description` form is
-supported too, e.g. `name: string, the person to greet`.
+named schema registered with `defineSchema`. A top-level `type` or
+`properties` key makes it plain JSON Schema instead.
+
+Picoschema follows the [spec](https://genkit.dev/docs/dotprompt/#picoschema),
+same as JS/Go/Python:
+
+```yaml
+schema:
+  name: string, the person to greet     # description goes after a comma
+  nickname?: string                      # optional (and nullable)
+  tags(array, relevant tags): string     # array of strings
+  steps(array):                          # array of objects
+    instruction: string
+  address?(object):                      # nested object
+    city: string
+  status(enum, approval status): [PENDING, APPROVED]
+  extra?: any
+  (*): string                            # wildcard: additionalProperties
+```
+
+The parenthetical is only for a type keyword (`array`, `object`, `enum`) plus an
+optional description. `email(the user email): string` is **invalid**; write
+`email: string, the user email`. A prompt with an invalid schema logs a warning
+when the folder loads and throws `GenkitException` (`invalidArgument`) when it
+is rendered; other prompts keep working. A schema name that is still not
+registered with `defineSchema` at render time throws too (`failedPrecondition`);
+names may be registered after the folder loads.
 
 ## Loading and calling a prompt
 
-`ai.prompt(name, {variant})` returns a `Future<ExecutablePrompt>`. The resolved
-`ExecutablePrompt` is a **callable object** — invoke it like a function. The
+`ai.prompt(name, {variant})` returns a `Future<Prompt<Input, Output>>`. The
+resolved `Prompt` is a **callable object**: invoke it like a function. The
 input is a **positional** argument (there is no `input:` named parameter).
 
 ```dart
@@ -58,6 +83,44 @@ final response = await greetingPrompt({
 });
 print(response.text);
 ```
+
+Per-call generation options are **named parameters** after the input, with the
+same names as `ai.generate`: `config`, `model`, `messages`, `tools`,
+`toolNames`, `toolChoice`, `returnToolRequests`, `maxTurns`, `output`,
+`context`, `use`, `cancel` (`render` takes all but `context`/`cancel`). There is
+no options object to wrap them in.
+
+```dart
+final followUp = await greetingPrompt(
+  {'name': 'World', 'style': 'cheerful'},
+  config: {'temperature': 0.2}, // merged per key with the prompt's config
+  messages: history, // prior turns
+  tools: [lookupTool], // appended to the prompt's tools (same for toolNames/use)
+  use: [retry()],
+);
+```
+
+### Typed output
+
+`response.output` is typed by the prompt's `Output`. A `.prompt` file's
+`output.schema` has no Dart type, so pass `outputParserSchema` to parse into
+one (it is never sent to the model; the file's schema is):
+
+```dart
+// Inferred as Prompt<dynamic, Recipe>
+final recipePrompt = await ai.prompt(
+  'recipe',
+  outputParserSchema: Recipe.$schema,
+);
+final Recipe? recipe = (await recipePrompt({'food': 'pasta'})).output;
+
+// Code-defined with outputSchema: already typed, just name the types.
+final joke = await ai.prompt<JokeInput, Joke>('joke');
+```
+
+`ai.definePrompt(..., outputSchema: Joke.$schema)` returns a
+`Prompt<JokeInput, Joke>` directly. A prompt's `.ref` is a `PromptRef`
+(`name`, `metadata`).
 
 ### Streaming
 
@@ -173,14 +236,16 @@ accurate, up-to-date information. Keep your tone {{tone}}.
   equivalent `ai.generate` options.
 - `use`: list of middleware refs. Each entry is a bare string (middleware name)
   or a map with `name` and optional `config`. Names resolve against middleware
-  registered on the Genkit instance — register the middleware plugin so the name
-  is available:
+  registered on the Genkit instance. `retry` (above) is built in; for
+  `genkit_middleware` names, register the plugin so the name is available:
 
 ```dart
+import 'package:genkit_middleware/skills.dart';
+
 final ai = Genkit(
   plugins: [
     googleAI(),
-    RetryPlugin(), // registers the `retry` middleware
+    SkillsPlugin(), // makes `use: [skills]` resolve
   ],
   promptDir: './prompts',
 );

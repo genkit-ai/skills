@@ -11,8 +11,37 @@ metadata:
 Genkit Dart is an AI SDK for Dart that provides a unified interface for code generation, structured outputs, tools, flows, and AI agents.
 
 ## Core Features and Usage
-If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embedMany`), streaming, or calling remote flow endpoints, please load the core framework reference: 
+If you need help with initializing Genkit (`Genkit()`), Generation (`ai.generate`), Tooling (`ai.defineTool`), Flows (`ai.defineFlow`), Embeddings (`ai.embed`), streaming, or calling remote flow endpoints, please load the core framework reference: 
 [references/genkit.md](references/genkit.md)
+
+## 1.0 vs pre-1.0 APIs
+
+This skill targets Genkit Dart **1.0** (`genkit: ^1.0.0`). Older code and
+training data use pre-1.0 names that no longer compile; the common ones:
+
+- HTTP: `startFlowServer` / per-route `shelfHandler` / `shelf_cors_headers` are
+  now `GenkitRouter` + `serve()` or `asShelfHandler()`, with `CorsOptions`;
+  context providers take `RequestData` ([genkit_shelf.md](references/genkit_shelf.md)).
+- `StatusCodes.UNAUTHENTICATED` is `StatusCode.unauthenticated` (lowerCamelCase,
+  same for `EvalStatus.pass`, `ToolChoice.required`).
+- No `RetryPlugin`; `retry()` is built in and takes `Duration`s
+  (`initialDelay`, `maxDelay`, also `cacheTtl` elsewhere).
+- Renames: `GenerateResponseHelper` -> `GenerateResult` (`modelResponse`,
+  `chunk.modelChunk`), `ExecutablePrompt` -> `Prompt<Input, Output>`,
+  `embedMany` -> `embed`, `ToolFnArgs` -> `ToolFnArg`, `toolOutputSchema` ->
+  `outputSchema`, `underlyingException` -> `cause`, `modelInfo:` -> `info:`,
+  `RemoteAction.dispose()` -> `close()`, `prompt(input, PromptGenerateOptions(config: ...))`
+  -> `prompt(input, config: ...)` (named options, like `generate`), `defineMiddleware` ->
+  `ai.defineGenerateMiddleware` (app) / `generateMiddleware` (plugins).
+- Provider config types are prefixed: `GeminiThinkingConfig`,
+  `GeminiSafetySettings`, `GeminiGoogleSearch`, `GeminiSpeechConfig`,
+  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`.
+- Removed: `ToolInterruptException` / `ctx.interrupt()` (return `.interrupt(...)`),
+  `GoogleAiModels` / `OpenAIModels` constants (use `googleAI.gemini('...')`,
+  `openAI.model('...')`). Simulated constrained output is opt-in via
+  `simulateConstrainedGeneration()`.
+- `.prompt` Picoschema is spec-compliant: `name: type, description`, never
+  `name(description): type` ([dotprompt.md](references/dotprompt.md)).
 
 ## Prompts (Dotprompt)
 
@@ -37,8 +66,8 @@ importing them raises an `experimental_member_use` analyzer warning you can
 silence in `analysis_options.yaml`. The `remoteAgent` client works from any Dart
 app, including **Flutter**, and the backend is fully interchangeable — it can talk
 to a Genkit agent implemented in Dart, JS/TypeScript, or Go over the same HTTP
-protocol. A few Dart specifics: interrupts are modeled as tools that return
-`.interrupt(...)` (there is no `defineInterrupt`), sub-agent delegation uses
+protocol. A few Dart specifics: interrupts are `ai.defineInterrupt(...)` or
+tools that return `.interrupt(...)` (there is no `ctx.interrupt()`), sub-agent delegation uses
 the `agents()` middleware from `package:genkit_middleware`, and there is no
 `artifacts()` middleware yet (define artifact tools directly).
 
@@ -53,7 +82,7 @@ For more details see:
 -   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
 -   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents with the `agents()` middleware.
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
--   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit_shelf` (multiple agents, CORS).
+-   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `GenkitRouter.addAgent` (multiple agents, shelf, CORS).
 
 ## Generative UI (A2UI)
 
@@ -124,12 +153,13 @@ When asked to use any given plugin, always verify usage by referring to its corr
 | Plugin Name | Reference Link | Description |
 | ---- | ---- | ---- |
 | `genkit_google_genai` | [references/genkit_google_genai.md](references/genkit_google_genai.md) | Load for Google Gemini plugin interface usage. |
+| `genkit_vertexai` | [references/genkit_vertexai.md](references/genkit_vertexai.md) | Load for Gemini via Vertex AI (Google Cloud auth, versioned model IDs, embeddings incl. multimodal). |
 | `genkit_anthropic` | [references/genkit_anthropic.md](references/genkit_anthropic.md) | Load for Anthropic plugin interface for Claude models. |
 | `genkit_openai` | [references/genkit_openai.md](references/genkit_openai.md) | Load for OpenAI plugin interface for GPT models, Groq, and custom compatible endpoints. |
 | `genkit_middleware` | [references/genkit_middleware.md](references/genkit_middleware.md) | Load for Tooling for specific agentic behavior: `filesystem`, `skills`, and `toolApproval` interrupts. |
 | `genkit_mcp` | [references/genkit_mcp.md](references/genkit_mcp.md) | Load for Model Context Protocol integration (Server, Host, and Client capabilities). |
 | `genkit_chrome` | [references/genkit_chrome.md](references/genkit_chrome.md) | Load for Running Gemini Nano locally inside the Chrome browser using the Prompt API. |
-| `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for Integrating Genkit Flow actions over HTTP using Dart Shelf. |
+| `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for serving flows/models/agents over HTTP: `GenkitRouter` (core `package:genkit/io.dart`, standalone `dart:io`) and mounting it into Shelf apps. |
 | `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for Firebase AI plugin interface (Gemini API via Vertex AI). |
 | `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on the client with `genui`. |
 

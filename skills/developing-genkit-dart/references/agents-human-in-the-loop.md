@@ -8,10 +8,24 @@ a plan. Internally it's a **tool call used as control flow**: the interrupt tool
 never runs to completion on the server; it pauses the turn. You then **resume**
 from the exact point it paused.
 
-> **Dart has no `defineInterrupt`.** Model an interrupt as a normal tool whose
-> body returns `.interrupt(data)`. Omit `outputSchema`; the output is supplied by
-> the caller on resume. (`ctx.interrupt(...)` still works but is soft-deprecated;
-> prefer `return .interrupt(...)`.)
+> Two ways to define an interrupt:
+>
+> - `ai.defineInterrupt(...)`: an interrupt-only tool that always pauses and
+>   never runs logic. `outputSchema` describes what the caller supplies on
+>   resume.
+> - A normal `ai.defineTool` whose body returns `.interrupt(data)`: pauses
+>   conditionally (e.g. only for large transfers) or after some work.
+>
+> There is no `ctx.interrupt(...)`; return `.interrupt(...)` from the tool.
+
+```dart
+final askUser = ai.defineInterrupt(
+  name: 'askUser',
+  description: 'Ask the user a clarifying question.',
+  inputSchema: .string(), // the question
+  outputSchema: .string(), // the answer, supplied on resume
+);
+```
 
 Interrupts are **orthogonal to persistence** — they work the same whether the
 agent uses a [session store](agents-sessions.md) or
@@ -24,8 +38,9 @@ Flow: `chat.send(text: ...)` → response has `res.interrupts` → collect human
 
 ## Define an interrupt (a tool that interrupts)
 
-Define it like a tool and add it to the agent's `tools`. Returning `.interrupt(...)`
-pauses the turn; its argument is the data shown to the human.
+The example below uses tools that return `.interrupt(...)`, which pauses the
+turn; its argument is the data shown to the human. Add interrupts (either kind)
+to the agent's `tools`.
 
 ```dart
 import 'package:genkit/genkit.dart';

@@ -10,10 +10,8 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_openai/genkit_openai.dart';
 
 void main() async {
-  // RetryPlugin() (core genkit) registers the `retry` middleware.
   final ai = Genkit(plugins: [
     openAI(apiKey: Platform.environment['OPENAI_API_KEY']),
-    RetryPlugin(),
   ]);
 
   final response = await ai.generate(
@@ -27,24 +25,29 @@ void main() async {
 The plugin does **not** require network access or an API key at startup; a key is
 only needed when you actually call a model.
 
-## Typed model and embedder refs
+## Model and embedder refs
 
-The plugin ships a curated per-model catalog. `openAI.model('<name>')` and
+The plugin ships a curated per-model catalog (internal, not exported).
+Reference models and embedders by name: `openAI.model('<name>')` and
 `openAI.embedder('<name>')` accept any id (uncurated ids still resolve via
-dated-suffix aliases and generic defaults), and `OpenAIModels` / `OpenAIEmbedders`
-expose typed refs for the curated entries:
+dated-suffix aliases and generic defaults). There are no `OpenAIModels` /
+`OpenAIEmbedders` constants.
 
 ```dart
 final response = await ai.generate(
-  model: OpenAIModels.gpt5Mini, // == openAI.model('gpt-5-mini')
+  model: openAI.model('gpt-5-mini'),
   prompt: 'Tell me a joke.',
 );
 
-final embeddings = await ai.embedMany(
-  embedder: OpenAIEmbedders.textEmbedding3Small, // == openAI.embedder(...)
+final embeddings = await ai.embed(
+  embedder: openAI.embedder('text-embedding-3-small'),
   documents: [DocumentData(content: [TextPart(text: 'Hello world')])],
 );
 ```
+
+For a custom model that should behave like a curated one, start from its info:
+`CustomModelDefinition(name: 'my-gpt-proxy', info: modelInfoFor('gpt-5.5'))`
+(also `xaiModelInfoFor` / `deepSeekModelInfoFor`).
 
 > Capability detection is data-driven (per-model), not name-matching. `-pro`
 > tiers are not curated because they are Responses API only and this plugin

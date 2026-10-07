@@ -44,14 +44,14 @@ Progressive disclosure — read the file for the level you need:
 - [Artifacts](agents-artifacts.md): producing/reading named deliverables.
 - [Multi-agent orchestration](agents-multi-agent.md): delegating to sub-agents.
 - [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
-- [Deploying agents](agents-deployment.md): serving multiple agents over HTTP with `genkit_shelf`, CORS, other frameworks.
+- [Deploying agents](agents-deployment.md): serving multiple agents over HTTP with `GenkitRouter.addAgent`, shelf, CORS.
 
 ## Setup
 
-Register the plugins your agents need on a shared `Genkit` instance. `retry` and
-`RetryPlugin` ship with the core `package:genkit/genkit.dart`; the other agentic
+Register the plugins your agents need on a shared `Genkit` instance. `retry` is
+built into the core `package:genkit/genkit.dart` (no plugin); the other agentic
 middleware (`agents`, `filesystem`, `skills`, `toolApproval`) come from
-`package:genkit_middleware`.
+`package:genkit_middleware` and need their plugins registered.
 
 ```dart
 // genkit.dart — shared instance + model refs.
@@ -65,10 +65,7 @@ final ModelRef defaultModel = googleAI.gemini('gemini-flash-latest');
 final ModelRef liteModel = googleAI.gemini('gemini-flash-lite-latest');
 
 final Genkit ai = Genkit(
-  plugins: [
-    googleAI(),
-    RetryPlugin(),
-  ],
+  plugins: [googleAI()],
   model: defaultModel,
 );
 ```
@@ -183,8 +180,8 @@ final codingAgent = ai.defineAgent(
 ```
 
 Register the corresponding plugins (`FilesystemPlugin()`, `SkillsPlugin()`,
-`ToolApprovalPlugin()`, and `RetryPlugin()`) on the `Genkit` instance so the
-`use: [...]` refs resolve at runtime. See [using middleware](genkit_middleware.md).
+`ToolApprovalPlugin()`) on the `Genkit` instance so the `use: [...]` refs
+resolve at runtime (`retry()` is built in). See [using middleware](genkit_middleware.md).
 
 ## Chat with an agent (server-side)
 
@@ -247,29 +244,23 @@ final tryWeatherAgent = ai.defineFlow(
 
 ## Serve an agent over HTTP
 
-Use `shelfHandler` from `package:genkit_shelf`. Expose the main turn action, plus
-the companion `getSnapshotDataAction` (state lookup/restore) and
-`abortAgentAction` (background aborts) where needed.
+Use `GenkitRouter` (`package:genkit/io.dart`) with `addAgent`
+(`package:genkit/experimental_io.dart`). It mounts the turn route plus the
+`/getSnapshot` and `/abort` companions the agent supports (based on its store).
 
 ```dart
-import 'package:genkit_shelf/genkit_shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
+import 'package:genkit/experimental_io.dart';
+import 'package:genkit/io.dart';
 
-final router = Router();
-
-// Main turn endpoint:
-router.post('/api/weatherAgent', shelfHandler(weatherAgent.action));
-
-// Optional companions (snapshot restore / branching / background):
-router.post(
-  '/api/weatherAgent/getSnapshot',
-  shelfHandler(weatherAgent.getSnapshotDataAction),
-);
-router.post(
-  '/api/weatherAgent/abort',
-  shelfHandler(weatherAgent.abortAgentAction),
-);
+void main() async {
+  final genkit = GenkitRouter()
+    ..addAgent(weatherAgent, path: '/api/weatherAgent');
+  await genkit.serve(port: 8080); // plain dart:io, no shelf needed
+}
 ```
+
+In a shelf app: `Router()..mount('/api/', genkit.asShelfHandler())` (from
+`genkit_shelf`).
 
 For serving multiple agents, CORS/streaming headers for browser clients, and a
 full server, see [Deploying agents](agents-deployment.md).

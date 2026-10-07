@@ -140,7 +140,7 @@ final researchAgent = ai.defineCustomAgent(
             '${subAnswers.map((a) => '${a['question']}: ${a['answer']}').join('\n\n')}',
       );
       await for (final chunk in synthesis) {
-        options.sendChunk(AgentStreamChunk(modelChunk: chunk.rawChunk));
+        options.sendChunk(AgentStreamChunk(modelChunk: chunk.modelChunk));
       }
       final finalResponse = await synthesis.onResult;
       lastMessage = finalResponse.message;

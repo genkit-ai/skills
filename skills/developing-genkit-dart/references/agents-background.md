@@ -30,17 +30,12 @@ Expose its companion actions so the client can poll/abort (see
 [agents.md](agents.md#serve-an-agent-over-http)):
 
 ```dart
-import 'package:genkit_shelf/genkit_shelf.dart';
+import 'package:genkit/experimental_io.dart';
+import 'package:genkit/io.dart';
 
-router.post('/api/backgroundAgent', shelfHandler(backgroundAgent.action));
-router.post(
-  '/api/backgroundAgent/getSnapshot',
-  shelfHandler(backgroundAgent.getSnapshotDataAction),
-);
-router.post(
-  '/api/backgroundAgent/abort',
-  shelfHandler(backgroundAgent.abortAgentAction),
-);
+// The store makes addAgent mount /getSnapshot and /abort next to the turn route.
+final genkit = GenkitRouter()
+  ..addAgent(backgroundAgent, path: '/api/backgroundAgent');
 ```
 
 ## Client-side: detach + poll + abort

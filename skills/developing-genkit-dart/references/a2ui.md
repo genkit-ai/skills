@@ -22,7 +22,7 @@ with `depend_on_referenced_packages` (the server code imports
 `package:genkit/genkit.dart` directly):
 
 ```bash
-dart pub add genkit genkit_a2ui genkit_google_genai genkit_shelf
+dart pub add genkit genkit_a2ui genkit_google_genai
 ```
 
 To render surfaces you also need a renderer. The Flutter renderer for A2UI is
@@ -31,8 +31,12 @@ plus `a2ui_core`, and `genkit` + `genkit_a2ui` for the client helpers
 (`remoteAgent`, `a2uiEnvelopesFromParts`, `actionToMessage`):
 
 ```bash
-flutter pub add genkit genkit_a2ui genui a2ui_core
+flutter pub add genkit genkit_a2ui 'genui:^0.10.4' 'a2ui_core:^0.1.1'
 ```
+
+Pin these versions: the client code below targets the `genui` 0.10 API with
+`a2ui_core` 0.1. An unpinned add can resolve an older `genui` and a newer,
+incompatible `a2ui_core`, and the snippets then fail to compile.
 
 ## Server: add the `a2ui()` middleware
 
@@ -73,14 +77,24 @@ final res = await ai.generate(
 );
 ```
 
-Serve the agent over HTTP with `genkit_shelf` (see
-[Deploying agents](agents-deployment.md)). A server-managed agent exposes three
-actions (turn, snapshot, abort):
+Serve the agent over HTTP with `GenkitRouter` (see
+[Deploying agents](agents-deployment.md)). `addAgent` mounts the turn route plus
+`/getSnapshot` and `/abort` for a server-managed agent:
 
 ```dart
-router.post('/api/uiAgent', shelfHandler(uiAgent.action));
-router.post('/api/uiAgent/getSnapshot', shelfHandler(uiAgent.getSnapshotDataAction));
-router.post('/api/uiAgent/abort', shelfHandler(uiAgent.abortAgentAction));
+import 'package:genkit/experimental_io.dart';
+import 'package:genkit/io.dart';
+
+void main() async {
+  final genkit = GenkitRouter()..addAgent(uiAgent, path: '/api/uiAgent');
+  await genkit.serve(
+    port: 8080,
+    // Flutter web runs on another origin.
+    cors: const CorsOptions(
+      allowedHeaders: ['Content-Type', 'Accept', 'X-Genkit-Stream-Id'],
+    ),
+  );
+}
 ```
 
 ### Options

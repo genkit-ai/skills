@@ -12,11 +12,9 @@ import 'package:genkit/genkit.dart';
 import 'package:genkit_anthropic/genkit_anthropic.dart';
 
 void main() async {
-  // RetryPlugin() (core genkit) registers the `retry` middleware.
   final ai = Genkit(
     plugins: [
       anthropic(apiKey: Platform.environment['ANTHROPIC_API_KEY']!),
-      RetryPlugin(),
     ],
   );
 
@@ -38,7 +36,9 @@ Provides specific configurations for utilizing Claude 3.7+ "thinking" model capa
 final response = await ai.generate(
   model: anthropic.model('claude-sonnet-4-5'),
   prompt: 'Solve this 24 game: 2, 3, 10, 10',
-  config: AnthropicOptions(thinking: ThinkingConfig(budgetTokens: 2048)),
+  config: AnthropicOptions(
+    thinking: AnthropicThinkingConfig(budgetTokens: 2048),
+  ),
 );
 
 // The thinking content is available in the message parts
