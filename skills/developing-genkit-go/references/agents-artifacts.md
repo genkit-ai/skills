@@ -10,8 +10,8 @@ name) and are returned on `out.Artifacts`.
 
 ```go
 import (
-	aix "github.com/genkit-ai/genkit/go/ai/exp"
-	middlewarex "github.com/genkit-ai/genkit/go/plugins/middleware/exp"
+	aix "github.com/firebase/genkit/go/ai/exp"
+	middlewarex "github.com/firebase/genkit/go/plugins/middleware/exp"
 )
 ```
 

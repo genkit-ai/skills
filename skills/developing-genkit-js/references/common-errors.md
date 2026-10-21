@@ -114,9 +114,42 @@ You should never import `@genkit-ai/flow`, `@genkit-ai/ai` or `@genkit-ai/core` 
 - **Tool Not Found**: Ensure tools are registered in the `tools` array of `generate` or provided via plugins.
 - **MCP Tools**: Use the `ServerName:tool_name` format when referencing MCP tools.
 
+## Handling Failures in Tool Loops
+
+- **Don't throw away finished tool rounds.** By default `generate()` throws on a
+  model/tool/middleware failure or at `maxTurns`. Since `genkit` 1.43.0,
+  `throwOnError: false` returns the failure on the response along with
+  `messages` up to the last completed tool round, so you can retry without
+  re-running tools that already succeeded:
+  ```ts
+  const opts = { model: googleAI.model('gemini-flash-latest'), tools: [getWeather], throwOnError: false };
+  let res = await ai.generate({ ...opts, prompt: 'What should I wear in Tokyo?' });
+  if (res.finishReason === 'failed' || res.finishReason === 'aborted') {
+    console.warn(res.error?.status, res.error?.message); // e.g. INTERNAL, tool "getWeather" failed
+    res = await ai.generate({ ...opts, messages: res.messages }); // safe to resend
+  }
+  ```
+  `aborted` means the caller stopped it (abort signal, timeout, `maxTurns`);
+  `failed` means something broke. Errors before the request resolves (unknown
+  model/tool, invalid options) still throw.
+- **Agents: retry a failed turn with `send({})`.** A failed agent turn throws
+  `AgentError` (from `genkit/beta/client`), but the chat has already adopted the
+  resume point. `await chat.send({})` re-runs the turn from there:
+  ```ts
+  try {
+    await chat.send('Book the full itinerary.');
+  } catch (err) {
+    if (err instanceof AgentError) await chat.send({});
+    else throw err;
+  }
+  ```
+- **Recoverable domain errors belong in tool output.** Return
+  `{ ok: false, reason: '...' }` from the tool when the model can fix the input;
+  throw only when the system can't continue.
+
 ## Multimodal & Image Generation
 
-- **Missing responseModalities**: When using image generation models (like `gemini-2.5-flash-image`), you **MUST** specify the response modalities in the config.
+- **Missing responseModalities**: When using image generation models (like `gemini-nano-banana-2.1`), you **MUST** specify the response modalities in the config.
   ```ts
   config: {
     responseModalities: ["TEXT", "IMAGE"]

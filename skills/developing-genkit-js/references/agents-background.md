@@ -33,6 +33,12 @@ app.post(
   expressHandler(backgroundAgent.getSnapshotDataAction)
 );
 app.post(
+  // Optional (genkit >= 1.43.0): lets remoteAgent's task.wait() block on the
+  // server in one request instead of polling getSnapshot.
+  '/api/backgroundAgent/waitForSnapshot',
+  expressHandler(backgroundAgent.waitForSnapshotAction)
+);
+app.post(
   '/api/backgroundAgent/abort',
   expressHandler(backgroundAgent.abortAgentAction)
 );
@@ -41,16 +47,37 @@ app.post(
 ## Server-side: detach + wait
 
 `chat.detach(message)` returns a `DetachedTask` carrying the `snapshotId`.
-`task.wait()` polls the store until a terminal state and resolves with the final
-snapshot.
+`task.wait()` blocks until a terminal state and resolves with the final
+snapshot. The wait happens next to the store, so there is no polling loop on
+your side.
 
 ```ts
 const chat = backgroundAgent.chat();
 const task = await chat.detach('Write a report on renewable energy trends');
 console.log(task.snapshotId); // available immediately
 
-const snapshot = await task.wait({ intervalMs: 2000 });
-console.log(snapshot?.status); // 'completed' | 'failed' | 'aborted' | 'expired'
+// Bound the wait with an abort signal; the task keeps running if it fires.
+const snapshot = await task.wait({ abortSignal: AbortSignal.timeout(60_000) });
+console.log(snapshot.status); // 'completed' | 'failed' | 'aborted' | 'expired'
+```
+
+Without a `DetachedTask` handle, `backgroundAgent.waitForSnapshot(snapshotId)`
+does the same from a stored ID.
+
+## Resume a failed or aborted task
+
+> Requires `genkit >= 1.43.0`. Earlier versions only resumed `completed` snapshots.
+
+`failed` and `aborted` snapshots hold the conversation up to the last completed
+tool round, so they are resume points. `send({})` (no message, no resume)
+re-runs the turn without repeating finished tool calls:
+
+```ts
+const snap = await task.wait();
+if (snap.status === 'failed' || snap.status === 'aborted') {
+  const retry = await backgroundAgent.loadChat({ snapshotId: snap.snapshotId });
+  await retry.send({}); // or retry.send('Try again, but skip X.')
+}
 ```
 
 ## Client-side: detach + poll + abort
@@ -97,13 +124,20 @@ await task.abort();
 
 ## Status values
 
-- `pending` — still processing.
-- `completed` — completed successfully (read the result from `snapshot.state.messages`).
-- `failed` — error during processing.
-- `aborted` — cancelled by the client via `abort()`.
-- `expired` — the background worker stopped responding (e.g. server restart);
+- `pending`: still processing.
+- `aborting`: `abort()` was called; the worker is winding down. Not terminal:
+  `wait()` keeps waiting until it settles as `aborted`.
+- `completed`: completed successfully (read the result from `snapshot.state.messages`).
+- `failed`: error during processing. Resumable (see above).
+- `aborted`: stopped by the caller. Carries the state the run had committed; resumable.
+- `expired`: the background worker stopped responding (e.g. server restart);
   terminal, the task can never complete.
 
+Pass `metadataOnly: true` in the `getSnapshot` request body to read status
+without loading the conversation state.
+
 > Equivalent low-level wire protocol: the client sends `{ detach: true }` with
-> the message; `poll`/`wait` hit the agent's `getSnapshot` action, and `abort`
-> hits the `abort` action. `remoteAgent` wraps all of this for you.
+> the message; `poll` hits the agent's `getSnapshot` action, `wait` hits
+> `waitForSnapshot` (falling back to polling `getSnapshot` when it is not
+> mounted), and `abort` hits the `abort` action. `remoteAgent` wraps all of
+> this for you.

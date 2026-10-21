@@ -167,7 +167,9 @@ if (pending) {
   against the conversation history (name/ref must match; `restart` input must be
   unchanged). A mismatch is rejected — always build entries from the interrupt
   objects in the response, not hand-rolled parts.
-- **Only `completed` snapshots are resumable.** A failed/aborted/pending snapshot
-  is kept for inspection but can't be resumed.
+- **Resumable snapshots.** `completed` snapshots are resumable, and since
+  `genkit` 1.43.0 so are `failed` and `aborted` ones (they hold the conversation
+  up to the last completed tool round; `chat.send({})` retries). `pending` and
+  `aborting` snapshots are rejected until they settle.
 - **Re-pausing.** After resuming, the new response may interrupt again; loop
   until `res.interrupts` is empty.

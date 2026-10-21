@@ -5,7 +5,7 @@
 ```bash
 mkdir my-genkit-app && cd my-genkit-app
 go mod init my-genkit-app
-go get github.com/genkit-ai/genkit/go@latest
+go get github.com/firebase/genkit/go@latest
 ```
 
 Provider plugins ship in the same module under `plugins/`, so they don't need to be fetched separately. Just import the ones you want and run `go mod tidy` afterwards. The available plugins include:
@@ -23,8 +23,8 @@ Every Genkit app starts with `genkit.Init`, which returns a `*Genkit` instance:
 ```go
 import (
 	"context"
-	"github.com/genkit-ai/genkit/go/genkit"
-	"github.com/genkit-ai/genkit/go/plugins/googlegenai"
+	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/googlegenai"
 )
 
 ctx := context.Background()
@@ -132,9 +132,9 @@ GENKIT_ENV=dev go run .
 
 ```go
 import (
-	"github.com/genkit-ai/genkit/go/genkit"          // Core: Init, Generate*, DefineFlow, etc.
-	"github.com/genkit-ai/genkit/go/ai"              // Types: WithModel, WithPrompt, Message, Part, etc.
-	"github.com/genkit-ai/genkit/go/core"            // Low-level: Run (sub-steps), Flow types
-	"github.com/genkit-ai/genkit/go/plugins/server"  // server.Start for HTTP
+	"github.com/firebase/genkit/go/genkit"          // Core: Init, Generate*, DefineFlow, etc.
+	"github.com/firebase/genkit/go/ai"              // Types: WithModel, WithPrompt, Message, Part, etc.
+	"github.com/firebase/genkit/go/core"            // Low-level: Run (sub-steps), Flow types
+	"github.com/firebase/genkit/go/plugins/server"  // server.Start for HTTP
 )
 ```

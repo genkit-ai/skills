@@ -97,6 +97,70 @@ const res = await turn.response;
   sub-agents — no `store` — accept ad-hoc seeded history; server-managed
   sub-agents skip it and just receive the task.)
 - `artifactStrategy`: `'inline'` (default) or `'session'` — see below.
+- `async`: enables background delegation (see below).
+- `maxWaitSeconds`: caps one `wait_for_background_tasks` call, whatever timeout
+  the model asks for.
+
+## Background delegation (`async: true`)
+
+> Requires `genkit >= 1.43.0`.
+
+By default a delegation blocks the orchestrator's turn. With `async: true`,
+each delegation tool accepts `background: true` and returns a task ID
+(`<agent>:<snapshotId>`) immediately; the orchestrator keeps working and
+collects results later. Three tools are added:
+
+- `check_background_tasks({ taskIds })`: current status, no waiting.
+- `wait_for_background_tasks({ taskIds, timeoutSeconds?, waitFor? })`: blocks
+  until they settle (`waitFor: "first"` returns on the first one).
+- `abort_background_tasks({ taskIds })`: stops tasks no longer needed.
+
+**The sub-agent needs a `store`.** Background work is tracked by a pending
+snapshot; a store-less sub-agent can only be delegated to synchronously.
+
+```ts
+import { InMemorySessionStore } from 'genkit/beta';
+
+const logAnalyst = ai.defineAgent({
+  name: 'logAnalyst',
+  description: 'Reads service logs and reports what they show.',
+  store: new InMemorySessionStore(), // required for background delegation
+  tools: [readLogs],
+});
+
+const commander = ai.defineAgent({
+  name: 'commander',
+  system:
+    'Start investigations IN THE BACKGROUND ("background": true), post a status ' +
+    'update while they run, then collect them with wait_for_background_tasks.',
+  tools: [postStatus],
+  maxTurns: 20, // background work adds tool rounds; raise the ceiling
+  use: [agents({ agents: ['logAnalyst', 'deployHistorian'], async: true })],
+});
+```
+
+Tell the orchestrator in its system prompt to set `"background": true`; the
+model decides per call. History is never forwarded to a store-backed sub-agent,
+so task descriptions must stand alone.
+
+## Continuing a task (`continue_task`)
+
+> Requires `genkit >= 1.43.0`.
+
+A delegation to a store-backed sub-agent returns `{ response, taskId, status }`
+even when synchronous. The `continue_task({ taskId, instructions?, background? })`
+tool picks it up:
+
+- `failed` / `aborted`: retries from the last saved progress (finished tool
+  calls are not repeated); `instructions` steer the retry.
+- `completed`: follow-up `instructions` in the sub-agent's own session.
+- `expired`: fences the dead worker, then continues.
+- `pending` / `aborting`: refused; use the wait/check tool.
+
+Task IDs are scoped to the conversation: the tools only accept IDs this
+conversation's delegations returned. Two `agents()` instances in one call need
+distinct `toolPrefix` values, or both register `continue_task` and the call is
+rejected.
 
 ## Sharing artifacts between agents
 
@@ -114,7 +178,7 @@ controls how they reach the orchestrator:
 ## Other middleware
 
 `@genkit-ai/middleware` also exports `retry`, `fallback`, `filesystem`,
-`skills`, and `toolApproval`. They attach the same way via `use: [...]` on an
+`skills`, `toolApproval`, and `contextCompression`. They attach the same way via `use: [...]` on an
 agent (or on `ai.generate`) — see [using middleware](middleware.md). `retry()`
 is commonly paired with delegation:
 
@@ -131,7 +195,8 @@ retry({
 });
 ```
 
-> Note: if a sub-agent triggers an [interrupt](agents-human-in-the-loop.md), it
-> is reported back to the orchestrator as a normal tool response (not propagated
-> as a resumable interrupt). Interactive, stateful sub-agent interrupts are a
-> future feature — delegate self-contained tasks.
+> Note: if a sub-agent triggers an [interrupt](agents-human-in-the-loop.md) or
+> fails, it is reported back to the orchestrator as a normal tool response (not
+> propagated as a resumable interrupt or thrown). Tell the orchestrator how to
+> handle failures, e.g. with `continue_task`. Interactive, stateful sub-agent
+> interrupts are a future feature, so delegate self-contained tasks.

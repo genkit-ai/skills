@@ -1,6 +1,6 @@
 # A2UI (Agent-to-UI) generative UI
 
-The A2UI plugin (`github.com/genkit-ai/genkit/go/plugins/a2ui/exp`, imported as
+The A2UI plugin (`github.com/firebase/genkit/go/plugins/a2ui/exp`, imported as
 `a2uix`) brings [A2UI](https://a2ui.org/), a transport-agnostic, JSON-based
 streaming UI protocol, to Genkit Go agents. The plugin is in preview: it lives
 under the `.../a2ui/exp` import path (package `exp`, aliased `a2uix` following
@@ -51,13 +51,13 @@ the Dev UI. The middleware works via `ai.WithUse` regardless.
 import (
 	"context"
 
-	"github.com/genkit-ai/genkit/go/ai"
-	aix "github.com/genkit-ai/genkit/go/ai/exp"
-	"github.com/genkit-ai/genkit/go/ai/exp/localstore"
-	"github.com/genkit-ai/genkit/go/genkit"
-	genkitx "github.com/genkit-ai/genkit/go/genkit/exp"
-	a2uix "github.com/genkit-ai/genkit/go/plugins/a2ui/exp"
-	"github.com/genkit-ai/genkit/go/plugins/googlegenai"
+	"github.com/firebase/genkit/go/ai"
+	aix "github.com/firebase/genkit/go/ai/exp"
+	"github.com/firebase/genkit/go/ai/exp/localstore"
+	"github.com/firebase/genkit/go/genkit"
+	genkitx "github.com/firebase/genkit/go/genkit/exp"
+	a2uix "github.com/firebase/genkit/go/plugins/a2ui/exp"
+	"github.com/firebase/genkit/go/plugins/googlegenai"
 )
 
 ctx := context.Background()
@@ -171,7 +171,7 @@ Register a catalog with `a2uix.LoadCatalog`, then reference it by id. Start from
 the basic catalog and add your own component:
 
 ```go
-import a2uix "github.com/genkit-ai/genkit/go/plugins/a2ui/exp"
+import a2uix "github.com/firebase/genkit/go/plugins/a2ui/exp"
 
 weatherCatalog := a2uix.BasicCatalog()
 weatherCatalog.ID = "https://my-app.org/catalogs/weather.json"

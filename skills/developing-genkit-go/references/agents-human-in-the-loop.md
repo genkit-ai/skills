@@ -1,70 +1,77 @@
 # Agent Human-in-the-Loop / Interrupts (Experimental)
 
-> **Experimental / preview API.** Read [agents.md](agents.md) first.
+> **Experimental / preview API.** Read [agents.md](agents.md) first. The
+> resumable tool API below requires Genkit Go v1.14.0+.
 
 An **interrupt** pauses an agent mid-turn and hands control back to your code (or
-a human) — e.g. to approve a sensitive action, collect missing input, or confirm
+a human), e.g. to approve a sensitive action, collect missing input, or confirm
 a plan. Internally it's a **tool call used as control flow**: the interrupting
 tool does not produce a normal result; it pauses the turn. You then **resume**
 from the exact point it paused.
 
-Interrupts are **orthogonal to persistence** — they work the same whether the
+Interrupts are **orthogonal to persistence**: they work the same whether the
 agent uses a [session store](agents-sessions.md) or
 [client-managed state](agents.md#client-managed-vs-server-managed-state). The
 paused turn just needs to be carried back into the resume: with a store the
 session/snapshot ID does it; without one you round-trip the state blob.
 
-Flow: send a turn → the response finishes with
-`aix.AgentFinishReasonInterrupted` and carries interrupt parts → collect human
-input → send an `aix.ToolResume` payload to continue.
+The tool side is identical to plain `Generate` (see [tools.md](tools.md)):
+`genkit.DefineResumableTool`, `tool.Interrupt`, and the claim through the tool's
+`Interrupted` method. Only the delivery differs: an agent takes the resume parts
+in an `aix.ToolResume` via `conn.SendResume` or `AgentInput.Resume`.
 
-## Define an interruptible tool
+## Define a resumable tool
 
-`genkitx.DefineInterruptibleTool[In, Out, Resume]` defines a tool that can pause
-by calling `tool.Interrupt(data)`. The `Resume` type is what the caller sends
-back to continue; it arrives as the non-nil `res *Resume` parameter on
-re-execution.
+`genkit.DefineResumableTool[In, Out, Res]` defines a tool that can pause by
+returning `tool.Interrupt(ctx, data)`. `Res` is what the caller sends back; it
+arrives as the `*Res` parameter, `nil` on the first call.
 
 ```go
 import (
-	"github.com/genkit-ai/genkit/go/ai"
-	"github.com/genkit-ai/genkit/go/ai/exp/tool"
-	"github.com/genkit-ai/genkit/go/core/status" // status.Errorf / status.ErrInvalidArgument
+	"context"
+	"fmt"
+
+	"github.com/firebase/genkit/go/ai"
+	aix "github.com/firebase/genkit/go/ai/exp"
+	"github.com/firebase/genkit/go/ai/exp/localstore"
+	"github.com/firebase/genkit/go/ai/tool"
+	"github.com/firebase/genkit/go/genkit"
+	genkitx "github.com/firebase/genkit/go/genkit/exp"
 )
 
-type ApprovalAsk struct {
-	Action  string `json:"action"`
-	Details string `json:"details"`
-}
-type ApprovalReply struct {
-	Approved bool   `json:"approved"`
-	Feedback string `json:"feedback,omitempty"`
-}
 type TransferInput struct {
 	Amount    float64 `json:"amount"`
 	ToAccount string  `json:"toAccount"`
 }
 type TransferOutput struct {
 	Success       bool   `json:"success"`
-	TransactionID string `json:"transactionId"`
+	TransactionID string `json:"transactionId,omitempty"`
 }
 
-// transferMoney pauses for approval on the first call, then completes once a
-// resume payload (res) is supplied.
-transferMoney := genkitx.DefineInterruptibleTool(g, "transferMoney",
+// ApprovalAsk is the data the tool pauses with.
+type ApprovalAsk struct {
+	Details string `json:"details"`
+}
+
+// ApprovalReply is the resume type the caller answers with.
+type ApprovalReply struct {
+	Approved bool   `json:"approved"`
+	Feedback string `json:"feedback,omitempty"`
+}
+
+transferMoney := genkit.DefineResumableTool(g, "transferMoney",
 	"Transfer money to a specified account, pausing for user approval.",
-	func(ctx context.Context, in TransferInput, res *ApprovalReply) (TransferOutput, error) {
-		if res == nil {
+	func(ctx context.Context, in TransferInput, reply *ApprovalReply) (TransferOutput, error) {
+		if reply == nil {
 			// First call: pause and surface the request to the caller.
-			return TransferOutput{}, tool.Interrupt(ApprovalAsk{
-				Action:  "transferMoney",
+			return TransferOutput{}, tool.Interrupt(ctx, ApprovalAsk{
 				Details: fmt.Sprintf("Transfer $%.2f to %s", in.Amount, in.ToAccount),
 			})
 		}
-		if !res.Approved {
+		if !reply.Approved {
 			return TransferOutput{Success: false}, nil
 		}
-		return TransferOutput{Success: true, TransactionID: fmt.Sprintf("txn-%d", time.Now().Unix())}, nil
+		return TransferOutput{Success: true, TransactionID: "txn-123"}, nil
 	},
 )
 
@@ -78,154 +85,117 @@ bankingAgent := genkitx.DefineAgent(g, "bankingAgent",
 )
 ```
 
-`tool.Interrupt(data)` requires `data` to serialize to a JSON object (a struct or
-map), since it rides as structured metadata on the interrupted tool request.
+`tool.Interrupt` data must serialize to a JSON object (a struct or map) or be
+`nil`. The resume type must be a struct or map too.
 
-Returning an ordinary Go `error` from the tool is different: it **fails the turn**
-rather than pausing it. The runtime wraps the cause as `ai.ErrToolFailed` with the
-original preserved, so you can validate inputs and still branch on the classified
-status server-side, e.g.:
+Returning an ordinary Go `error` from the tool is different: it **fails the
+turn** rather than pausing it (wrapped as `ai.ErrToolFailed`). Return
+`tool.Fail(ctx, err)` instead when the model should see the error and retry; see
+[tools.md](tools.md#errors-the-model-can-fix).
+
+## Detect, claim, and resume (streaming connection)
+
+Collect interrupt parts from the stream with `chunk.ModelChunk.Interrupts()`,
+claim each with the tool's `Interrupted` method (it decodes the input to `In`),
+read the pause data with `ai.InterruptAs[T]`, and resume with `aix.ToolResume`.
 
 ```go
-if in.Amount <= 0 {
-	return TransferOutput{}, status.Errorf(status.ErrInvalidArgument,
-		"transfer amount must be positive, got $%.2f", in.Amount)
+conn, err := bankingAgent.Connect(ctx)
+if err != nil {
+	return err
 }
-```
-
-## Detect and resume
-
-When a turn pauses, its output has `FinishReason == aix.AgentFinishReasonInterrupted`.
-The interrupt parts are on the last model message; read the typed payload with
-`tool.InterruptAs[T]`. Build the resume payload from the **same** interrupt part
-(so it validates against history) with `InterruptibleTool.Respond` (supply the
-output directly) or `InterruptibleTool.Resume` (re-run the tool with typed resume
-data), and continue with `aix.ToolResume`.
-
-```go
-conn, _ := bankingAgent.Connect(ctx)
-
 _ = conn.SendText("Transfer $500 to my savings account.")
 
-var interruptPart *ai.Part
+var interrupts []*ai.Part
 for chunk, err := range conn.Receive() {
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if chunk.ModelChunk != nil {
-		for _, p := range chunk.ModelChunk.Content {
-			if p.IsToolRequest() {
-				interruptPart = p
-			}
-		}
+		interrupts = append(interrupts, chunk.ModelChunk.Interrupts()...)
 	}
 	if chunk.TurnEnd != nil {
 		break
 	}
 }
 
-if interruptPart != nil {
-	if ask, ok := tool.InterruptAs[ApprovalAsk](interruptPart); ok {
-		fmt.Println(ask.Action, ask.Details) // show this to the human
+var restart []*ai.Part
+for _, part := range interrupts {
+	call, ok := transferMoney.Interrupted(part)
+	if !ok {
+		return fmt.Errorf("no handler for interrupt from tool %q", part.ToolRequest.Name)
 	}
-
-	// Collect the human decision, then build a respond part for the SAME tool.
-	respond, err := transferMoney.Respond(interruptPart, TransferOutput{
-		Success:       true,
-		TransactionID: "txn-approved",
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Resume the same connection with the tool response.
-	_ = conn.SendResume(&aix.ToolResume{Respond: []*ai.Part{respond}})
-	for chunk, err := range conn.Receive() {
-		if err != nil {
-			log.Fatal(err)
-		}
-		if chunk.ModelChunk != nil {
-			fmt.Print(chunk.ModelChunk.Text())
-		}
-		if chunk.TurnEnd != nil {
-			break
-		}
-	}
+	ask, _ := ai.InterruptAs[ApprovalAsk](part)
+	fmt.Println(ask.Details, call.Input.Amount) // show this to the human
+	restart = append(restart, call.Restart(ApprovalReply{Approved: true}))
 }
 
+// Resume the same connection, then receive the continuation.
+_ = conn.SendResume(&aix.ToolResume{Restart: restart})
+for chunk, err := range conn.Receive() {
+	if err != nil {
+		return err
+	}
+	if chunk.ModelChunk != nil {
+		fmt.Print(chunk.ModelChunk.Text())
+	}
+	if chunk.TurnEnd != nil {
+		break
+	}
+}
 out, _ := conn.Output()
 ```
 
 ### Respond vs. Restart
 
-- `tool.Respond` / `InterruptibleTool.Respond(part, output)` — supply the tool's
-  output **without** re-running it. Goes on `aix.ToolResume{Respond: [...]}`.
-- `tool.Resume` / `InterruptibleTool.Resume(part, resumeData)` — **re-run** the
-  interrupted tool, delivering `resumeData` as its `res *Resume` parameter. Goes
-  on `aix.ToolResume{Restart: [...]}`.
+| Verb | Goes in | Effect |
+| --- | --- | --- |
+| `call.Restart(res)` | `aix.ToolResume{Restart: ...}` | Re-runs the tool with the typed resume value. |
+| `call.RestartWithInput(in, res)` | `aix.ToolResume{Restart: ...}` | Re-runs it with revised input. |
+| `call.Respond(out)` | `aix.ToolResume{Respond: ...}` | Supplies the tool's output; the tool does not run again. |
 
-```go
-// Re-run the tool with the human's decision instead of injecting the result:
-restart, _ := transferMoney.Resume(interruptPart, ApprovalReply{Approved: true, Feedback: "ok"})
-_ = conn.SendResume(&aix.ToolResume{Restart: []*ai.Part{restart}})
-```
-
-You can resume several interrupts at once and mix the two lists:
-
-```go
-_ = conn.SendResume(&aix.ToolResume{
-	Respond: []*ai.Part{a},
-	Restart: []*ai.Part{b},
-})
-```
+Both lists may appear in one payload. The claim already type-checked the part, so
+the verbs return no error.
 
 ## Single-turn resume with `Run`
 
 You don't need a persistent connection. Detect the interrupt on one `Run`, then
-resume with another `Run` carrying the `Resume` payload (plus the session source
-so the paused turn is in scope).
+resume with another `Run` carrying the `Resume` payload plus the session source.
 
 ```go
 out, _ := bankingAgent.RunText(ctx, "Transfer $500 to savings.")
 if out.FinishReason == aix.AgentFinishReasonInterrupted {
-	// Find the interrupt part: don't assume it's the last content part. The
-	// model may emit text alongside the tool request, or several tool calls
-	// where only one interrupted. tool.InterruptAs matches the right one.
-	var part *ai.Part
-	for _, p := range out.Message.Content {
-		if _, ok := tool.InterruptAs[ApprovalAsk](p); ok {
-			part = p
-			break
+	var restart []*ai.Part
+	for _, part := range out.Message.Content {
+		if call, ok := transferMoney.Interrupted(part); ok {
+			restart = append(restart, call.Restart(ApprovalReply{Approved: true}))
 		}
 	}
-	respond, _ := transferMoney.Respond(part, TransferOutput{Success: true, TransactionID: "txn-1"})
-
 	out, _ = bankingAgent.Run(ctx,
-		&aix.AgentInput{Resume: &aix.ToolResume{Respond: []*ai.Part{respond}}},
-		aix.WithSessionID(out.SessionID), // server-managed: carry the paused turn back
+		&aix.AgentInput{Resume: &aix.ToolResume{Restart: restart}},
+		aix.WithSessionID[any](out.SessionID), // server-managed: carry the paused turn back
 	)
 }
 fmt.Println(out.Message.Text())
 ```
 
 For a client-managed agent, pass `aix.WithState(out.State)` instead of
-`WithSessionID`.
+`WithSessionID`. Over HTTP the same object rides in `data.resume`.
 
 ## Notes & gotchas
 
 - **No store required.** Interrupts work with a [session store](agents-sessions.md)
   or [client-managed state](agents.md#client-managed-vs-server-managed-state).
-  Just carry the paused turn back into the resume (session/snapshot ID, or the
-  state blob).
-- **Build resume parts from the interrupt part.** `Respond`/`Resume` derive the
-  name/ref from the original request. The framework validates every entry against
-  conversation history (`aix.ValidateResumeAgainstHistory` runs automatically for
-  prompt-backed agents): name/ref must match, and a `Restart` input must be
-  unchanged. Hand-rolled parts are rejected.
-- **Only resumable snapshots resume.** A failed/aborted/pending snapshot is kept
-  for inspection but can't be resumed.
-- **Re-pausing.** After resuming, the new turn may interrupt again; loop until
-  the finish reason is no longer `aix.AgentFinishReasonInterrupted`.
-- **`ToolApproval` middleware.** For gating arbitrary tools (rather than writing
-  an interruptible tool by hand), `plugins/middleware`'s `ToolApproval` turns any
-  tool call outside an allow list into an interrupt. See [middleware](middleware.md).
+- **Build resume parts from the claim.** The framework validates every entry
+  against the most recent model response (name/ref must match). Hand-rolled
+  parts, or parts from an earlier turn, are rejected.
+- **Answer every interrupt** in the turn, or the resume fails.
+- **Resumable snapshots.** `completed`, `failed`, and `aborted` snapshots resume
+  (failed/aborted ones hold the conversation up to the last completed tool round).
+  `pending` and `aborting` ones are rejected until they settle.
+- **Re-pausing.** After resuming, the turn may interrupt again; loop until the
+  finish reason is no longer `aix.AgentFinishReasonInterrupted`.
+- **`ToolApproval` middleware.** To gate arbitrary tools (rather than writing a
+  resumable tool by hand), `plugins/middleware`'s `ToolApproval` holds any tool
+  call outside an allowlist. Claim holds with `middleware.ToolApprovalInterrupted`.
+  See [middleware](middleware.md).

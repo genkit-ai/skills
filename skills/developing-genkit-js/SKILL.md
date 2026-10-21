@@ -62,10 +62,10 @@ For more details see:
 -   [Sessions & persistence](references/agents-sessions.md): session stores (`InMemory`/`File`/`Firestore`).
 -   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
 -   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
--   [Background agents](references/agents-background.md): detaching long-running turns and polling.
+-   [Background agents](references/agents-background.md): detaching long-running turns, waiting, and resuming failed or aborted runs.
 -   [Working with state](references/agents-state.md): typed custom session state, auto-synced to the client.
 -   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
--   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents, including background delegation and `continue_task`.
 -   [Advanced custom agents](references/agents-custom.md): `defineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP (multiple agents, CORS, web UI, other frameworks).
 
@@ -86,8 +86,15 @@ Middleware wraps generation (retries, fallback, extra tools, request/response
 transforms) and attaches via the `use: [...]` array on `ai.generate`, prompts,
 and agents.
 
--   [Using middleware](references/middleware.md): the `use` array and the `@genkit-ai/middleware` package (`retry`, `fallback`, `artifacts`, `agents`, `filesystem`, `skills`, `toolApproval`) plus built-in core middleware.
+-   [Using middleware](references/middleware.md): the `use` array and the `@genkit-ai/middleware` package (`retry`, `fallback`, `artifacts`, `agents`, `filesystem`, `skills`, `toolApproval`, `contextCompression`) plus built-in core middleware.
 -   [Building custom middleware](references/middleware-custom.md): writing your own with `generateMiddleware` and registering it via `.plugin()`.
+
+## Observability
+
+Traces show up in the Dev UI under `genkit start` with no setup. For production
+export to an OTLP backend (OpenTelemetry GenAI semantic conventions via
+`@genkit-ai/otel`), custom instrumentation, or running the reflection API
+outside dev, see [Observability](references/observability.md).
 
 ## Critical: Do Not Trust Internal Knowledge
 
@@ -191,4 +198,5 @@ See [CLI Reference](references/docs-and-cli.md) for more commands, and `genkit -
 -   [Examples](references/examples.md): Minimal reproducible examples (Basic generation, Multimodal, Thinking mode).
 -   [Agents (Beta)](references/agents.md): Agent basics, serving, and client-managed state. Deeper topics: [sessions](references/agents-sessions.md), [human-in-the-loop](references/agents-human-in-the-loop.md), [branching](references/agents-branching.md), [background agents](references/agents-background.md), [state](references/agents-state.md), [artifacts](references/agents-artifacts.md), [multi-agent](references/agents-multi-agent.md), [custom agents](references/agents-custom.md), [deployment](references/agents-deployment.md).
 -   [Middleware](references/middleware.md): using middleware and the `@genkit-ai/middleware` package. See also [building custom middleware](references/middleware-custom.md).
+-   [Observability](references/observability.md): `@genkit-ai/otel` (OpenTelemetry GenAI semantic conventions), custom `Instrumentation`, and the reflection API outside dev.
 -   [A2UI (Generative UI)](references/a2ui.md): the `@genkit-ai/a2ui` plugin (the `a2ui()` middleware), options, client rendering, user actions/forms, custom catalogs, and security.

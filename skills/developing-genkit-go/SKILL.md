@@ -21,10 +21,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/genkit-ai/genkit/go/ai"
-	"github.com/genkit-ai/genkit/go/genkit"
-	"github.com/genkit-ai/genkit/go/plugins/googlegenai"
-	"github.com/genkit-ai/genkit/go/plugins/server"
+	"github.com/firebase/genkit/go/ai"
+	"github.com/firebase/genkit/go/genkit"
+	"github.com/firebase/genkit/go/plugins/googlegenai"
+	"github.com/firebase/genkit/go/plugins/server"
 )
 
 func main() {
@@ -55,8 +55,9 @@ Load the appropriate reference based on what you need:
 | Initialization | [references/getting-started.md](references/getting-started.md) | Setting up `genkit.Init`, plugins, the `*Genkit` instance pattern |
 | Generation | [references/generation.md](references/generation.md) | `Generate`, `GenerateText`, `GenerateData`, streaming, output formats |
 | Prompts | [references/prompts.md](references/prompts.md) | `DefinePrompt`, `DefineDataPrompt`, `.prompt` files, schemas |
-| Tools | [references/tools.md](references/tools.md) | `DefineTool`, tool interrupts, `RestartWith`/`RespondWith` |
-| Middleware | [references/middleware.md](references/middleware.md) | `ai.Middleware`, `ai.WithUse`, `Hooks` (Generate/Model/Tool), built-ins (`Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`) |
+| Tools | [references/tools.md](references/tools.md) | `DefineTool`, `DefineResumableTool` interrupts (`Interrupted` claim, `Restart`/`Respond`, `WithResume`), `ai/tool` helpers (`tool.Interrupt`, `tool.Fail`, `tool.AttachParts`) |
+| Middleware | [references/middleware.md](references/middleware.md) | `ai.Middleware`, `ai.WithUse`, `Hooks` (Generate/Model/Tool), built-ins (`Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`, `SoftToolErrors`, `ContextCompression`, `Budget`) |
+| Observability | [references/observability.md](references/observability.md) | OpenTelemetry export (`otelgenai`), `tracing.SetInstrumentation`, `aix.Observer`, reflection API outside dev |
 | Flows & HTTP | [references/flows-and-http.md](references/flows-and-http.md) | `DefineFlow`, `DefineStreamingFlow`, `genkit.Handler`, HTTP serving |
 | Model Providers | [references/providers.md](references/providers.md) | Google AI, Vertex AI, Anthropic, OpenAI-compatible, Ollama setup |
 
@@ -74,20 +75,20 @@ constructors panic. Server constructors come from `genkit/exp` (aliased
 For details see:
 
 -   [Agents](references/agents.md): defining/serving an agent, running turns, and client- vs server-managed state (start here).
--   [Sessions & persistence](references/agents-sessions.md): session stores (`localstore.NewInMemorySessionStore`/`NewFileSessionStore`) and snapshots.
+-   [Sessions & persistence](references/agents-sessions.md): session stores (`localstore.NewInMemorySessionStore`/`NewFileSessionStore`, PostgreSQL), snapshots, and the `sessionstoretest` conformance suite.
 -   [Human-in-the-loop / interrupts](references/agents-human-in-the-loop.md): pausing for approval/input and resuming.
 -   [Branching](references/agents-branching.md): forking a conversation from a snapshot.
 -   [Background agents](references/agents-background.md): detaching long-running turns and polling.
 -   [Working with state](references/agents-state.md): typed custom session state, streamed as JSON patches.
 -   [Artifacts](references/agents-artifacts.md): producing and reading named deliverables.
--   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents.
+-   [Multi-agent orchestration](references/agents-multi-agent.md): delegating to sub-agents, background delegation, `continue_task`, and remote agents (`DefineRemoteAgent`).
 -   [Advanced custom agents](references/agents-custom.md): `DefineCustomAgent` for full turn control.
 -   [Deploying agents](references/agents-deployment.md): serving agents over HTTP with `genkit.Handler`.
 
 ## Generative UI (A2UI)
 
 Genkit Go has an **A2UI** (Agent-to-UI) plugin
-(`github.com/genkit-ai/genkit/go/plugins/a2ui/exp`, imported as `a2uix`) that
+(`github.com/firebase/genkit/go/plugins/a2ui/exp`, imported as `a2uix`) that
 lets an agent stream interactive UI **surfaces** (cards, lists, forms, buttons),
 not just prose. The whole integration is the `&a2uix.Surfaces{}` model
 middleware added via `ai.WithUse`
@@ -152,5 +153,6 @@ See [references/getting-started.md](references/getting-started.md) for full CLI 
 - **Use `jsonschema:"description=..."` struct tags on output types.** The model uses these descriptions to understand what each field should contain. Without them, structured output quality drops significantly.
 - **Write good tool descriptions.** The model decides which tools to call based on their description string. Vague descriptions lead to missed or incorrect tool calls.
 - **Use `.prompt` files for complex prompts.** They separate prompt content from Go code, support Handlebars templating, and can be iterated on without recompilation. Code-defined prompts are better for simple, single-line cases.
-- **Reach for built-in middleware before writing one.** `Retry`, `Fallback`, `ToolApproval`, `Filesystem`, and `Skills` cover the common cross-cutting needs and compose with each other via `ai.WithUse`. See [references/middleware.md](references/middleware.md). When you do write custom middleware, allocate per-call state in closures captured by `New`, and guard anything that `WrapTool` mutates because tools may run concurrently.
+- **Use `DefineResumableTool` for interrupts.** Claim paused calls with the tool's `Interrupted` method and resume with `ai.WithResume`. `ai.InterruptWith`, `RestartWith`/`RespondWith`, and `WithToolRestarts` are deprecated; `genkitx.DefineInterruptibleTool` and `ai/exp/tool` were removed in v1.14.0. See [references/tools.md](references/tools.md).
+- **Reach for built-in middleware before writing one.** `Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`, and `SoftToolErrors` cover the common cross-cutting needs and compose with each other via `ai.WithUse`. See [references/middleware.md](references/middleware.md). When you do write custom middleware, allocate per-call state in closures captured by `New`, and guard anything that `WrapTool` mutates because tools may run concurrently.
 - **Look up the latest model IDs.** Model names change frequently. Check provider documentation for current model IDs rather than relying on hardcoded names. See [references/providers.md](references/providers.md).

@@ -12,9 +12,9 @@ response as the tool result.
 
 ```go
 import (
-	aix "github.com/genkit-ai/genkit/go/ai/exp"
-	middlewarex "github.com/genkit-ai/genkit/go/plugins/middleware/exp"
-	"github.com/genkit-ai/genkit/go/plugins/middleware" // Retry, etc.
+	aix "github.com/firebase/genkit/go/ai/exp"
+	middlewarex "github.com/firebase/genkit/go/plugins/middleware/exp"
+	"github.com/firebase/genkit/go/plugins/middleware" // Retry, etc.
 )
 ```
 
@@ -98,6 +98,92 @@ fmt.Println(out.Message.Text())
 - `ArtifactStrategy` (`middlewarex.ArtifactStrategy`): `ArtifactStrategyInline`
   (default) or `ArtifactStrategySession` — see below. The type and its constants
   live in `plugins/middleware/exp` alongside the `Agents` middleware.
+- `Async` (`bool`): enables background delegation (see below).
+- `MaxWaitSeconds` (`int`): caps one `wait_for_background_tasks` call, whatever
+  timeout the model asks for. `0` lets the model decide.
+
+## Background delegation (`Async: true`)
+
+> Requires Genkit Go v1.14.0+.
+
+By default a delegation blocks the orchestrator's turn. With `Async: true`, each
+delegation tool accepts `background: true` and returns a task ID immediately,
+and three tools are added:
+
+- `check_background_tasks({taskIds})`: current status, no waiting.
+- `wait_for_background_tasks({taskIds, timeoutSeconds, waitFor})`: blocks until
+  they settle (`waitFor: "first"` returns on the first one).
+- `abort_background_tasks({taskIds})`: stops tasks no longer needed.
+
+**The sub-agent needs a session store** (with detach support). Background work
+is tracked by a pending snapshot.
+
+```go
+researcher := genkitx.DefineAgent(g, "researcher",
+	aix.InlinePrompt{
+		ai.WithModelName("googleai/gemini-flash-latest"),
+		ai.WithSystem("Research one question and answer in a few sentences."),
+	},
+	aix.WithDescription[any]("Researches one question."),
+	aix.WithSessionStore(localstore.NewInMemorySessionStore[any]()), // required for background
+)
+
+orchestrator := genkitx.DefineAgent(g, "orchestrator",
+	aix.InlinePrompt{
+		ai.WithModelName("googleai/gemini-flash-latest"),
+		ai.WithSystem(`Give each part of a question to the researcher IN THE BACKGROUND
+("background": true), then collect the answers with wait_for_background_tasks.`),
+		ai.WithUse(&middlewarex.Agents{
+			Agents: []aix.AgentRef{researcher.Ref()},
+			Async:  true,
+		}),
+		ai.WithMaxTurns(10), // background work adds tool rounds
+	},
+	aix.WithSessionStore(localstore.NewInMemorySessionStore[any]()),
+)
+```
+
+## Continuing a task (`continue_task`)
+
+> Requires Genkit Go v1.14.0+.
+
+A delegation to a store-backed sub-agent returns a `taskId` and a settled
+`status` even when synchronous. The `continue_task({taskId, instructions, background})`
+tool picks it up:
+
+- **failed / aborted**: continues from the last saved progress (finished tool
+  calls are not repeated); `instructions` steer the retry.
+- **completed**: follow-up `instructions` in the sub-agent's own session.
+- **expired**: fences the dead worker, then continues from the parent snapshot.
+- **interrupted**: refused (no way to answer the interrupt from here).
+
+Task IDs are scoped to the conversation: the tools accept only IDs this call or
+its history minted. Two `Agents` instances in one call need distinct
+`ToolPrefix` values.
+
+## Delegating to a remote agent
+
+> Requires Genkit Go v1.14.0+.
+
+Any agent another Genkit app serves over HTTP (Go, JS, or Dart) can be a
+sub-agent. Register it with `genkitx.DefineRemoteAgent`; the orchestrator code
+is the same as for a local agent, background delegation included:
+
+```go
+researcher := genkitx.DefineRemoteAgent(g, "researcher", "https://research.internal/agents/researcher",
+	aix.WithDescription[any]("Researches one question and answers in a few sentences."),
+	aix.WithAgentMetadata(&aix.AgentMetadata{
+		StateManagement: aix.AgentStateManagementServer, // remote keeps its own session
+		Abortable:       true,                            // its store can stop background work
+	}),
+	// aix.WithHTTPClient(idTokenClient), aix.WithHeaders(fn), aix.WithRouteURLs(...)
+)
+```
+
+`researcher.Ref()` then goes in `Agents` as usual. The handle (`*aix.AgentHandle`)
+also runs the remote agent directly (`Run`, `RunText`, `RunDetached`, `Task`,
+`WaitForSnapshot`, `Abort`). The remote server needs a session store for
+background tasks and `continue_task`.
 
 ## Sharing artifacts between agents
 
@@ -128,9 +214,11 @@ ai.WithUse(&middleware.Retry{
 ```
 
 See [using middleware](middleware.md) for the full catalog (`Retry`, `Fallback`,
-`ToolApproval`, `Filesystem`, `Skills`).
+`ToolApproval`, `Filesystem`, `Skills`, `SoftToolErrors`, `ContextCompression`,
+`Budget`). A `Budget` on the orchestrator also counts in-process sub-agents, so
+delegation cannot spend around the cap.
 
-> Note: if a sub-agent triggers an [interrupt](agents-human-in-the-loop.md), it is
-> reported back to the orchestrator as a normal tool response (not propagated as a
-> resumable interrupt). There is no stateful sub-agent runtime to resume into, so
-> delegate self-contained tasks.
+> Note: a sub-agent failure is reported back to the orchestrator as the
+> delegation tool's output, with a task ID to `continue_task` it. A sub-agent
+> [interrupt](agents-human-in-the-loop.md) is reported the same way but cannot be
+> continued, so delegate self-contained tasks.
