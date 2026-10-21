@@ -57,7 +57,7 @@ await ai.generate({
 npm i @genkit-ai/middleware
 ```
 
-Exports seven middleware factories. Register each via `.plugin()` (above), then
+Exports eight middleware factories. Register each via `.plugin()` (above), then
 call `name(options)` in `use: [...]`.
 
 ### `retry(options?)`
@@ -106,13 +106,42 @@ See [working with artifacts](agents-artifacts.md).
 
 ### `agents(options)`
 
-Sub-agent delegation — injects a `delegate_to_<name>` tool per sub-agent.
+Sub-agent delegation: injects a `delegate_to_<name>` tool per sub-agent, plus a
+`continue_task` tool for picking up failed/aborted/finished sub-agent tasks.
+`async: true` adds background delegation (requires `genkit >= 1.43.0`).
 
 ```ts
-agents({ agents: ['researcher', 'coder'], maxDelegations: 5 });
+agents({ agents: ['researcher', 'coder'], maxDelegations: 5, async: true });
 ```
 
 See [multi-agent orchestration](agents-multi-agent.md).
+
+### `contextCompression(options)`
+
+Keeps long conversations and tool loops inside a token budget
+(requires `genkit >= 1.43.0`). The model gets a compressed view; `response.messages`
+keeps the full transcript, with compression state in message metadata.
+
+```ts
+import { contextCompression, resolveCompressedHistory } from '@genkit-ai/middleware';
+
+use: [
+  // List AFTER context-adding middleware (filesystem, skills, artifacts, agents).
+  contextCompression({
+    maxInputTokens: 80000, // trigger
+    deduplicateToolResponses: { matchBy: 'name-and-input' },
+    toolResponses: { maxChars: 2000, preserveRecent: 2 },
+    summarize: { model: googleAI.model('gemini-flash-lite-latest'), preserveRecent: 6 },
+    // also: maxMessages, preserveRecent (4), maxToolResponseChars (400000),
+    // skipSummarizationThreshold, preserveOriginalMessages (true)
+  }),
+];
+
+const sentToModel = resolveCompressedHistory(response.messages);
+```
+
+Strategies run cheapest first: per-response hard cap, dedupe, truncate older tool
+responses, message cap, LLM summary, then dropping older messages as a last resort.
 
 ### `filesystem(options)`
 

@@ -33,11 +33,11 @@ Agents span a few packages. These aliases are used throughout the agent docs:
 
 ```go
 import (
-	"github.com/genkit-ai/genkit/go/ai"
-	aix "github.com/genkit-ai/genkit/go/ai/exp"           // types: Agent, Session, options, AgentInput/Output
-	"github.com/genkit-ai/genkit/go/ai/exp/localstore"    // session stores
-	"github.com/genkit-ai/genkit/go/genkit"
-	genkitx "github.com/genkit-ai/genkit/go/genkit/exp"   // constructors: DefineAgent, DefineCustomAgent, ...
+	"github.com/firebase/genkit/go/ai"
+	aix "github.com/firebase/genkit/go/ai/exp"           // types: Agent, Session, options, AgentInput/Output
+	"github.com/firebase/genkit/go/ai/exp/localstore"    // session stores
+	"github.com/firebase/genkit/go/genkit"
+	genkitx "github.com/firebase/genkit/go/genkit/exp"   // constructors: DefineAgent, DefineCustomAgent, ...
 )
 ```
 

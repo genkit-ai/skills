@@ -188,10 +188,10 @@ For application code, `DefineMiddleware` is the typical entry point. For plugin 
 
 ## Built-in middleware
 
-The `plugins/middleware` package bundles five production-ready implementations. Register the plugin once during `Init` to make them visible to the Dev UI:
+The `plugins/middleware` package bundles six production-ready implementations (`Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`, `SoftToolErrors`); the experimental `plugins/middleware/exp` package (imported as `middlewarex`) adds `ContextCompression`, `Budget`, `Agents`, and `Artifacts`. Register the plugin once during `Init` to make them visible to the Dev UI:
 
 ```go
-import "github.com/genkit-ai/genkit/go/plugins/middleware"
+import "github.com/firebase/genkit/go/plugins/middleware"
 
 g := genkit.Init(ctx, genkit.WithPlugins(
     &googlegenai.GoogleAI{},
@@ -236,24 +236,103 @@ Each fallback model uses its own `ModelRef.Config()` verbatim; the original requ
 
 ### `ToolApproval`
 
-Interrupts any tool call not in the allow list, exposing approval as a human-in-the-loop step. Hooks `WrapTool`.
+Holds any tool call not in the allow list, exposing approval as a human-in-the-loop step. Hooks `WrapTool`.
+
+```go
+approval := ai.WithUse(&middleware.ToolApproval{
+    AllowedTools: []string{"lookup", "search"}, // anything else is held
+})
+```
+
+Claim holds with `middleware.ToolApprovalInterrupted` (not the tool's own `Interrupted`) and answer with a typed `middleware.ToolCallDecision`. Keep the same middleware on the resume call:
+
+```go
+var parts []*ai.Part
+for _, part := range resp.Interrupts() {
+    if call, ok := middleware.ToolApprovalInterrupted(part); ok {
+        decision := middleware.ToolCallDecision{Approved: confirm(part.ToolRequest.Name, call.Input)}
+        if !decision.Approved {
+            decision.Reason = "the user declined" // the model sees this as the tool's error
+        }
+        parts = append(parts, call.Restart(decision))
+    }
+}
+resp, err = genkit.Generate(ctx, g,
+    ai.WithMessages(resp.History()...),
+    ai.WithTools(writeFile),
+    approval,
+    ai.WithResume(parts...),
+)
+```
+
+Silence never approves: any restart without `Approved: true` refuses the call, and the model receives the refusal as a tool error and continues. Answer a hold with `Restart`, not `Respond`.
+
+**Judge model.** Let a model decide calls the allowlist does not cover (auto-approval). It answers allow, deny (the model sees the denial), or ask (held for you), and fails closed:
 
 ```go
 ai.WithUse(&middleware.ToolApproval{
-    AllowedTools: []string{"lookup", "search"}, // anything else triggers an interrupt
+    AllowedTools: []string{"list_files"},
+    Judge:        googlegenai.ModelRef("googleai/gemini-flash-lite-latest", nil),
+    JudgePolicy:  "Never allow deleting anything outside build/.",
 })
 ```
 
-The interrupt rides on the existing tool-interrupt machinery. Approve a call by setting `toolApproved: true` in the resume metadata when restarting:
+### `SoftToolErrors`
+
+Returns tool errors to the model as the tool's output (`{"error": "..."}`) instead of stopping the loop, so the model can fix its input. Useful for tools you don't own, like MCP tools. Interrupts and cancellation still stop the loop.
 
 ```go
-restart, _ := tool.Restart(interruptPart, &ai.RestartOptions{
-    ResumedMetadata: map[string]any{"toolApproved": true},
-})
-genkit.Generate(ctx, g, ai.WithMessages(resp.History()...), ai.WithToolRestarts(restart))
+ai.WithUse(&middleware.SoftToolErrors{})                         // every tool
+ai.WithUse(&middleware.SoftToolErrors{Tools: []string{"search"}}) // only these
 ```
 
-A bare resume without that flag is **not** treated as approval, so unrelated resume flows can't bypass gating.
+For a tool you own, return `tool.Fail(ctx, err)` for just the errors the model can fix. See [tools.md](tools.md#errors-the-model-can-fix).
+
+### `ContextCompression` (experimental, `middlewarex`)
+
+Keeps long chats and tool loops inside a context budget. The model receives a compressed view; `resp.History()` keeps every original message, with compression state in metadata.
+
+```go
+import middlewarex "github.com/firebase/genkit/go/plugins/middleware/exp"
+
+ai.WithUse(
+    &middlewarex.ContextCompression{
+        MaxInputTokens:        80_000,
+        DedupeToolResponses:   &middlewarex.CompressionDedupe{},
+        TruncateToolResponses: &middlewarex.CompressionToolTruncation{MaxChars: 2000},
+        Summarize: &middlewarex.CompressionSummarizer{
+            Model: googlegenai.ModelRef("googleai/gemini-flash-lite-latest", nil),
+        },
+        // also: MaxMessages, PreserveRecent (4), MaxToolResponseChars (400000),
+        // SkipSummarizationThreshold, ReplaceHistory
+    },
+    &middleware.Retry{}, // inside compression, so a retry resends the compressed view
+)
+```
+
+List it after context-adding middleware (`Skills`, `Filesystem`, `Agents`, `Artifacts`) and before `Retry`/`Fallback`. `middlewarex.ResolveCompressedHistory(msgs)` returns what the model received. Set `MaxInputTokens` well above a typical first turn.
+
+### `Budget` (experimental, `middlewarex`)
+
+Caps what a run (or an agent session) may spend. Each non-zero field of `Limit` (an `ai.GenerationUsage`) is a cap; `Custom` is capped key by key.
+
+```go
+resp, err := genkit.Generate(ctx, g,
+    ai.WithPrompt("Research the topic and summarize it."),
+    ai.WithTools(search),
+    ai.WithUse(&middlewarex.Budget{Limit: ai.GenerationUsage{
+        TotalTokens: 200_000,
+        Custom:      map[string]float64{"cost": 0.50},
+    }}),
+)
+if errors.Is(err, ai.ErrBudgetExceeded) {
+    log.Println(resp.FinishReason) // aborted; resp.History() keeps the rounds that ran
+}
+```
+
+Checked before each model call, so a run can go over by one turn. Subagents count toward the run. `Scope: middlewarex.BudgetScopeSession` caps the whole agent session (needs a session store). `Interrupt: true` pauses instead of stopping; claim with `middlewarex.BudgetInterrupted(part)` and restart with `middlewarex.BudgetDecision{Approved: true}`.
+
+Every run reports usage: `resp.Usage` is the last model call, `resp.TotalUsage` sums every call in the run (nested ones included). Agents report `TurnEnd.Usage`, `out.Usage`, and `out.State.Usage` (session total).
 
 ### `Filesystem`
 
@@ -317,20 +396,24 @@ Duplicate tool names across user-supplied tools and middleware-contributed tools
 
 ### Interrupting from `WrapTool`
 
-`ai.NewToolInterruptError` is exported precisely so `WrapTool` hooks can interrupt without constructing a `ToolContext`:
+A `WrapTool` hook pauses a call with `tool.Interrupt(ctx, data)` (from `github.com/firebase/genkit/go/ai/tool`), reads its answer on the restart with `tool.ResumeData[T](ctx)`, and skips calls it already let through with `tool.Released(ctx)`. (`ai.NewToolInterruptError` was removed in v1.14.0.)
 
 ```go
 WrapTool: func(ctx context.Context, p *ai.ToolParams, next ai.ToolNext) (*ai.MultipartToolResponse, error) {
-    if shouldGate(p.Tool.Name()) {
-        return nil, ai.NewToolInterruptError(map[string]any{
-            "message": "needs approval",
-        })
+    if shouldGate(p.Tool.Name()) && !tool.Released(ctx) {
+        if d, ok := tool.ResumeData[MyDecision](ctx); ok {
+            if !d.Approved {
+                return nil, errors.New("declined")
+            }
+            return next(ctx, p)
+        }
+        return nil, tool.Interrupt(ctx, map[string]any{"message": "needs approval"})
     }
     return next(ctx, p)
 },
 ```
 
-`ToolApproval` uses this pattern.
+Export a typed claim for your hold by wrapping `ai.MiddlewareInterrupted[Res](name, part)`, as `ToolApprovalInterrupted` does. `ToolApproval` uses this pattern.
 
 ### Modifying the request safely
 

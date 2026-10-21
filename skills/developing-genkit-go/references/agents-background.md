@@ -8,8 +8,8 @@
 
 Detaching runs a turn in the background: the server writes a `pending` snapshot
 and returns its `SnapshotID` **immediately**, keeps processing, then rewrites the
-snapshot to a terminal status (`completed` / `failed` / `aborted`). A reader polls
-`GetSnapshot` for completion and can `Abort` in the meantime.
+snapshot to a terminal status (`completed` / `failed` / `aborted`). A reader
+waits on the snapshot (or polls it) and can `Abort` in the meantime.
 
 ## Define the agent (store required)
 
@@ -25,104 +25,109 @@ backgroundAgent := genkitx.DefineAgent(g, "backgroundAgent",
 
 ## Detach a turn
 
-Set `Detach: true` on the input (or call `conn.Detach()` on a connection). The
-call returns right away with `FinishReason == aix.AgentFinishReasonDetached` and
-the pending snapshot's ID.
+`RunDetached` sends one input, returns once the server has accepted the work,
+and hands back a `*aix.DetachedTask[State]`. Store its snapshot ID;
+`agent.Task(snapshotID)` rebuilds the same handle in any process later.
 
 ```go
-out, err := backgroundAgent.Run(ctx, &aix.AgentInput{
-	Detach:  true,
+task, err := backgroundAgent.RunDetached(ctx, &aix.AgentInput{
 	Message: ai.NewUserTextMessage("Write a report on renewable energy trends"),
 })
 if err != nil {
-	log.Fatal(err)
+	log.Fatal(err) // the work never started
 }
-fmt.Println(out.FinishReason) // aix.AgentFinishReasonDetached
-snapshotID := out.SnapshotID  // pending; poll this
+snapshotID := task.SnapshotID() // pending; save this
 ```
 
-## Poll until terminal
+On a live connection, send an input with `Detach: true` (or call `conn.Detach()`
+mid-turn); the output has `FinishReason == aix.AgentFinishReasonDetached` and the
+pending `SnapshotID`.
 
-Read the snapshot on an interval until its status leaves `pending`.
+## Wait (or poll)
 
 ```go
-func waitForResult(ctx context.Context, agent *aix.Agent[any], snapshotID string) (*aix.SessionSnapshot[any], error) {
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-	for {
-		snap, err := agent.GetSnapshot(ctx, snapshotID)
-		if err != nil {
-			return nil, err
-		}
-		switch snap.Status {
-		case aix.SnapshotStatusPending:
-			// keep polling
-		case aix.SnapshotStatusCompleted:
-			return snap, nil
-		case aix.SnapshotStatusFailed:
-			return snap, fmt.Errorf("background task failed: %v", snap.Error)
-		case aix.SnapshotStatusAborted:
-			return snap, nil
-		case aix.SnapshotStatusExpired:
-			// The worker stopped sending heartbeats (e.g. the server restarted),
-			// so the task can never complete — treat as terminal.
-			return snap, nil
-		}
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-ticker.C:
-		}
-	}
-}
+waitCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+defer cancel()
 
-snap, err := waitForResult(ctx, backgroundAgent, snapshotID)
+snap, err := task.Wait(waitCtx) // blocks until settled; no polling loop needed
 if err != nil {
-	log.Fatal(err)
+	log.Fatal(err) // the wait itself failed (unknown snapshot, ctx done)
 }
-// Read the result from the finalized snapshot state:
-msgs := snap.State.Messages
-if len(msgs) > 0 {
+switch snap.Status {
+case aix.SnapshotStatusCompleted:
+	msgs := snap.State.Messages
 	fmt.Println(msgs[len(msgs)-1].Text())
+case aix.SnapshotStatusFailed, aix.SnapshotStatusAborted:
+	// Resume points: State holds the turns that finished (see below).
+case aix.SnapshotStatusExpired:
+	// The worker died (heartbeat stale). Resume from snap.ParentID and resend.
 }
 ```
 
-## Abort an in-flight task
+`task.Poll(ctx)` does one read instead. `agent.WaitForSnapshot(ctx, id)` waits on
+a bare snapshot ID. Pass `aix.WithMetadataOnly()` to `Poll` / `GetSnapshot` to
+read status without loading `State`. `Wait` returns the snapshot for every
+outcome; a non-nil error means the wait could not proceed.
 
-`Agent.Abort` flips a pending snapshot to `aborted`; the runtime observes the
-flip and cancels the background work. It is a no-op on a missing or
-already-terminal snapshot (returns the existing status).
+## Abort and resume
 
 ```go
-status, err := backgroundAgent.Abort(ctx, snapshotID)
-if err != nil {
-	log.Fatal(err)
-}
-fmt.Println(status) // aix.SnapshotStatusAborted (or the existing terminal status)
+status, err := task.Abort(ctx) // or backgroundAgent.Abort(ctx, snapshotID)
 ```
+
+An abort flips `pending` to `aborting` (so `Abort` answers `aborting` for a run
+still going), the worker winds down, then the row settles. Check what `Wait`
+returns rather than assuming `aborted`: a turn that finished anyway settles
+`completed`, and one that broke first settles `failed`.
+
+`failed` and `aborted` snapshots are **resume points**: they hold the
+conversation up to the last completed turn. Send an input with no payload to
+re-run the turn, or a new message to change course:
+
+```go
+snap, _ := task.Wait(ctx)
+if snap.Status == aix.SnapshotStatusAborted || snap.Status == aix.SnapshotStatusFailed {
+	out, err := backgroundAgent.Run(ctx, &aix.AgentInput{},
+		aix.WithSnapshotID[any](snap.SnapshotID))
+	// ...
+}
+```
+
+Detached work runs in the process that started it; it is not durable
+execution. On `SIGTERM`, abort pending snapshots and wait for them to settle so
+callers find resumable `aborted` rows instead of `expired` ones.
 
 ## Serve detach over HTTP
 
 A remote client drives the same story over HTTP: send `{"detach": true, ...}` as
-the turn input, poll the `getSnapshot` companion, and hit the `abort` companion.
-Expose both companions next to the agent:
+the turn input, then wait on the `waitForSnapshot` companion (or poll
+`getSnapshot`) and hit `abort`. Expose the companions next to the agent:
 
 ```go
 mux.HandleFunc("POST /api/backgroundAgent", genkit.Handler(backgroundAgent))
 mux.HandleFunc("POST /api/backgroundAgent/getSnapshot", genkit.Handler(backgroundAgent.GetSnapshotAction()))
+mux.HandleFunc("POST /api/backgroundAgent/waitForSnapshot", genkit.Handler(backgroundAgent.WaitForSnapshotAction()))
 mux.HandleFunc("POST /api/backgroundAgent/abort", genkit.Handler(backgroundAgent.AbortAction()))
 ```
 
-`AbortAction()` is non-nil only when the store implements `aix.SnapshotSubscriber`
-(both `localstore` stores do). See [deployment](agents-deployment.md).
+One `waitForSnapshot` request holds for at most `aix.WithMaxSnapshotWait` (default
+25s), then answers with the row as it stands (`pending`/`aborting`); a direct
+HTTP client must loop until settled. `aix.AgentHandle` (local or
+`genkitx.DefineRemoteAgent`) does that for you. `AbortAction()` is non-nil only
+when the store implements `aix.SnapshotSubscriber`. See
+[deployment](agents-deployment.md).
 
 ## Status values (`aix.SnapshotStatus`)
 
-- `SnapshotStatusPending` — still processing.
-- `SnapshotStatusCompleted` — finished successfully; read the result from
+- `SnapshotStatusPending`: still processing.
+- `SnapshotStatusAborting`: abort requested; the worker is winding down. Not
+  terminal: `Wait` keeps waiting.
+- `SnapshotStatusCompleted`: finished successfully; read the result from
   `snap.State.Messages`.
-- `SnapshotStatusFailed` — error during processing; details on `snap.Error`.
-- `SnapshotStatusAborted` — cancelled via `Abort`.
-- `SnapshotStatusExpired` — the background worker stopped responding (its
+- `SnapshotStatusFailed`: a turn broke; details on `snap.Error`, completed
+  turns in `snap.State`. Resumable.
+- `SnapshotStatusAborted`: stopped by the caller; `snap.State` holds the turns
+  that finished. Resumable.
+- `SnapshotStatusExpired`: the background worker stopped responding (its
   heartbeat went stale, e.g. a server restart). Computed on read, never
   persisted; terminal — the task can never complete.
