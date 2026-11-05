@@ -1,6 +1,6 @@
 ---
 name: developing-genkit-python
-description: Develop AI-powered applications using Genkit in Python. Use when the user asks about Genkit, AI agents, flows, or tools in Python, or when encountering Genkit errors, import issues, or API problems.
+description: Develop AI-powered applications using Genkit Python (0.13) and migrate Genkit Python 0.12 projects to 0.13. Use when building AI agents, flows, tools, structured outputs, or FastAPI routes in Python, upgrading from Genkit 0.12, or debugging Genkit imports, config errors, or traces.
 metadata:
   version: "1.0.0"
   category: AiAndMachineLearning
@@ -8,15 +8,15 @@ metadata:
 
 # Genkit Python
 
-Build AI features in Python — generate, stream, tools, flows, and multi-turn
-agents — with one SDK.
+Build AI features in Python — generation, structured output, streaming, tools, flows, and multi-turn agents — with Genkit Python 0.13.
+
+- **New project?** See [Setup](references/setup.md) and [Examples](references/examples.md).
+- **Upgrading from 0.12 or fixing broken 0.12 imports/signatures?** Read [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md) first.
 
 ## Prerequisites
 
 - Python **3.10+** and **`uv`** ([install](https://docs.astral.sh/uv/getting-started/installation/))
 - Genkit CLI: `npm install -g genkit-cli` if `genkit --version` is missing
-
-New app? [Setup](references/setup.md). Patterns? [Examples](references/examples.md).
 
 ## Hello World
 
@@ -26,26 +26,38 @@ from genkit_google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
-    model='googleai/gemini-flash-latest',
+    model=GoogleAI.gemini('gemini-flash-latest'),
 )
 
-async def main():
-    response = await ai.generate(prompt='Tell me a joke about Python.')
+
+async def main() -> None:
+    response = await ai.generate(prompt='Suggest one seasonal pasta dish.')
     print(response.text)
+
 
 if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-## Agents (Beta)
+## Agents (Experimental)
 
-Multi-turn chats with history, typed state, human approval, branching, and
-background work. Start here: [Agents](references/agents.md).
+Multi-turn chats with history, typed state, human approval, branching, and background work live under `genkit.exp` and `genkit.exp.agent`. Start here: [Agents](references/agents.md).
 
 ```python
+from genkit.exp import Genkit
+from genkit.exp.agent import InMemorySessionStore
+from genkit_google_genai import GoogleAI
+
+ai = Genkit(plugins=[GoogleAI()], model=GoogleAI.gemini('gemini-flash-latest'))
+agent = ai.define_agent(
+    name='concierge',
+    system='You are a concise hotel concierge.',
+    store=InMemorySessionStore(),
+)
+
 chat = agent.chat()
-res = await chat.send('Hello')           # AgentResponse
-turn = chat.send_stream('Hello')         # AgentTurn — .stream / .response
+res = await chat.send('Recommend a quiet dinner spot.')  # AgentResponse
+turn = chat.send_stream('Is it open past 10pm?')         # AgentTurn — .stream / .response
 ```
 
 More: [sessions](references/agents-sessions.md) ·
@@ -57,68 +69,69 @@ More: [sessions](references/agents-sessions.md) ·
 [custom](references/agents-custom.md) ·
 [HTTP](references/agents-http.md)
 
-## Imports
+## Imports (Single-Home 0.13 Layout)
 
-- Google AI: `from genkit_google_genai import GoogleAI`
-- Agents: `from genkit.agent import InMemorySessionStore, ...`
-- Middleware: `from genkit_middleware import Middleware, ToolApproval, ...`
-- FastAPI: `from genkit_fastapi import serve_agent, serve_flow`
-- Evals: `from genkit_evaluators import register_genkit_evaluators`
+Every symbol lives in one public module (never import private `_` submodules; see [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md) if a 0.12 symbol moved):
+
+- **Core app**: `from genkit import Genkit, FlowContext, ToolContext, Message, Part, Role, Media, Document, MultipartToolResponse, PublicError, GenkitError, Failure, ErrorReason`
+- **Google GenAI & Vertex AI**: `from genkit_google_genai import GoogleAI, VertexAI, GeminiConfig, GeminiImageConfig, GeminiTtsConfig`
+- **Other providers**: `from genkit_vertexai import ModelGarden` · `from genkit_anthropic import Anthropic, AnthropicConfig` · `from genkit_openai import OpenAI, OpenAIConfig` · `from genkit_ollama import Ollama, OllamaConfig` · `from genkit_amazon_bedrock import Bedrock, BedrockConfig`
+- **Built-in middleware**: `from genkit_middleware import Middleware, Retry, Fallback, ToolApproval, Skills, Filesystem` (plus `from genkit_middleware.exp import Artifacts` for agent sessions)
+- **Writing custom middleware**: `from genkit.middleware import Middleware, MiddlewareContext`
+- **FastAPI & HTTP**: `from genkit_fastapi import serve_flow, genkit_fastapi_handler, handle_genkit_request` · `from genkit_fastapi.exp import serve_agent` · `from genkit.web import RequestData, to_sse, error_body, error_status`
+- **Agents (experimental)**: `from genkit.exp import Genkit, current_session` · `from genkit.exp.agent import Agent, Session, InMemorySessionStore, FileSessionStore, remote_agent`
+- **Telemetry**: `from genkit_google_cloud import enable_google_cloud_telemetry` · `from genkit.telemetry import configure_instrumentation` · `from genkit_otel import GenAiInstrumentation`
+- **Evaluators (deprecated; removed in 1.0)**: `from genkit_evaluators import register_genkit_evaluators` · `from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreDetails, ScoreStatus`
 
 ## Workflow
 
-1. **Agent or flow?** If the task is conversational, multi-turn, or described as
-   "an agent", "assistant", or "chatbot", build it with `ai.define_agent` (see
-   [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools
-   loop inside a flow. Reach for a plain flow only for single-shot, stateless
-   generation.
-2. Set **`GEMINI_API_KEY`**. Use prefixed model ids (`googleai/gemini-flash-latest`).
-3. Enter via **`ai.run_main(main())`** for Genkit apps (especially under
-   `genkit start`). See [Common Errors](references/common-errors.md).
-4. Run with [Dev Workflow](references/dev-workflow.md) (`genkit start` + Dev UI).
-5. Verify with traces, not a blind run. Running the app directly (`uv run`)
-   does **not** capture dev traces. See [Genkit CLI](#genkit-cli-recommended)
-   for how to run your app and capture traces.
-6. Stuck? [Common Errors](references/common-errors.md) first.
+1. **Agent or flow?** Use `ai.define_agent` (on `genkit.exp.Genkit`, see [Agents](references/agents.md)) for multi-turn chats, state, or human-in-the-loop approval instead of hand-rolling a message loop inside a flow. Use `@ai.flow()` on `genkit.Genkit` for stateless request/response or streaming pipelines.
+2. **Configure credentials & model refs.** Set **`GEMINI_API_KEY`**. Prefer typed refs (`GoogleAI.gemini('gemini-flash-latest')`) and typed flat configs (`GeminiConfig(...)`) so your type checker validates fields before runtime. Prefixed strings (`'googleai/gemini-flash-latest'`) also work.
+3. **Enter via `ai.run_main(main())`** for standalone scripts and CLI apps so the reflection server stays alive under `genkit start`. FastAPI apps under `GENKIT_ENV=dev` can also run directly with `genkit start -- uvicorn main:app --reload`.
+4. **Run with [Dev Workflow](references/dev-workflow.md)** (`genkit start` + Dev UI) and type-check with `pyright`, `mypy`, or `ty`.
+5. **Verify with traces**, not a blind `uv run`. Running `uv run` directly skips local trace capture. See [Genkit CLI](#genkit-cli-recommended).
+6. **Stuck?** Check [Common Errors](references/common-errors.md) or [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md).
 
 ## Genkit CLI (recommended)
 
-`genkit start` unintrusively wraps any Python program that uses the Genkit library, running it unchanged while capturing traces from every Genkit action so you can prove tools were actually called and inspect model I/O from the terminal, even for headless checks. It forwards stdio, so interactive CLI tools that rely on stdin/stdout work without issues. Running the app directly (`uv run`) skips trace capture, so you're debugging blind.
+`genkit start` wraps any Python program that uses Genkit, capturing traces from every action while forwarding stdio cleanly. Running `uv run` directly skips trace capture.
 
-**Primary pattern (default):** prefix `genkit start --` to your normal run command. This collects telemetry from any Genkit code your program runs, whether triggered from the dev UI, your own web server/web UI, or a plain script:
+**Primary pattern (persistent server + Dev UI):**
 ```bash
 genkit start -- uv run src/main.py
-genkit start --noui -- uv run src/main.py   # same, without the Dev UI (still a persistent server)
+genkit start --noui -- uv run src/main.py   # persistent runtime without opening the Dev UI
 ```
-`genkit start` runs until you stop it with Ctrl+C. That is expected and correct for the common cases: a server your web/mobile app calls, or an interactive CLI you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot command and will not exit on its own. Do **not** use `genkit start` as a blocking step in automated/non-interactive contexts; use `flow:run` (below) for that.
+`genkit start` runs until stopped with Ctrl+C (even with `--noui`). Do **not** run `genkit start` as a blocking step in automated/non-interactive scripts; use `flow:run` instead.
 
-**Non-interactive use (agents/CI):** add the global `--non-interactive` flag before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the first-run analytics notice): `genkit start --non-interactive -- uv run src/main.py` (works with `flow:run` too).
+**Non-interactive use (agents/CI):** pass `--non-interactive` before `--` so the CLI never blocks on prompts:
+```bash
+genkit start --non-interactive -- uv run src/main.py
+```
 
-**Run a flow (`flow:run`):** invoke a specific flow by name from the CLI. Append your run command after `--` to spin up the runtime just for this run (the command runs as-is to register your flows):
+**One-shot flow execution (`flow:run`):** spins up the runtime, invokes one `@ai.flow()` by name, prints a `Trace ID`, and exits:
 ```bash
 genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
 ```
-This is **self-terminating**: it runs the flow once, prints a `Trace ID`, then exits, so it's the right choice for a quick, non-interactive check (unlike `genkit start`). Note: `flow:run` runs **flows** (`@ai.flow()`), not agents; you can't `flow:run` an agent (`ai.define_agent`) directly. To exercise an agent from the CLI, wrap one turn in a throwaway flow and run that (see [Agents](references/agents.md)).
+Note: `flow:run` invokes flows (`@ai.flow()`), not agents (`ai.define_agent`). Wrap a single agent turn in a helper flow to exercise it via `flow:run` (see [Agents](references/agents.md)).
 
-**Debugging with traces:** the fastest way to see prompts, model inputs/outputs, tool calls, latencies, and errors. Inspect from the terminal after any run under `genkit start`:
+**Inspecting traces:**
 ```bash
-genkit trace:list                        # find recent trace IDs
-genkit trace:get <traceId>               # full trace details (inputs, outputs, tool calls, errors)
-genkit trace:get <traceId> --format json # machine-readable JSON, safe to pipe into jq or other parsers
+genkit trace:list                        # list recent trace IDs
+genkit trace:get <traceId>               # human-readable trace inspection
+genkit trace:get <traceId> --format json # machine-readable JSON for jq / scripts
 ```
+Always pass `--format json` when piping into `jq` or other parsers.
 
-For machine-readable output, pass `--format json` to get clean JSON you can pipe into `jq` or other parsers. The **default** output is human-oriented (banner/log lines, possible truncation on large traces), so don't pipe that form directly; use `--format json`, grep, or the Dev UI trace viewer.
-
-
-See [Dev Workflow](references/dev-workflow.md) for the full checklist and Dev UI walkthrough.
+See [Dev Workflow](references/dev-workflow.md) for the full pre-run checklist and Dev UI walkthrough.
 
 ## References
 
-- [Examples](references/examples.md): Structured output, streaming, flows, tools, embeddings.
-- [Setup](references/setup.md): New project bootstrap and plugins.
-- [Common Errors](references/common-errors.md): Read first when something breaks.
-- [FastAPI](references/fastapi.md): HTTP, `genkit_fastapi_handler`, parallel flows.
-- [Dotprompt](references/dotprompt.md): `.prompt` files and helpers.
-- [Evals](references/evals.md): Evaluators and datasets.
-- [Dev Workflow](references/dev-workflow.md): `genkit start`, Dev UI, checklist.
-- [Agents (Beta)](references/agents.md): Multi-turn API.
+- [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md): Deterministic 0.12 -> 0.13 renames, config flattening, `PublicError`, and `exp` moves.
+- [Examples](references/examples.md): Structured output, streaming, media parts, flows, tools, interrupts, cancellation, embeddings.
+- [Setup](references/setup.md): Project bootstrap with `uv`, version alignment, and provider plugins.
+- [Common Errors](references/common-errors.md): Fast fixes for 0.13 validation errors, HTTP 500 redaction, streaming, and sessions.
+- [FastAPI](references/fastapi.md): `serve_flow`, `serve_agent`, `PublicError`, SSE streaming, and parallel flows.
+- [Dotprompt](references/dotprompt.md): `.prompt` files, schema validation, variants, partials, and helpers.
+- [Evals](references/evals.md): 0.13 evaluator syntax (deprecated; removed in 1.0).
+- [Dev Workflow](references/dev-workflow.md): `genkit start`, Dev UI, and trace verification checklist.
+- [Agents (Experimental)](references/agents.md): Multi-turn stateful agents (`genkit.exp`).

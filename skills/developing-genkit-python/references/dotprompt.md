@@ -1,166 +1,155 @@
 # Dotprompt — Genkit Python
 
-## What it is
+## What It Is
 
-`.prompt` files combine YAML frontmatter (model config, schemas) with Handlebars
-templates. Keeps prompt logic out of Python code and makes variants easy.
+`.prompt` files pair YAML frontmatter (model, config, input/output schemas, tools, middleware) with Handlebars templates. In Genkit Python 0.13, Handlebars templates **only** render inside `.prompt` files and `ai.define_prompt(...)` — strings passed to `ai.generate(prompt=..., system=...)` are sent to the model verbatim.
 
-## File format
+## File Format
+
+Place `.prompt` files inside `prompts/` and pass `prompt_dir=...` to `Genkit(...)`:
 
 ```yaml
 ---
 model: googleai/gemini-flash-latest
+config:
+  temperature: 0.4
 input:
+  default:
+    tone: practical
   schema:
     food: string
-    tone?: string                 # optional scalar — just `field?: type`
-    ingredients?(array): string   # optional array/object needs the parenthetical
+    tone?: string                 # optional scalar — `field?: type`
+    ingredients?(array): string   # optional array/object uses parenthetical syntax
 output:
-  schema: Recipe    # references a schema registered with ai.define_schema()
+  schema: Recipe                  # references a schema registered via ai.define_schema()
   format: json
 ---
 {{role "system"}}
-You are a chef. Keep recipes practical.
+You are a chef. Keep recipes {{tone}}.
 
 {{role "user"}}
 Generate a recipe for {{food}}.
 {{#if ingredients}}
-Prefer these ingredients: {{ingredients}}.
+Prefer these ingredients:
+{{list ingredients}}
 {{/if}}
 ```
 
-Use `{{role "system"}}` / `{{role "user"}}` (and friends) so the model sees a
-real system instruction. A flat template body becomes a single **user** message.
+Use `{{role "system"}}` and `{{role "user"}}` to emit distinct message roles; a template without `{{role ...}}` becomes a single user message.
 
-Place `.prompt` files in a `prompts/` directory and point `prompt_dir` at it.
+**Input & output validation in 0.13:**
+- Prompt inputs **are validated** against `input.schema` (or `input_schema=` on `define_prompt`) before calling the model, and `input.default` values from `.prompt` frontmatter are filled in automatically.
+- When `output.schema` names a Pydantic class registered with `ai.define_schema('Recipe', Recipe)`, `response.output` is validated and returned directly as `Recipe | None` (`None` if truncated or malformed; check `response.error`).
 
-**Note:** `input.schema` describes the contract for humans and tooling. Today it
-is **not** validated locally before the model call — missing required fields can
-still render and hit the API. Validate in your flow if you need hard failures.
-
-## Python setup
+## Python Setup
 
 ```python
 from pathlib import Path
 from pydantic import BaseModel
-from genkit import Genkit
+from genkit import Genkit, Prompt
 from genkit_google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
-    model='googleai/gemini-flash-latest',
+    model=GoogleAI.gemini('gemini-flash-latest'),
     prompt_dir=Path(__file__).resolve().parent.parent / 'prompts',
 )
+
 
 class Recipe(BaseModel):
     title: str
     steps: list[str]
 
+
 ai.define_schema('Recipe', Recipe)
 ```
 
-## Calling a prompt
+## Calling a Prompt (`Prompt`)
 
-There is **no** `prompt.execute()`. Non-streaming uses the callable
-(`ExecutablePrompt.__call__`):
+`ai.prompt(...)` and `ai.define_prompt(...)` return a `Prompt` (`ExecutablePrompt` in 0.12 was renamed to `Prompt`). There is no `.execute()` method — call and `await` the `Prompt` directly:
 
 ```python
-# Non-streaming — await the prompt itself (double-call: ai.prompt('name') then (...))
-prompt = ai.prompt('recipe')
-response = await prompt(input={'food': 'banana bread'})
-# same as: await ai.prompt('recipe')(input={'food': 'banana bread'})
-result = Recipe.model_validate(response.output)
+recipe_prompt: Prompt = ai.prompt('recipe')
 
-# Variant (recipe.robot.prompt file)
-response = await ai.prompt('recipe', variant='robot')(input={'food': 'banana bread'})
+# Call options use the same keyword names as `ai.generate`.
+# `config` merges key-by-key over the prompt's frontmatter config (pass None to clear a key).
+# `output_schema` is fixed by the prompt and cannot be overridden per call.
+response = await recipe_prompt(
+    {'food': 'banana bread', 'ingredients': ['walnuts', 'cinnamon']},
+    config={'temperature': 0.2},
+)
+if response.output is not None:
+    recipe: Recipe = response.output
+
+# Variant (`prompts/recipe.quick.prompt`)
+quick_res = await ai.prompt('recipe', variant='quick')({'food': 'banana bread'})
 ```
 
-## Streaming from a prompt
-
-`.stream(...)` is **not** awaited; then consume `.stream` / `.response`:
+### Code-Defined Prompts (`ai.define_prompt`)
 
 ```python
-from genkit import ActionRunContext
+class GreetingInput(BaseModel):
+    name: str
+
+
+greet = ai.define_prompt(
+    name='greet',
+    input_schema=GreetingInput,
+    prompt='Say hello to {{name}}.',
+)
+res = await greet(GreetingInput(name='Ana'))
+```
+
+## Streaming from a Prompt
+
+`prompt.stream(...)` is synchronous (do not `await` it); iterate `.stream` and `await` `.response`:
+
+```python
+from genkit import FlowContext
 
 @ai.flow()
-async def tell_story(subject: str, ctx: ActionRunContext) -> str:
-    result = ai.prompt('story').stream(input={'subject': subject})
-    full = ''
-    async for chunk in result.stream:
+async def stream_recipe(food: str, ctx: FlowContext[str]) -> str:
+    sr = ai.prompt('recipe').stream({'food': food})
+    chunks: list[str] = []
+    async for chunk in sr.stream:
         if chunk.text:
             ctx.send_chunk(chunk.text)
-            full += chunk.text
-    final = await result.response  # completes even if you stop reading chunks early
-    return final.text or full
+            chunks.append(chunk.text)
+    final = await sr.response
+    return final.text or ''.join(chunks)
 ```
 
-## Render without generating (for LLM-judge evals)
+## Render Without Generating
+
+Inspect the rendered `GenerateActionOptions` (messages, config, schemas) without calling a model:
 
 ```python
-rendered = await ai.prompt('my_prompt').render(input={'key': 'value'})
-# Inspect roles/messages before spending tokens:
-# print(rendered.messages)
-response = await ai.generate(model='googleai/gemini-flash-latest', messages=rendered.messages)
+rendered = await ai.prompt('recipe').render({'food': 'focaccia'})
+response = await ai.generate(messages=rendered.messages)
 ```
 
 ## Helpers
 
-Handlebars helpers receive template args in a packed form. Prefer simple
-string/list formatting in the template, or unpack carefully:
+Register Handlebars helpers with `ai.define_helper(name, fn)`:
 
 ```python
-def list_helper(data: object, *args, **kwargs) -> str:
-    # Positional template args arrive packed in the first parameter.
-    items = data[0] if isinstance(data, (list, tuple)) and data else data
-    if not isinstance(items, list):
+def list_helper(data: object, *args: object, **kwargs: object) -> str:
+    if not isinstance(data, list):
         return ''
-    return '\n'.join(f'- {item}' for item in items)
+    return '\n'.join(f'- {item}' for item in data)
+
 
 ai.define_helper('list', list_helper)
 ```
 
-Then `{{list ingredients}}` in the `.prompt`. If output looks like a Python
-`repr` of a list, the helper unpacked wrong — fix the helper, not the model.
+Use `{{list ingredients}}` in the `.prompt` body.
 
-## Variants
+## Variants & Partials
 
-Name the file `<name>.<variant>.prompt` — e.g. `recipe.robot.prompt`.
-Call with `ai.prompt('recipe', variant='robot')`.
+- **Variants**: save `<name>.<variant>.prompt` (e.g. `recipe.vegan.prompt`) and load with `ai.prompt('recipe', variant='vegan')`.
+- **Partials**: prefix partial files with `_` (e.g. `prompts/_disclaimer.prompt`) or register with `ai.define_partial('disclaimer', '...')`, then include via `{{>disclaimer}}` or `{{>disclaimer region=region}}`.
 
-## Partials
+## Prompts with Tools & Middleware
 
-Use `{{>partial_name param=value}}` in templates. Partial files are named
-`_partial_name.prompt`.
-
-## Prompts + tools + structured output
-
-Naming a tool in the template is not enough — pass tool objects at call time
-(or list names in frontmatter `tools:` that match registered tools):
-
-```python
-response = await ai.prompt('insurance_quote')(
-    input={'age': 35, 'zip': '94105', 'coverage_tier': 'plus'},
-    tools=[lookup_rate],
-)
-quote = QuoteResult.model_validate(response.output)
-```
-
-Register output schemas with `ai.define_schema('QuoteResult', QuoteResult)`
-when frontmatter references them by name.
-
-### Partials example
-
-```
-prompts/_greeting.prompt   # partial body only
-prompts/support_reply.prompt
-```
-
-In `support_reply.prompt`:
-```
-{{>greeting}}
-... main template ...
-{{>disclaimer}}
-```
-
-Call `await ai.prompt('support_reply')(input={...})`. Parent input is visible
-inside partials unless you override with `{{>greeting name=name}}`.
+- **Tools**: list registered tool names under `tools:` in YAML frontmatter, or pass `tools=[lookup_rate]` when calling `await prompt(input, tools=[lookup_rate])`.
+- **Middleware**: register `Middleware()` from `genkit_middleware` in `Genkit(plugins=[..., Middleware()])` (or register custom `@ai.middleware` classes) to reference middleware under `use:` in `.prompt` frontmatter, or pass `use=[Retry(max_retries=2)]` at call time.
