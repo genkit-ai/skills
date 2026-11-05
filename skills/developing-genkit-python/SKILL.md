@@ -93,6 +93,8 @@ Every symbol lives in one public module (never import private `_` submodules; se
 - **FastAPI & HTTP**: `from genkit_fastapi import serve_flow, genkit_fastapi_handler, handle_genkit_request` · `from genkit_fastapi.exp import serve_agent` · `from genkit.web import RequestData, to_sse, error_body, error_status`
 - **Agents (experimental)**: `from genkit.exp import Genkit, current_session` · `from genkit.exp.agent import Agent, Session, InMemorySessionStore, FileSessionStore, remote_agent`
 - **Telemetry**: `from genkit_google_cloud import enable_google_cloud_telemetry` · `from genkit.telemetry import configure_instrumentation` · `from genkit_otel import GenAiInstrumentation`
+- **MCP (Client & Host)**: `from genkit_mcp import define_mcp_client, define_mcp_host, McpClient, McpHost`
+- **Testing & Mocks**: `from genkit.testing import define_echo_model, define_scripted_model, EchoModel, ScriptedModel`
 - **Evaluators (0.13 only; cut from 1.0, additive later)**: `from genkit_evaluators import register_genkit_evaluators` · `from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreDetails, ScoreStatus`
 
 ## Workflow
