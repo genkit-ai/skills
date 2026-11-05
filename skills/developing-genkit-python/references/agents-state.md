@@ -57,14 +57,14 @@ if __name__ == '__main__':
 
 ## Mutating state from tools (`current_session`)
 
-On a store-backed agent, update custom state inside `@ai.tool()` functions using `current_session()` from `genkit.exp`.
+Inside an `@ai.tool()`, get the active session with `current_session()` from `genkit.exp` (`None` outside an agent turn) and update custom state there.
 
-`await sess.update_custom(fn)` is `async`, while the mutator callback `fn` itself is **synchronous** (`Callable[[StateT | None], StateT]`). Because custom state round-trips over JSON as a dict or `None`, normalize `c` before constructing the updated state:
+`await sess.update_custom(fn)` is async; `fn` is sync. `fn` receives `None` on the first write, then whatever the session currently holds: the model instance you last returned, or a plain dict once state has round-tripped through JSON (a persistent store, an HTTP client). Normalize it before building the new state:
 
 ```python
 from typing import Any
+
 from genkit_google_genai import GoogleAI
-from genkit_middleware import Middleware, ToolApproval
 from pydantic import BaseModel, Field
 
 from genkit.exp import Genkit, current_session
@@ -80,7 +80,7 @@ class OpenCaseInput(BaseModel):
     case_id: str = Field(description='Support case identifier')
 
 
-ai = Genkit(plugins=[GoogleAI(), Middleware()], model=GoogleAI.gemini('gemini-flash-latest'))
+ai = Genkit(plugins=[GoogleAI()], model=GoogleAI.gemini('gemini-flash-latest'))
 
 
 @ai.tool(name='openCase', description='Open or switch the active support case.')
@@ -102,22 +102,24 @@ agent = ai.define_agent(
     system='Support ops assistant. Call openCase when given a case ID.',
     tools=[open_case],
     state_schema=CaseState,
-    use=[ToolApproval(allowed_tools=['openCase'])],
     store=InMemorySessionStore(),
 )
 ```
 
 ## Live state patches
 
-Every `await sess.update_custom(...)` call (from a tool or a [custom agent](agents-custom.md)) emits an RFC 6902 JSON Patch chunk (`chunk.raw.custom_patch`), and `AgentTurn.stream` resolves the patched value onto `chunk.custom` automatically:
+Every `await sess.update_custom(...)` call (from a tool or a [custom agent](agents-custom.md)) emits an RFC 6902 JSON Patch chunk (`chunk.raw.custom_patch`). `AgentTurn.stream` applies the patch and puts the resolved state on `chunk.custom`, typed by `state_schema`. With the `supportOps` agent above:
 
 ```python
+chat = agent.chat()
 turn = chat.send_stream('Open case SUP-402.')
 async for chunk in turn.stream:
     if chunk.custom is not None:
         print(chunk.custom.case_id, chunk.custom.status)
         # => SUP-402 open
 res = await turn.response
+print(res.state)
+# => case_id='SUP-402' status='open'
 ```
 
 ## Egress redaction (`state_transform` and `chunk_transform`)
@@ -128,7 +130,7 @@ res = await turn.response
 - **`chunk_transform(chunk: AgentStreamChunk) -> AgentStreamChunk | None`**: reshapes or drops individual stream chunks; return `None` to suppress a chunk.
 
 ```python
-from genkit.exp.agent import AgentStreamChunk, SessionState
+from genkit.exp.agent import AgentStreamChunk, InMemorySessionStore, SessionState
 
 
 def redact_state(state: SessionState) -> SessionState:

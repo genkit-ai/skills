@@ -1,6 +1,6 @@
 # Background Agents & Cancellation (Experimental)
 
-> Requires a [session store](agents-sessions.md) implementing `SnapshotSubscriber` (`InMemorySessionStore`, `FileSessionStore`, or `FirestoreSessionStore`). See [agents.md](agents.md).
+> Requires a [session store](agents-sessions.md). For abort to cancel a running turn, the store must also implement `SnapshotSubscriber` (`InMemorySessionStore`, `FileSessionStore`, and `FirestoreSessionStore` do). See [agents.md](agents.md).
 
 `await chat.detach(...)` hands a turn to the server, reserves a `snapshot_id` in `SnapshotStatus.PENDING` (with background heartbeat refreshes), and returns a `DetachedTask` handle immediately without waiting for model or tool completion.
 
@@ -55,6 +55,8 @@ Always `await` abort calls. Genkit distinguishes stopping a local listener from 
 - **Client detach (`await turn.abort()` or `asyncio.timeout` / `asyncio.wait_for`)**: stops streaming locally and resolves `turn.response` as cancelled immediately while the server turn keeps running to completion in the background. Wrapping `turn.stream` or `await turn.response` in `async with asyncio.timeout(...)` detaches the client the same way and re-raises `TimeoutError`.
 - **Server cancel (`await task.abort()`, `await chat.abort()`, or `await agent.abort(snapshot_id)`)**: flips a pending snapshot to `SnapshotStatus.ABORTED` in the store and cancels the running server task. Returns the snapshot's **previous** `SnapshotStatus` (`SnapshotStatus.PENDING` if this call stopped a live turn; a terminal status if the turn had already finished).
 
+`chat.abort()` targets the chat's last recorded snapshot, so calling it while a foreground `send()` is in flight does not stop that turn: it returns the previous turn's status (`SnapshotStatus.COMPLETED`), or raises `ValueError` on a first turn with no snapshot yet. Use `detach()` + `task.abort()` to cancel a running turn.
+
 ```python
 chat = agent.chat()
 task = await chat.detach('Audit every quarterly filing since 2015.')
@@ -66,6 +68,8 @@ previous_status = await task.abort()
 # Aborted leaves are not resumable directly; continue from the last completed turn via session_id
 recovered = agent.chat(session_id=chat.session_id)
 res = await recovered.send('Audit only Q4 2025 instead.')
+print(res.text)
+# => Q4 2025 audit: ...
 ```
 
 On the very first turn of a session, a client-side `turn.abort()` detaches before the client receives `session_id` or `snapshot_id`. Prefer `await chat.detach(...)` + `await task.abort()` whenever you need a recoverable server-side cancel handle from turn start.
@@ -87,6 +91,7 @@ async def run_backfill(table: str) -> dict[str, object]:
     finally:
         # Runs whether the tool returns normally, fails, or receives CancelledError
         print(f'releasing lease for {job_id}')
+        # => releasing lease for job-orders  (also after await task.abort() mid-run)
 ```
 
 ## Fan-out parallel research
@@ -113,4 +118,5 @@ async def research(engine: str) -> tuple[str, str]:
 
 
 results = await asyncio.gather(research('Cloud Spanner'), research('AlloyDB'))
+# => [('Cloud Spanner', '...'), ('AlloyDB', '...')]
 ```

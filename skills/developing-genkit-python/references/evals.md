@@ -1,10 +1,10 @@
-# Evals — Genkit Python (Deprecated in 0.13; Removed in 1.0)
+# Evals — Genkit Python (0.13 Only; Removed in 1.0)
 
-> **Deprecation & Removal Warning:** Evaluators (`ai.define_evaluator`, `ai.define_batch_evaluator`, `ai.evaluate`, `genkit.evaluator`, and `genkit-evaluators`) are **deprecated in Genkit Python 0.13** (`genkit-evaluators` 0.13 requires `genkit<1`) and **removed in Genkit 1.0** (the release right after 0.13) while evaluators are redesigned across all Genkit SDKs.
-> - **New projects:** do not add `genkit-evaluators` or `define_evaluator` unless you intend to stay pinned to `genkit==0.13.*`. Prefer standard `pytest` assertions against your flows and prompts until the redesigned evaluator API ships.
+> **Caution:** 0.13 is the last release with evaluators (`ai.define_evaluator`, `ai.define_batch_evaluator`, `ai.evaluate`, `genkit.evaluator`). Genkit 1.0 cuts them and the `genkit-evaluators` package from the 1.0 release; evaluation will return as an additive feature in a later release. `genkit-evaluators` 0.13 requires `genkit<1`.
+> - **New projects:** do not add `genkit-evaluators` or `define_evaluator` unless you intend to stay pinned to `genkit==0.13.*`. Prefer `pytest` assertions against your flows and prompts until evaluation returns.
 > - **Migrating from 0.12:** stop and ask the developer before porting evaluator code (see [Migrating from 0.12 to 0.13](migrating-from-0.12.md)).
 
-The patterns below document the exact `0.13.*` evaluator API for projects staying on the 0.13 release line.
+The patterns below document the `0.13.*` evaluator API for projects staying on the 0.13 release line.
 
 ---
 
@@ -16,41 +16,52 @@ uv add 'genkit-evaluators==0.13.*'
 
 ## Two Evaluator Types
 
-1. **Built-in** — provided by `genkit-evaluators`, registered via `register_genkit_evaluators(ai)` (`genkitEval/regex`, `genkitEval/deep_equal`, `genkitEval/jsonata`). Deterministic built-in evaluators do not require a model plugin or `GEMINI_API_KEY`.
+1. **Built-in** — provided by `genkit-evaluators`, registered via `register_genkit_evaluators(ai)` (`genkitEval/regex`, `genkitEval/deep_equal`, `genkitEval/jsonata`). They are deterministic and need no model plugin or `GEMINI_API_KEY`. Pass `metrics=['regex']` to register a subset.
 2. **BYO** — custom row-by-row (`ai.define_evaluator`) or batch (`ai.define_batch_evaluator`) functions, including LLM judges.
 
 ## Dataset Format
 
+`genkit eval:run` reads a JSON array:
+
 ```json
 [
-  {"testCaseId": "case1", "input": "x", "output": "banana", "reference": "ba?a?a"},
-  {"testCaseId": "case2", "input": "x", "output": "apple",  "reference": "ba?a?a"}
+  {"testCaseId": "dessert", "input": "Suggest a dessert.", "output": "Banana bread", "reference": "(?i)banana"},
+  {"testCaseId": "starter", "input": "Suggest a starter.", "output": "Tomato soup", "reference": "(?i)banana"}
 ]
 ```
 
-Fields: `testCaseId`, `input`, `output`, `reference` (optional for reference-free evaluators).
+Fields: `testCaseId`, `input`, `output`, `reference` (optional for reference-free evaluators). In Python, the same rows are `BaseDataPoint(test_case_id=..., input=..., output=..., reference=...)`.
 
 ## Built-In Evaluators & Programmatic Execution
 
 ```python
+from genkit import Genkit
+from genkit.evaluator import BaseDataPoint
 from genkit_evaluators import register_genkit_evaluators
 
+# 1. Register the built-in evaluators
+ai = Genkit()
 register_genkit_evaluators(ai)
 
-# `ai.evaluate` runs one evaluator per call (`evaluator=`, singular), takes `config=`
-# (renamed from `options=`), and returns `list[EvaluatorResponse]` directly (no `.root`).
-results = await ai.evaluate(
-    evaluator='genkitEval/regex',
-    dataset=my_dataset,
-    config={},
-)
+# 2. Build the dataset
+dataset = [
+    BaseDataPoint(test_case_id='dessert', input='Suggest a dessert.', output='Banana bread', reference='(?i)banana'),
+    BaseDataPoint(test_case_id='starter', input='Suggest a starter.', output='Tomato soup', reference='(?i)banana'),
+]
+
+# 3. Run one evaluator per call; returns list[EvaluatorResponse] in dataset order
+results = await ai.evaluate(evaluator='genkitEval/regex', dataset=dataset)
 for row in results:
-    print(row.test_case_id, row.evaluation)
+    print(row.test_case_id, row.evaluation[0].score, row.evaluation[0].status)
+# => dessert True PASS
+#    starter False FAIL
 ```
+
+`config=` is passed to the evaluator as its second argument (`None` when unset). An unregistered evaluator name raises `GenkitError` with `NOT_FOUND`.
 
 ## BYO Evaluator (`EvaluatorResponse`, `Score`, `ScoreStatus`, `ScoreDetails`)
 
-In 0.13, `EvalFnResponse` is renamed to `EvaluatorResponse`, `EvalStatusEnum` to `ScoreStatus`, and `Details` to `ScoreDetails`. `evaluation` takes a `list[Score]`, and `ai.define_evaluator` takes `(name, fn)` positionally with required keyword-only `display_name=` and `definition=`:
+`ai.define_evaluator` takes `(name, fn)` positionally with required keyword-only `display_name=` and `definition=`. `EvaluatorResponse` requires `test_case_id`, and `evaluation` takes a `list[Score]`:
 
 ```python
 from genkit.evaluator import (
@@ -62,7 +73,7 @@ from genkit.evaluator import (
 )
 
 
-async def exact_match(datapoint: BaseDataPoint, _options: object = None) -> EvaluatorResponse:
+async def exact_match(datapoint: BaseDataPoint, _options: object | None = None) -> EvaluatorResponse:
     output = str(datapoint.output or '').strip()
     reference = str(datapoint.reference or '').strip()
     passed = output == reference
@@ -86,11 +97,11 @@ ai.define_evaluator(
 )
 ```
 
-For batch evaluation across the whole dataset at once, register `async def my_batch_eval(req: EvaluatorRequest) -> list[EvaluatorResponse]:` with `ai.define_batch_evaluator('byo/batch', my_batch_eval, display_name='...', definition='...')` (`from genkit.evaluator import EvaluatorRequest`).
+For batch evaluation across the whole dataset at once, register `async def my_batch_eval(req: EvaluatorRequest) -> list[EvaluatorResponse]:` with `ai.define_batch_evaluator('byo/batch', my_batch_eval, display_name='...', definition='...')` (`from genkit.evaluator import EvaluatorRequest`). The batch function takes exactly one argument; read options from `req.options`.
 
 ## LLM-Based Judge
 
-`prompts/judge.prompt`:
+`prompts/judge.prompt` (load it with `Genkit(prompt_dir='prompts', ...)`; `prompts/` is the default):
 
 ```yaml
 ---
@@ -108,41 +119,43 @@ Candidate: {{output}}
 ```
 
 ```python
-import re
+from genkit import Genkit
 from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreStatus
 from genkit_google_genai import GoogleAI
 
+ai = Genkit(plugins=[GoogleAI()])
 
-async def llm_eval(datapoint: BaseDataPoint, _options: object = None) -> EvaluatorResponse:
-    rendered = await ai.prompt('judge').render(
+
+async def llm_judge(datapoint: BaseDataPoint, _options: object | None = None) -> EvaluatorResponse:
+    # 1. Run the judge prompt; the model comes from the .prompt frontmatter
+    response = await ai.prompt('judge')(
         {'output': str(datapoint.output), 'reference': str(datapoint.reference)}
     )
-    response = await ai.generate(
-        model=GoogleAI.gemini('gemini-flash-latest'),
-        messages=rendered.messages,
-    )
-    m = re.search(r'0?\.\d+|1\.0|[01]', (response.text or '').strip())
-    score = float(m.group(0)) if m else 0.0
+
+    # 2. Parse the score; treat anything unparseable as 0.0
+    try:
+        score = min(max(float((response.text or '').strip()), 0.0), 1.0)
+    except ValueError:
+        score = 0.0
+
     return EvaluatorResponse(
         test_case_id=datapoint.test_case_id or '',
-        evaluation=[
-            Score(
-                score=score,
-                status=ScoreStatus.PASS if score >= 0.5 else ScoreStatus.FAIL,
-            )
-        ],
+        evaluation=[Score(score=score, status=ScoreStatus.PASS if score >= 0.5 else ScoreStatus.FAIL)],
     )
 
 
 ai.define_evaluator(
     'byo/llm_judge',
-    llm_eval,
+    llm_judge,
     display_name='LLM Judge',
     definition='Scores candidate vs reference with a judge model.',
+    is_billed=True,
 )
 ```
 
-Built-in `genkitEval/regex` scores are `bool` (`True` / `False`); BYO numeric scores are typically `0.0`–`1.0` — normalize before aggregating.
+`is_billed=True` makes `genkit eval:run` ask for confirmation before calling the model; pass `--force` in CI.
+
+Built-in `genkitEval/regex` and `genkitEval/deep_equal` scores are `bool` (`True` / `False`); BYO numeric scores are typically `0.0`–`1.0`. Normalize before aggregating.
 
 ## CLI Execution
 
@@ -150,10 +163,10 @@ Built-in `genkitEval/regex` scores are `bool` (`True` / `False`); BYO numeric sc
 
 ```bash
 # One-shot: launches the app runtime, evaluates, and exits
-genkit eval:run datasets/my_dataset.json --evaluators=genkitEval/regex,byo/exact_match -- uv run src/main.py
+genkit eval:run datasets/menu_dataset.json --evaluators=genkitEval/regex,byo/exact_match -- uv run src/main.py
 
-# Write machine-readable results to a file
-genkit eval:run datasets/my_dataset.json --evaluators=byo/exact_match --output=eval_out.json -- uv run src/main.py
+# Write machine-readable results to a file (--output-format json|csv, default json)
+genkit eval:run datasets/menu_dataset.json --evaluators=byo/exact_match --output=eval_out.json -- uv run src/main.py
 ```
 
-`No runtimes found` means no Genkit runtime is active — pass `-- uv run src/main.py` or start `genkit start` in another terminal.
+Omitting `--evaluators` runs every registered evaluator. `No runtimes found` means no Genkit runtime is active — pass `-- uv run src/main.py` or run `genkit start` in another terminal.

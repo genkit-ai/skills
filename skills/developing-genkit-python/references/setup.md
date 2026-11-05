@@ -46,11 +46,12 @@ PyPI distribution names use hyphens (`genkit-*`); Python import modules use unde
 - **`genkit-amazon-bedrock`**: `from genkit_amazon_bedrock import Bedrock, BedrockConfig, StabilityImageConfig`.
 - **`genkit-middleware`**: `from genkit_middleware import Middleware, Retry, Fallback, ToolApproval, Skills, Filesystem` (plus `from genkit_middleware.exp import Artifacts` for agent sessions).
 - **`genkit-fastapi`**: `from genkit_fastapi import serve_flow, genkit_fastapi_handler, handle_genkit_request` (plus `from genkit_fastapi.exp import serve_agent`).
-- **`genkit-flask`**: `from genkit_flask import genkit_flask_handler` (does not install `genkit-google-genai` automatically; add your model plugin explicitly).
+- **`genkit-flask`**: `from genkit_flask import genkit_flask_handler` (requires `flask[async]`; does not install `genkit-google-genai` automatically; add your model plugin explicitly).
 - **`genkit-django`**: `from genkit_django import genkit_django_handler`.
+- **`genkit-mcp`**: `from genkit_mcp import McpClient, McpHost, define_mcp_client, define_mcp_host` (Model Context Protocol clients and tool hosts).
 - **`genkit-google-cloud`**: `from genkit_google_cloud import enable_google_cloud_telemetry` (plus `from genkit_google_cloud.exp import FirestoreSessionStore`).
 - **`genkit-otel`**: `from genkit_otel import GenAiInstrumentation, ContentCapturingMode, OtelEventLogger` (OpenTelemetry GenAI spans and metrics).
-- **`genkit-evaluators`** *(deprecated; removed in 1.0)*: `from genkit_evaluators import register_genkit_evaluators`. Requires `genkit<1`; avoid adding to new projects unless pinned to `0.13.*` (see [Evals](evals.md)).
+- **`genkit-evaluators`**: `from genkit_evaluators import register_genkit_evaluators`. Last release with evaluators; Genkit 1.0 cuts evaluators from the 1.0 release (evaluation will return as an additive feature in a later release). Requires `genkit<1` (see [Evals](evals.md)).
 
 ## Python version
 

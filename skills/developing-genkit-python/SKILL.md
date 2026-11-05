@@ -32,12 +32,17 @@ ai = Genkit(
 
 async def main() -> None:
     response = await ai.generate(prompt='Suggest one seasonal pasta dish.')
+    if response.error:
+        raise RuntimeError(response.error.message)
     print(response.text)
+    # => Lemony tagliatelle with asparagus, sweet peas, and herb ricotta
 
 
 if __name__ == '__main__':
     ai.run_main(main())
 ```
+
+`ai.generate` does not raise when the provider rejects or fails a call (`INVALID_ARGUMENT`, `UNAVAILABLE`, rate limits). It returns `response.error` (`Failure` with `.status` and `.message`), `finish_reason == 'failed'`, and empty text. Problems caught before the call raise: `GoogleAI()` raises `ValueError` without `GEMINI_API_KEY`; an unknown model, invalid key, or unknown config field raises `GenkitError`. See [Common Errors](references/common-errors.md).
 
 ## Agents (Experimental)
 
@@ -57,7 +62,14 @@ agent = ai.define_agent(
 
 chat = agent.chat()
 res = await chat.send('Recommend a quiet dinner spot.')  # AgentResponse
-turn = chat.send_stream('Is it open past 10pm?')         # AgentTurn — .stream / .response
+print(res.text)
+# => Try Osteria Lume on 5th; it has booths and low music.
+
+turn = chat.send_stream('Is it open past 10pm?')  # AgentTurn
+async for chunk in turn.stream:
+    if chunk.text:
+        print(chunk.text, end='')
+final = await turn.response  # AgentResponse
 ```
 
 More: [sessions](references/agents-sessions.md) ·
@@ -69,7 +81,7 @@ More: [sessions](references/agents-sessions.md) ·
 [custom](references/agents-custom.md) ·
 [HTTP](references/agents-http.md)
 
-## Imports (Single-Home 0.13 Layout)
+## Imports
 
 Every symbol lives in one public module (never import private `_` submodules; see [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md) if a 0.12 symbol moved):
 
@@ -81,16 +93,26 @@ Every symbol lives in one public module (never import private `_` submodules; se
 - **FastAPI & HTTP**: `from genkit_fastapi import serve_flow, genkit_fastapi_handler, handle_genkit_request` · `from genkit_fastapi.exp import serve_agent` · `from genkit.web import RequestData, to_sse, error_body, error_status`
 - **Agents (experimental)**: `from genkit.exp import Genkit, current_session` · `from genkit.exp.agent import Agent, Session, InMemorySessionStore, FileSessionStore, remote_agent`
 - **Telemetry**: `from genkit_google_cloud import enable_google_cloud_telemetry` · `from genkit.telemetry import configure_instrumentation` · `from genkit_otel import GenAiInstrumentation`
-- **Evaluators (deprecated; removed in 1.0)**: `from genkit_evaluators import register_genkit_evaluators` · `from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreDetails, ScoreStatus`
+- **Evaluators (0.13 only; cut from 1.0, additive later)**: `from genkit_evaluators import register_genkit_evaluators` · `from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreDetails, ScoreStatus`
 
 ## Workflow
 
 1. **Agent or flow?** Use `ai.define_agent` (on `genkit.exp.Genkit`, see [Agents](references/agents.md)) for multi-turn chats, state, or human-in-the-loop approval instead of hand-rolling a message loop inside a flow. Use `@ai.flow()` on `genkit.Genkit` for stateless request/response or streaming pipelines.
 2. **Configure credentials & model refs.** Set **`GEMINI_API_KEY`**. Prefer typed refs (`GoogleAI.gemini('gemini-flash-latest')`) and typed flat configs (`GeminiConfig(...)`) so your type checker validates fields before runtime. Prefixed strings (`'googleai/gemini-flash-latest'`) also work.
-3. **Enter via `ai.run_main(main())`** for standalone scripts and CLI apps so the reflection server stays alive under `genkit start`. FastAPI apps under `GENKIT_ENV=dev` can also run directly with `genkit start -- uvicorn main:app --reload`.
+3. **Enter via `ai.run_main(main())`** for standalone scripts and CLI apps so the process stays up for the Dev UI under `genkit start`. FastAPI apps skip `run_main`; uvicorn keeps the process alive: `genkit start -- uv run uvicorn main:app --reload`.
 4. **Run with [Dev Workflow](references/dev-workflow.md)** (`genkit start` + Dev UI) and type-check with `pyright`, `mypy`, or `ty`.
-5. **Verify with traces**, not a blind `uv run`. Running `uv run` directly skips local trace capture. See [Genkit CLI](#genkit-cli-recommended).
-6. **Stuck?** Check [Common Errors](references/common-errors.md) or [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md).
+5. **Verify with traces**, not a blind `uv run`. See [Genkit CLI](#genkit-cli-recommended).
+6. **Stuck?** Check [Gotchas](#gotchas), [Common Errors](references/common-errors.md), or [Migrating from 0.12 to 0.13](references/migrating-from-0.12.md).
+
+## Gotchas
+
+- **Agents need `genkit.exp`**: `from genkit.exp import Genkit`. Stable `genkit.Genkit` has no `define_agent`.
+- **Tools are async**: `@ai.tool()` raises `TypeError` on a plain `def`; use `async def`.
+- **Check `response.error`**: provider failures come back on the response, not as exceptions (see [Hello World](#hello-world)).
+- **Gemini thinking levels**: `GeminiConfig(thinking_level='MINIMAL')` fails on `gemini-flash-latest`; use `'LOW'`, `'MEDIUM'`, or `'HIGH'`.
+- **Vertex AI model IDs**: Vertex does not serve `-latest` aliases. Pass a pinned model ID to `VertexAI.gemini(...)`.
+- **Logging**: `genkit.get_logger` is structlog-based. `genkit-google-cloud` does not stamp trace IDs on log lines.
+- **Cloud telemetry auth**: call `enable_google_cloud_telemetry()` with Application Default Credentials; do not pass `credentials=`.
 
 ## Genkit CLI (recommended)
 

@@ -1,14 +1,14 @@
 # Genkit Python Examples
 
-Minimal 0.13 patterns for generation, structured output, streaming, media, flows, tools, interrupts, cancellation, and embeddings.
+Minimal patterns for generation, structured output, streaming, media, flows, tools, interrupts, cancellation, and embeddings.
 
 ## Public Imports & Initialization
 
 Import only from public modules (`genkit`, `genkit_google_genai`, `genkit_fastapi`, `genkit_middleware`, `genkit.model`, `genkit.embedder`, `genkit.middleware`, `genkit.web`, `genkit.exp`, `genkit.exp.agent`). Never import private `_` submodules.
 
 ```python
-from genkit import FlowContext, Genkit, ToolContext
-from genkit_google_genai import GeminiConfig, GoogleAI
+from genkit import Genkit
+from genkit_google_genai import GoogleAI
 
 ai = Genkit(
     plugins=[GoogleAI()],
@@ -20,13 +20,10 @@ For multi-turn stateful agents, import `Genkit` from `genkit.exp` and session ty
 
 ### Provider Model Refs & Typed Config
 
+Other providers follow the same `Plugin.helper('model-id')` + `<Plugin>Config` shape (import list in [SKILL.md](../SKILL.md#imports)).
+
 ```python
-from genkit_google_genai import GeminiConfig, GoogleAI, VertexAI
-from genkit_vertexai import ModelGarden
-from genkit_anthropic import Anthropic, AnthropicConfig
-from genkit_openai import OpenAI, OpenAIConfig
-from genkit_ollama import Ollama, OllamaConfig
-from genkit_amazon_bedrock import Bedrock, BedrockConfig
+from genkit_google_genai import GeminiConfig, GoogleAI
 
 # Typed config with flat fields + `extra` escape hatch for unmodeled provider fields
 res = await ai.generate(
@@ -121,7 +118,7 @@ recipe = final.output  # RecipeCard | None
 
 ## Media Input & Output (`Part`)
 
-Construct parts with `Part.from_text(...)` and `Part.from_media(...)` (`MediaPart`, `TextPart`, and `Part(root=...)` were removed in 0.13). Inspect parts via `part.text` and `part.media`.
+Construct parts with `Part.from_text(...)` and `Part.from_media(...)`. Inspect parts via `part.text` and `part.media`.
 
 ### Sending Image / Media Input
 
@@ -150,7 +147,7 @@ Media URLs larger than **20 MB** fail instead of downloading into memory, and `O
 ### Generating Image / Audio / Video Output
 
 ```python
-from genkit_google_genai import GeminiImageConfig, GeminiTtsConfig, GoogleAI
+from genkit_google_genai import GeminiImageConfig, GeminiTtsConfig, GoogleAI, VertexAI
 
 # Image generation (Imagen catalog is retired; use gemini_image)
 img_res = await ai.generate(
@@ -174,9 +171,9 @@ tts_res = await ai.generate(
     config=GeminiTtsConfig(voice='Kore'),
 )
 
-# Background video generation (Veo)
+# Background video generation (Veo via Vertex AI)
 op = await ai.generate_operation(
-    model=GoogleAI.veo('veo-3.1-generate-preview'),
+    model=VertexAI.veo('veo-3.1-generate-preview'),
     prompt='Aerial shot of coastal cliffs at sunrise.',
 )
 while not op.done:
@@ -253,18 +250,20 @@ res = await ai.generate(
 
 ### Tool Interrupts (Human-in-the-Loop)
 
-`ctx.interrupt(...)` (or a tool registered via `ai.define_interrupt(...)`) raises `Interrupt`, which subclasses `BaseException` so `except Exception:` inside a tool will not swallow it. Resume using `intr.restart(...)` or `intr.respond(...)`:
+Raise `Interrupt(...)` inside a tool (or register a tool via `ai.define_interrupt(...)`) to pause the generate loop. `Interrupt` subclasses `BaseException`, so `except Exception:` inside a tool will not swallow it. Resume using `intr.restart(...)` or `intr.respond(...)`:
 
 ```python
+from genkit import Interrupt
+
 class RefundInput(BaseModel):
     order_id: str
     amount_cents: int
 
 @ai.tool()
 async def issue_refund(input: RefundInput, ctx: ToolContext) -> dict:
-    if not ctx.resumed:
-        ctx.interrupt({'order_id': input.order_id, 'amount_cents': input.amount_cents})
-    return {'refunded': True, 'approved_by': ctx.resumed}
+    if not ctx.is_resumed():
+        raise Interrupt({'order_id': input.order_id, 'amount_cents': input.amount_cents})
+    return {'refunded': True, 'approved_by': (ctx.resumed_metadata or {}).get('manager')}
 
 turn1 = await ai.generate(prompt='Refund $25 (2500 cents) on ORD-104.', tools=[issue_refund])
 if turn1.interrupts:
@@ -279,7 +278,7 @@ if turn1.interrupts:
 
 ## Cancellation
 
-`ctx.abort_signal` is gone in 0.13. Cancellation uses standard `asyncio.CancelledError`:
+Cancellation uses standard `asyncio.CancelledError`; it reaches model calls, retry backoff, and running tools at any `await`:
 
 ```python
 import asyncio
@@ -310,7 +309,7 @@ async def hold_inventory(sku: str) -> dict:
 
 ## Embeddings
 
-Use `.embedder(...)` (renamed from `.embedding(...)`) and `config=` (renamed from `options=`):
+Build embedder refs with `.embedder(...)` and pass provider options in `config=`:
 
 ```python
 from genkit import Document

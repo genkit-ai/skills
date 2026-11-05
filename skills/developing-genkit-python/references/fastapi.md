@@ -15,7 +15,7 @@ Imports are split between stable flow serving and experimental agent serving:
 - **Experimental agents (`genkit_fastapi.exp`)**:
   - `serve_agent` — mount an experimental `Agent` (`genkit.exp.Genkit`) as an `APIRouter` (see [Agent HTTP](agents-http.md))
 - **Framework-agnostic web utilities (`genkit.web`)**:
-  - `RequestData`, `ContextProvider`, `to_sse`, `read_body`, `wants_stream`, `result_json`, `error_body`, `error_json`, `error_sse`, `error_status`
+  - `RequestData`, `ContextProvider`, `StreamHandle`, `to_sse`, `read_body`, `wants_stream`, `result_json`, `error_body`, `error_json`, `error_sse`, `error_status`
 
 ---
 
@@ -49,7 +49,9 @@ async def lookup_reservation(code: str) -> dict:
 
 
 app = FastAPI()
-# Mounts POST /api/conciergeAgent and POST /api/lookup_reservation (override path via base_path=...)
+# Paths default to the agent name and the flow's Python function name (override via base_path=...):
+#   POST /api/conciergeAgent (+ /getSnapshot and /abort, since the agent has a store)
+#   POST /api/lookup_reservation
 app.include_router(serve_agent(concierge), prefix='/api')
 app.include_router(serve_flow(lookup_reservation), prefix='/api')
 
@@ -68,9 +70,9 @@ If your app only serves flows (no agents), import `Genkit` from `genkit` instead
 With `GENKIT_ENV=dev` (which `genkit start` sets automatically), the Dev UI reflection server starts on a background thread, so either entrypoint works:
 
 ```bash
-genkit start -- uvicorn main:app --reload   # reload-friendly ASGI dev server + Dev UI
-genkit start -- uv run src/main.py          # driven via ai.run_main(main()) + Dev UI
-uvicorn main:app                            # production (no Dev UI)
+genkit start -- uv run uvicorn main:app --reload   # reload-friendly ASGI dev server + Dev UI
+genkit start -- uv run src/main.py                 # driven via ai.run_main(main()) + Dev UI
+uvicorn main:app                                   # production (no Dev UI)
 ```
 
 ---

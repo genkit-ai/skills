@@ -53,7 +53,7 @@ Key `define_agent` keyword arguments:
 - **`config`**: typed config such as `GeminiConfig(thinking_level='HIGH')` or `AnthropicConfig(thinking='adaptive', effort='high')`
 - **`use`**: middleware instances (`Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`, `Artifacts`, `Surfaces`)
 - **`state_schema`**: Pydantic `BaseModel` typing `chat.state`, `res.state`, and `chunk.custom` ([state](agents-state.md))
-- **`max_turns`**: tool-loop ceiling per user message
+- **`max_turns`**: tool-loop ceiling per user message (default 50)
 - **`state_transform` / `chunk_transform`**: egress hooks that redact client views without altering stored state
 
 For `.prompt` files or `ai.define_prompt(...)`, wire the registered prompt name directly with `ai.define_prompt_agent(name='greeterPrompt', store=...)`. For custom turn loops, use [`ai.define_custom_agent(...)`](agents-custom.md).
@@ -93,9 +93,9 @@ async def prepare_order(dish: str, ctx: ToolContext[PrepProgress]) -> MultipartT
 Import standard middleware from `genkit_middleware`, session-bound `Artifacts` from `genkit_middleware.exp`, and generative UI `Surfaces` from `genkit_a2ui`. Register `Middleware()` in `plugins=[...]` when you want standard middleware listed in the Dev UI or referenced by `.prompt` files; passing instances in `use=[...]` works either way.
 
 - **`Filesystem`** (`genkit_middleware`): `list_files` and `read_file` scoped to `root_dir`; pass `allow_write_access=True` to add `write_file` and `edit_file`.
-- **`ToolApproval`** (`genkit_middleware`): tools in `allowed_tools` run automatically; all other tools pause the turn with an interrupt ([HITL](agents-human-in-the-loop.md)). Place `ToolApproval` before `Filesystem` or `Artifacts` in `use=[...]` so writes intercept before executing.
+- **`ToolApproval`** (`genkit_middleware`): tools in `allowed_tools` run automatically; all other tools pause the turn with an interrupt ([HITL](agents-human-in-the-loop.md)). It gates every tool call, including the ones `Filesystem` and `Artifacts` add.
 - **`Skills`** (`genkit_middleware`): injects `SKILL.md` descriptions and exposes `use_skill`.
-- **`Retry` / `Fallback`** (`genkit_middleware`): retries transient classified provider failures (`UNAVAILABLE`, `RESOURCE_EXHAUSTED`) or falls back to alternate models.
+- **`Retry` / `Fallback`** (`genkit_middleware`): `Retry` retries transient failures (`UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `ABORTED`, `INTERNAL` by default); `Fallback` switches to alternate models.
 - **`Artifacts`** (`genkit_middleware.exp`): adds `read_artifact` and `write_artifact` tools plus an active artifact listing in the system prompt ([artifacts](agents-artifacts.md)).
 - **`Surfaces`** (`genkit_a2ui`): A2UI surface instructions, validation, and part parsing.
 
@@ -162,9 +162,9 @@ if __name__ == '__main__':
 
 Genkit separates turn failures from call failures:
 
-- **Turn failure (`res.error`)**: When an agent turn starts and fails at runtime, `chat.send(...)` does **not** raise. It returns `AgentResponse` with `res.finish_reason == AgentFinishReason.FAILED`, `res.text == ''`, and `res.error` (`Failure` with `status`, `message`, `details`, and `reason: ErrorReason`). The chat rolls back the unanswered user prompt and keeps `chat.snapshot_id` on the last completed snapshot so the next `send()` continues cleanly.
-- **Pre-turn / transport failure (`GenkitError`)**: When no turn runs at all (dropped HTTP connection, or `AgentInitError` from passing `snapshot_id` to a storeless agent), `chat.send(...)` raises `GenkitError` directly and restores local chat state.
-- **Cancellation**: Cancellation uses native `asyncio.CancelledError` (there is no abort-signal object on `ToolContext`), interrupting model calls, retry backoffs, and running tools at any `await`. Put partial-work cleanup inside `try` / `finally` in tools (and re-raise `CancelledError` if caught). Use `await turn.abort()` for a client-side stream detach, or `await task.abort()` / `await chat.abort()` to cancel server-side work ([background](agents-background.md)).
+- **Turn failure (`res.error`)**: When an agent turn starts and fails at runtime, `chat.send(...)` does **not** raise. It returns `AgentResponse` with `res.finish_reason == AgentFinishReason.FAILED`, `res.text == ''`, and `res.error` (`Failure` with `status`, `message`, `details`, and `reason: ErrorReason`). The chat drops the unanswered user prompt from `chat.messages`, and the next `send()` continues from the last completed snapshot.
+- **No turn result (`GenkitError`)**: When no turn runs at all (dropped HTTP connection, or `AgentInitError` from passing `snapshot_id` to a storeless agent), `chat.send(...)` raises `GenkitError` and restores local chat state. Mismatched init arguments (a `state` blob to a store-backed agent, or `messages`/`state` mixed with a resume id) raise `AgentInitError` from `agent.chat(...)` itself.
+- **Cancellation**: native `asyncio.CancelledError`; put tool cleanup in `try` / `finally`. `await turn.abort()` detaches the client stream only. To cancel a running turn server-side, start it with `chat.detach(...)` and call `await task.abort()`; `chat.abort()` during a foreground `send()` does not stop that turn ([background](agents-background.md#client-detach-vs-server-cancellation)).
 
 ```python
 from genkit import ErrorReason, GenkitError

@@ -57,55 +57,64 @@ agent = ai.define_agent(
 
 Each entry in `res.interrupts` is an `AgentInterrupt` exposing `.name`, `.ref`, and `.input` for rendering your approval UI, plus two methods that build `Part` objects for `chat.resume(...)`:
 
-- **`intr.restart(resumed_metadata={'tool_approved': True})`**: re-runs the interrupted tool on the server (`ctx.is_resumed()` becomes `True`). `ToolApproval` checks `tool_approved` (or `toolApproved`) in `resumed_metadata`. Restart inputs are locked to the original tool request in session history — forged or modified arguments raise `GenkitError` (`INVALID_ARGUMENT`).
-- **`intr.respond(output)`**: supplies a `Part` tool response directly without executing the tool. Use this to deny an action (e.g. `intr.respond({'ok': False, 'error': 'declined by user'})`) or answer a prompt-style interrupt created with `ai.define_interrupt(...)`.
+- **`intr.restart(resumed_metadata={'tool_approved': True})`**: re-runs the interrupted tool on the server (`ctx.is_resumed()` becomes `True`). `ToolApproval` checks `tool_approved` (or `toolApproved`) in `resumed_metadata`. Restart inputs must exactly match the original tool request in session history; a forged or modified restart returns a failed turn (`AgentFinishReason.FAILED`, `res.error.status == 'INVALID_ARGUMENT'`) instead of running the tool.
+- **`intr.respond(output)`**: builds a tool response `Part` without executing the tool. Use this to deny an action (e.g. `intr.respond({'ok': False, 'error': 'declined by user'})`) or answer a prompt-style interrupt created with `ai.define_interrupt(...)`.
+
+A resumed turn can call more tools that also need approval, so loop until the turn stops interrupting:
 
 ```python
 async def main() -> None:
     chat = agent.chat()
 
     # 1. Turn pauses before transferMoney executes
-    out1 = await chat.send('Transfer $500 to account 12345 for rent.')
-    assert out1.finish_reason == AgentFinishReason.INTERRUPTED
+    res = await chat.send('Transfer $500 to account 12345 for rent.')
 
-    # 2. Approve all pending interrupts and resume
-    restart_parts: list[Part] = [
-        intr.restart(resumed_metadata={'tool_approved': True})
-        for intr in out1.interrupts
-    ]
-    out2 = await chat.resume(restart=restart_parts)
-    assert out2.finish_reason == AgentFinishReason.STOP
-    print(out2.text)
+    # 2. Approve pending interrupts until the turn finishes
+    while res.finish_reason == AgentFinishReason.INTERRUPTED:
+        for intr in res.interrupts:
+            print(f'Approving {intr.name}: {intr.input}')
+            # => Approving transferMoney: {'amount': 500, 'toAccount': '12345'}
+        restart_parts: list[Part] = [
+            intr.restart(resumed_metadata={'tool_approved': True})
+            for intr in res.interrupts
+        ]
+        res = await chat.resume(restart=restart_parts)
+
+    # 3. Read the final reply (check res.error if the turn failed)
+    print(res.finish_reason, res.text)
+    # => stop $500 has been successfully transferred to account 12345.
 
 
 if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-Streaming resumes and mixed decisions work the same way:
+Denials and streaming resumes use the same parts (`res` is an interrupted turn):
 
 ```python
 # Deny without executing the tool:
 denied = await chat.resume(
-    respond=[intr.respond({'ok': False, 'error': 'transfer declined'}) for intr in out1.interrupts],
+    respond=[intr.respond({'ok': False, 'error': 'transfer declined'}) for intr in res.interrupts],
 )
 
-# Stream the resumed turn:
-turn = chat.resume_stream(restart=restart_parts)
+# Or approve and stream the resumed turn:
+turn = chat.resume_stream(
+    restart=[intr.restart(resumed_metadata={'tool_approved': True}) for intr in res.interrupts],
+)
 async for chunk in turn.stream:
     if chunk.text:
         print(chunk.text, end='', flush=True)
 final = await turn.response
 ```
 
-Always loop while `res.interrupts` is non-empty, as a resumed turn can trigger follow-up tool calls that also require approval. Without a store, keep the same `chat` instance or round-trip `messages`, `state`, and `artifacts` ([without a store](agents.md#without-a-store)).
+Without a store, keep the same `chat` instance or round-trip `messages`, `state`, and `artifacts` ([without a store](agents.md#without-a-store)).
 
 ## Custom tool interrupts and `Interrupt` (`BaseException`)
 
 For domain-specific thresholds (such as only pausing transfers above `$1,000`), raise `Interrupt` directly inside a tool or register a dedicated prompt tool with `ai.define_interrupt(...)`:
 
 - **`Interrupt` subclasses `BaseException`**, not `Exception` (like `asyncio.CancelledError`). A `try ... except Exception:` block inside a tool will **not** swallow an `Interrupt` and accidentally let execution proceed without approval. Only catch `Interrupt` explicitly if intended, and always re-raise it.
-- Read `ctx.is_resumed()` and `ctx.resumed_metadata` on `ToolContext` when the caller resumes with `intr.restart(resumed_metadata=...)`.
+- Read `ctx.is_resumed()` and `ctx.resumed_metadata` on `ToolContext` when the caller resumes with `intr.restart(resumed_metadata=...)`. The keys are yours: the tool below expects `intr.restart(resumed_metadata={'approved': True})`.
 
 ```python
 from genkit import Interrupt, ToolContext
@@ -114,7 +123,7 @@ from genkit import Interrupt, ToolContext
 @ai.tool(name='wireTransfer', description='Send an external wire transfer.')
 async def wire_transfer(input: TransferInput, ctx: ToolContext) -> dict[str, object]:
     if input.amount > 1000 and not ctx.is_resumed():
-        # Subclasses BaseException — bypasses `except Exception:` handlers cleanly
+        # BaseException: an `except Exception:` block can't swallow it
         raise Interrupt({'reason': 'high_value_transfer', 'amount': input.amount})
 
     if ctx.is_resumed() and not (ctx.resumed_metadata or {}).get('approved'):
@@ -136,5 +145,6 @@ ask_confirmation = ai.define_interrupt(
     description='Ask the user to confirm before irreversible actions.',
     input_schema=ConfirmInput,
 )
-# Answer in chat.resume(respond=[intr.respond({'confirmed': True})])
+# Add to the agent's tools=[...], then answer with:
+# chat.resume(respond=[intr.respond({'confirmed': True}) for intr in res.interrupts])
 ```

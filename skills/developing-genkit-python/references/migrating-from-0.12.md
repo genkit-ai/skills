@@ -1,10 +1,10 @@
 # Migrating from Genkit Python 0.12 to 0.13
 
-Genkit Python 0.13 aligns every symbol, signature, and error contract ahead of 1.0 without deprecation aliases. Use this reference when upgrading a 0.12 codebase or replacing 0.12 patterns (`ActionRunContext`, `ToolRunContext`, `*_model()`, `GeminiConfigSchema`, `options=`, `abort_signal`, `restart_tool`, `RuntimeErrorReason`, `add_gcp_telemetry`, `MediaPart`, `TextPart`, `genkit.agent`, or `genkit.exp import Agent`).
+Genkit Python 0.13 aligns every symbol, signature, and error contract ahead of 1.0 without deprecation aliases. Use this reference when upgrading a 0.12 codebase or replacing 0.12 patterns (`ActionRunContext`, `ToolRunContext`, `*_model()`, `GeminiConfigSchema`, `options=`, `abort_signal`, `restart_tool`, `RuntimeErrorReason`, `add_gcp_telemetry`, `MediaPart`, `TextPart`, or `from genkit.exp import Agent`).
 
 ## Agent Guardrails Before Editing
 
-1. **Stop before porting evaluators.** Evaluators (`define_evaluator`, `ai.evaluate`, `genkit.evaluator`, `genkit-evaluators`) still run in 0.13 (`genkit<1`), and **Genkit 1.0 (the next release) removes them** while evaluators are redesigned across all Genkit SDKs. If the project contains evaluator code, stop and ask the developer before porting it. Recommend deleting evaluator code now; apply the 0.13 renames below only if the developer chooses to stay pinned to `0.13.*`.
+1. **Stop before porting evaluators.** Evaluators (`define_evaluator`, `ai.evaluate`, `genkit.evaluator`, `genkit-evaluators`) still run in 0.13, but this is their last release: **Genkit 1.0 cuts them from the 1.0 release** (evaluation will return as an additive feature in a later release; `genkit-evaluators` 0.13 requires `genkit<1`). If the project contains evaluator code, stop and ask the developer before porting it. Recommend deleting evaluator code now; apply the 0.13 renames below only if the developer chooses to stay pinned to `0.13.*`.
 2. **Audit HTTP-served error paths.** Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, `handle_genkit_request`, `genkit_flask_handler`, `genkit_django_handler`, `genkit.web`), `GenkitError` and unhandled exceptions now return `500 {"status": "INTERNAL", "message": "Internal Error"}`. Convert errors meant for callers (404, 401/403, domain validation) to `PublicError(status, message, details)`. Ask the developer before exposing any error message whose contents might include internal data or tenant state.
 3. **Audit silent behavior changes.** Type checkers catch symbol renames and signatures, not runtime behavior changes:
    - Search for `{{` inside `ai.generate(prompt=..., system=...)` — strings there are now sent literally instead of rendered as Handlebars templates.
@@ -35,15 +35,15 @@ uv add 'genkit==0.13.*' 'genkit-google-genai==0.13.*'  # include every genkit-* 
 Every public symbol lives in one module listed in its `__all__`. Plugin submodules (such as `genkit_openai.models` or `genkit_vertexai.model_garden`) are private; import from each plugin's top-level package (`genkit_google_genai`, `genkit_vertexai`, `genkit_openai`, etc.).
 
 - **`genkit`**: application code (`Genkit`, `Message`, `Role`, `Part`, `Media`, `Document`, `ToolChoice`, `ModelResponse`, `ModelResponseChunk`, `ModelStreamResponse`, `StreamResponse`, `FinishReason`, `Failure`, `ErrorReason`, `GenkitError`, `PublicError`, `Flow`, `FlowContext`, `Tool`, `ToolContext`, `Interrupt`, `MultipartToolResponse`, `Prompt`, `Embedding`, `Operation`, `GenkitLogger`, `get_logger`).
-- **`genkit.model`**: custom models and model inspection (`Model`, `ModelRef`, `BackgroundModel`, `ModelContext`, `ModelRequest`, `ModelInfo`, `ModelSupports`, `ModelStage`, `GenerationUsage`, `ConstrainedSupport`).
+- **`genkit.model`**: custom models and model inspection (`Model`, `ModelRef`, `BackgroundModel`, `ModelContext`, `ModelRequest`, `ModelInfo`, `ModelSupports`, `ModelStage`, `GenerationUsage`, `ConstrainedSupport`, `ModelConfig`).
 - **`genkit.embedder`**: custom embedders (`Embedder`, `EmbedderRef`, `EmbedRequest`, `EmbedResponse`, `EmbedderInfo`, `EmbedderSupports`).
 - **`genkit.evaluator`**: evaluator types (`Evaluator`, `BatchEvaluator`, `BaseDataPoint`, `EvaluatorResponse`, `Score`, `ScoreDetails`, `ScoreStatus`).
-- **`genkit.middleware`**: writing custom middleware (`Middleware`, `MiddlewareContext`, `GenerateHookParams`, `ModelHookParams`, `ToolHookParams`, `NextGenerate`, `NextModel`, `NextTool`). Note: the `Middleware()` plugin that registers `Retry`, `Fallback`, `ToolApproval`, `Skills`, and `Filesystem` lives in `genkit_middleware`.
+- **`genkit.middleware`**: writing custom middleware (`Middleware`, `MiddlewareContext`, `GenerateHookParams`, `ModelHookParams`, `ToolHookParams`). Note: the `Middleware()` plugin that registers `Retry`, `Fallback`, `ToolApproval`, `Skills`, and `Filesystem` lives in `genkit_middleware`.
 - **`genkit.formats`**: custom output formatters (`Formatter`, `FormatterConfig`, `FormatHandler`).
 - **`genkit.plugin_api`**: writing plugins (`Plugin`, `Action`, `ActionKind`, `GenkitConfig`, `provider_error`, `loop_local_client`, `GENKIT_USER_AGENT`).
 - **`genkit.web`**: HTTP serving helpers (`RequestData`, `ContextProvider`, `to_sse`, `read_body`, `wants_stream`, `result_json`, `error_body`, `error_json`, `error_sse`, `error_status`).
 - **`genkit.telemetry`**: custom tracing (`Instrumentation`, `SpanContext`, `configure_instrumentation`).
-- **`genkit.testing`**: test doubles (`EchoModel`, `ProgrammableModel`, `define_echo_model`, `define_programmable_model`).
+- **`genkit.testing`**: test doubles (`EchoModel`, `ScriptedModel`, `StaticResponseModel`, `define_echo_model`, `define_scripted_model`, `define_static_response_model`).
 - **`genkit.exp` & `genkit.exp.agent`**: experimental agent APIs (`from genkit.exp import Genkit, current_session`; `from genkit.exp.agent import Agent, Session, InMemorySessionStore, FileSessionStore, remote_agent`).
 
 Look up any moved symbol directly from the installed environment:
@@ -77,8 +77,7 @@ from genkit.model import ConstrainedSupport, GenerationUsage, ModelStage, ModelS
 
 ```python
 # Old (0.12)
-from genkit.agent import InMemorySessionStore
-from genkit.exp import Agent, AgentError, Session
+from genkit.exp import Agent, AgentError, InMemorySessionStore, Session
 from genkit_fastapi import serve_agent
 from genkit_middleware import Artifacts
 
@@ -90,7 +89,7 @@ from genkit_middleware.exp import Artifacts
 from genkit_google_cloud.exp import FirestoreSessionStore
 ```
 
-`define_agent`, `define_custom_agent`, `define_prompt_agent`, and `@ai.agent()` exist on `genkit.exp.Genkit`, not `genkit.Genkit`. `AgentError` is removed: a failed turn sets `res.error` (`Failure`), and a call that produces no turn raises `GenkitError`.
+`define_agent`, `define_custom_agent`, `define_prompt_agent`, and `@ai.agent()` exist on `genkit.exp.Genkit`, not `genkit.Genkit`. `AgentError` is removed: a failed turn sets `res.error` (`Failure`), and a call that produces no turn raises `GenkitError`. Tools in a detached turn are cancelled with `await task.abort()` instead of polling `abort_signal`.
 
 ---
 
@@ -189,7 +188,7 @@ Bedrock(region='us-east-1', models=['us.amazon.nova-lite-v1:0'])
 
 ```python
 # Old (0.12)
-from genkit_google_genai import GeminiConfigSchema, GeminiTtsConfigSchema
+from genkit_google_genai import GeminiConfigSchema, GeminiImageConfigSchema, GeminiTtsConfigSchema, GemmaConfigSchema
 config = {'thinking_config': {'thinking_level': 'HIGH', 'include_thoughts': True}}
 config = {'google_search_retrieval': True}
 config = {'speech_config': {'voice_config': {'prebuilt_voice_config': {'voice_name': 'Kore'}}}}
@@ -215,6 +214,7 @@ cfg_adaptive = AnthropicConfig(thinking='adaptive', effort='high', task_budget=2
 - **Config layering**: defaults merge key-by-key (`ModelRef` < `Prompt` < call). Pass `None` for a field to clear an inherited key.
 - **`tool_choice` on `generate`**: moved out of `config` onto `ai.generate(...)`:
   ```python
+  # Old (0.12): config={'tool_choice': {'type': 'any'}}
   await ai.generate(prompt='Check weather in Tokyo.', tools=[get_weather], tool_choice='required')  # 'auto' | 'required' | 'none'
   ```
 - **`options=` -> `config=` on `embed` and `evaluate`**:
@@ -233,7 +233,7 @@ cfg_adaptive = AnthropicConfig(thinking='adaptive', effort='high', task_budget=2
 
 ### Typed Contexts (`FlowContext`, `ToolContext`, `ModelContext`)
 
-`ActionRunContext` and `ToolRunContext` are removed from `genkit`. Chunk types move from `@ai.flow(chunk_type=...)` into the generic parameter on `FlowContext` / `ToolContext`. Every action accepts at most one input parameter plus an optional typed context.
+`ActionRunContext` and `ToolRunContext` are removed from `genkit`. Chunk types move from `@ai.flow(chunk_type=...)` into the generic parameter on `FlowContext` / `ToolContext`. Every action accepts at most one input parameter plus an optional typed context; Genkit finds the context by its type annotation. The new contexts subclass `ActionRunContext`, so an old annotation still type-checks once the import is fixed.
 
 ```python
 from pydantic import BaseModel
@@ -261,6 +261,10 @@ async def my_model_fn(request: ModelRequest, ctx: ModelContext) -> ModelResponse
     ...
 ```
 
+### Multipart Tool Responses
+
+`from genkit import response` is removed. Replace `response({'ok': True}, parts=[png])` with `MultipartToolResponse(output={'ok': True}, content=[png])` (see `capture_chart` above).
+
 ### Interrupts
 
 - `restart_tool` and `respond_to_interrupt` are replaced by methods on the interrupt `Part`:
@@ -276,7 +280,7 @@ async def my_model_fn(request: ModelRequest, ctx: ModelContext) -> ModelResponse
 
 ### Native `asyncio` Cancellation
 
-`ctx.abort_signal` is removed. Cancellation uses standard `asyncio.CancelledError`, propagating into model requests, retry sleeps, and running tools.
+`ctx.abort_signal` is removed. Delete `if ctx.abort_signal.is_set(): raise ...` checks; cancellation uses standard `asyncio.CancelledError`, propagating into model requests, retry sleeps, and running tools at any `await`. If a tool catches `asyncio.CancelledError`, it must re-raise it.
 
 ```python
 import asyncio
@@ -290,7 +294,7 @@ task.cancel()
 async with plan_trip.stream('Kyoto') as stream:
     async for chunk in stream:
         if chunk.step == 'searching flights':
-            break  # cancels plan_trip
+            break  # cancels plan_trip; stream.response raises CANCELLED
 
 # Put partial-work cleanup in `finally` inside tools
 @ai.tool()
@@ -312,6 +316,7 @@ async def reserve_table(party_size: int) -> dict:
 - **Returned errors (`Failure`)**: `res.error`, `operation.error`, and `agent_res.error` are typed `Failure` (`from genkit import ErrorReason, Failure`) with `.status`, `.message`, `.details`, and `.reason`. `RuntimeErrorReason` is renamed to `ErrorReason`.
 - **Raised errors (`GenkitError`)**: `e.original_message`, `e.http_code`, `e.trace_id`, and `e.cause` are removed. Read `e.message`, `e.status`, `e.details`, `e.reason`, and `e.__cause__`.
 - **Plugin exception classes removed**: classes like `OllamaConnectionError` are gone; inspect `e.status` (e.g. `if e.status == 'UNAVAILABLE':`).
+- **Action exceptions are unwrapped**: `await my_flow.run(x)` raises the exception the body raised. Replace `except GenkitError` wrappers that were catching your own exception types with those types directly. `Retry` and `Fallback` only retry failures a plugin classified (such as `UNAVAILABLE`).
 
 ### HTTP Serving & `PublicError`
 
@@ -319,6 +324,11 @@ In-process calls (`await my_flow(x)`, `await my_flow.run(x)`) see full unwrapped
 - **`PublicError(status, message, details)`**: returns the matching HTTP status (e.g. `NOT_FOUND` -> 404, `UNAUTHENTICATED` -> 401, `PERMISSION_DENIED` -> 403) with `status`, `message`, and `details`.
 - **Invalid top-level flow input**: returns 400 with field names and Pydantic's built-in messages (custom validator strings are replaced with `Invalid value` unless the validator raises `PublicError`).
 - **All other `GenkitError`s, provider errors, and Python exceptions**: logged server-side with traceback and returned to the client as `500 {"status": "INTERNAL", "message": "Internal Error"}`.
+- **Streaming**: the same body arrives inside a `data: {"error": {...}}` SSE frame.
+
+Everything in a `PublicError`'s `message` and `details` reaches the client verbatim; keep secrets and other tenants' IDs out of it.
+
+**Context providers**: `RequestData` moves from `genkit.plugin_api` to `genkit.web` and exposes `.method`, `.headers`, and `.input` on Flask, FastAPI, and Django. Replace framework-specific reads like `req.request.META.get('HTTP_AUTHORIZATION')` with `req.headers.get('authorization')`.
 
 ```python
 from genkit import PublicError
@@ -352,7 +362,7 @@ For hand-written HTTP routes that call `my_flow.run(...)` directly, serialize er
   if res.output is None:
       raise RuntimeError(f'Structured output failed: {res.error}')
   ```
-- **Flow I/O validation**: flow inputs and return values are validated against their type annotations; `{"data": null}` over HTTP uses the parameter default.
+- **Flow I/O validation**: flow inputs and return values are validated against their type annotations, so a flow that returns the wrong shape raises; `{"data": null}` over HTTP uses the parameter default.
 - **Media URL limit**: media URLs over 20 MB fail instead of downloading into memory.
 - **Telemetry**:
   ```python
@@ -371,10 +381,14 @@ For hand-written HTTP routes that call `my_flow.run(...)` directly, serialize er
 
 ```python
 # Custom middleware: BaseMiddleware -> Middleware, GenerateMiddlewareContext -> MiddlewareContext
+from pydantic import BaseModel
 from genkit.middleware import Middleware, MiddlewareContext
 
+class PiiRedactConfig(BaseModel):
+    mask: str = '[REDACTED]'
+
 @ai.middleware
-class PiiRedact(Middleware[Cfg]):
+class PiiRedact(Middleware[PiiRedactConfig]):
     name = 'pii_redact'
 
     async def model(self, params, ctx: MiddlewareContext, next_fn):
@@ -382,14 +396,28 @@ class PiiRedact(Middleware[Cfg]):
 ```
 
 - `GenerateMiddleware`, `MiddlewareRef`, `MiddlewarePlugin`, and `new_middleware` are removed; `Middleware.tools()` returns `Tool` handles.
-- Model/embedder plugin types moved from `genkit.plugin_api` to `genkit.model` (`Model`, `ModelRef`, `BackgroundModel`), `genkit.embedder` (`Embedder`, `EmbedderRef`), and `genkit.formats` (`Formatter`, `FormatterConfig`, `FormatHandler`), with `GenkitConfig`, `provider_error`, `loop_local_client`, and `GENKIT_USER_AGENT` in `genkit.plugin_api`.
-- `Plugin.resolve(kind, name)` now receives `name` **without** the `'myplugin/'` prefix. `Plugin.model()`, `Plugin.embedder()`, and `Supports.context` are removed.
+- Removed `genkit.plugin_api` helpers and their replacements:
+  ```python
+  # Old (0.12)
+  from genkit.plugin_api import model, model_ref, background_model, embedder, embedder_ref, ModelConfig
+  from genkit.plugin_api import wrap_http_error, from_http_code, parse_retry_after_ms
+  from genkit.plugin_api import get_cached_client, GENKIT_CLIENT_HEADER, GENKIT_VERSION, tracer, add_custom_exporter
+
+  # New (0.13)
+  from genkit import get_logger
+  from genkit.embedder import Embedder, EmbedderRef
+  from genkit.model import BackgroundModel, Model, ModelConfig, ModelRef
+  from genkit.plugin_api import GENKIT_USER_AGENT, GenkitConfig, loop_local_client, provider_error
+  from genkit.telemetry import Instrumentation, configure_instrumentation
+  ```
+- Custom formatters import `Formatter`, `FormatterConfig`, and `FormatHandler` from `genkit.formats`.
+- `Plugin.resolve(kind, name)` now receives `name` **without** the `'myplugin/'` prefix. `Plugin.model()`, `Plugin.embedder()`, and `Supports.context` are removed. `generate_operation` receives only what a background start uses.
 
 ---
 
 ## 10. Evaluators (0.13 Only — Removed in 1.0)
 
-Apply only if the developer explicitly confirms keeping evaluators pinned to `genkit==0.13.*`:
+Apply only if the developer explicitly confirms keeping evaluators pinned to `genkit==0.13.*`. Renames: `EvalFnResponse` -> `EvaluatorResponse`, `EvalStatusEnum` -> `ScoreStatus`, `Details` -> `ScoreDetails`; `evaluation` is now a `list[Score]`; `ai.define_evaluator(name=..., fn=...)` becomes positional `(name, fn)`; `display_name=` and `definition=` stay required keywords. `EvaluatorResponse` requires `test_case_id`.
 
 ```python
 from genkit.evaluator import BaseDataPoint, EvaluatorResponse, Score, ScoreDetails, ScoreStatus
@@ -407,7 +435,7 @@ async def exact_match(dp: BaseDataPoint, _options: object = None) -> EvaluatorRe
         ],
     )
 
-# Positional (name, fn); keyword-only display_name / definition
+# Positional (name, fn); display_name and definition are required keywords
 ai.define_evaluator('byo/exact_match', exact_match, display_name='Exact Match', definition='Exact string match.')
 
 # options= -> config=; returns list[EvaluatorResponse] directly (no .root)
@@ -419,6 +447,6 @@ results = await ai.evaluate(evaluator='byo/exact_match', dataset=rows, config={}
 ## 11. Verification Checklist
 
 1. Run the project's type checker (`pyright`, `mypy`, or `ty`) — catches moved imports, enum-to-`Literal` arguments, keyword-only calls, `FlowContext`/`ToolContext` generics, and `OutputT | None` checks on `response.output`.
-2. Grep for `{{` inside `ai.generate(` calls and move templates to `ai.define_prompt` or `.prompt` files.
+2. Grep for `{{` inside `ai.generate(` calls and move templates to `ai.define_prompt` or `.prompt` files. Grep for reads of `response.output` that assume it is never `None`.
 3. Grep for `GenkitError` inside HTTP-served flows and context providers; convert caller-facing errors to `PublicError`.
 4. Run the test suite.

@@ -48,6 +48,35 @@ uv add 'genkit==0.13.*' 'genkit-google-genai==0.13.*'
 
 ## Step 4 — Start the Dev UI
 
+The examples below use this `src/main.py`:
+
+```python
+from pydantic import BaseModel
+
+from genkit import Genkit
+
+ai = Genkit()
+
+
+class OrderInput(BaseModel):
+    text: str
+
+
+@ai.flow()
+async def order_flow(inp: OrderInput) -> str:
+    return f'order: {inp.text}'
+
+
+async def main() -> None:
+    print(await order_flow(OrderInput(text='smoked salmon tartine')))
+
+
+if __name__ == '__main__':
+    ai.run_main(main())
+    # => order: smoked salmon tartine
+    #    Under `genkit start`, the process stays up for the Dev UI until Ctrl+C.
+```
+
 Run in a foreground terminal (blocks until stopped with `Ctrl+C`):
 
 ```bash
@@ -55,23 +84,23 @@ cd /path/to/your-project
 GEMINI_API_KEY=your-api-key-here genkit start -- uv run src/main.py
 ```
 
-For FastAPI apps, `GENKIT_ENV=dev` (set by `genkit start`) automatically starts the reflection server on a background thread, so hot-reload works too:
+For FastAPI apps, run uvicorn under `genkit start` instead; the reflection server starts on a background thread (see [FastAPI](fastapi.md)):
 
 ```bash
 GEMINI_API_KEY=your-api-key-here genkit start -- uv run uvicorn main:app --reload
 ```
 
-Wait for the CLI to print the Dev UI URL (typically `http://localhost:4000`).
+Wait for the CLI to print `Genkit Developer UI: http://localhost:4000`.
 
 ---
 
 ## Step 5 — Test in the Dev UI
 
 1. Open **`http://localhost:4000`** in a browser.
-2. Select **Run** in the left sidebar and pick the registered flow, prompt, or model.
-3. Paste JSON matching the flow's single input parameter, e.g.:
+2. Pick the registered flow, prompt, or model from the left sidebar. Flows appear under their Python function name (e.g. `order_flow`).
+3. Paste JSON matching the flow's single input parameter, e.g. for `order_flow(inp: OrderInput)`:
    ```json
-   {"text": "hello world"}
+   {"text": "smoked salmon tartine"}
    ```
 4. Click **Run** and inspect the validated output on the right.
 5. Open **Traces** in the left sidebar to inspect every span, rendered prompt, tool call, token count, latency, and unwrapped error stack trace.
@@ -80,28 +109,37 @@ Wait for the CLI to print the Dev UI URL (typically `http://localhost:4000`).
 
 ## CLI Commands
 
-`genkit start` wraps any Python program using Genkit, capturing local traces from every Genkit action while forwarding `stdin`/`stdout`. Running `uv run` directly skips local trace capture.
+`genkit start` sets `GENKIT_ENV=dev`, runs your command, and stores local traces from every Genkit action under `.genkit/` in the project root. The app's stdout and stderr pass through. Running `uv run` directly skips the reflection server and local trace capture.
 
 **Persistent dev runtime:**
 ```bash
 genkit start -- uv run src/main.py
-genkit start --noui -- uv run src/main.py                 # headless persistent runtime (still blocks)
-genkit start --non-interactive -- uv run src/main.py      # skip first-run CLI prompts in CI/agents
+genkit start --noui -- uv run src/main.py                 # no Dev UI; runtime still blocks until Ctrl+C
+genkit start --non-interactive -- uv run src/main.py      # CLI prompts take the default choice (CI/agents)
+genkit start --port 4001 -- uv run src/main.py            # Dev UI on another port
 ```
 
-**One-shot flow execution (`flow:run`):** spins up the runtime, executes one `@ai.flow()`, prints the `Trace ID`, and exits cleanly:
+**One-shot flow execution (`flow:run`):** with `-- <cmd>`, it starts the app, runs one `@ai.flow()` by its Python function name, prints `Result:` and `Trace ID:`, and exits:
 ```bash
-genkit flow:run myFlow '{"data": "input"}' -- uv run src/main.py
+genkit flow:run order_flow '{"text": "smoked salmon tartine"}' -- uv run src/main.py
+# => Result:
+#    order: smoked salmon tartine
+#    Trace ID: 395f73c3d0d662c28711239a4354bf53
 ```
-Note: `flow:run` runs `@ai.flow()` actions, not `ai.define_agent` directly. Wrap one agent turn inside a small `@ai.flow()` to test it via `flow:run` (see [Agents](agents.md)).
+Without `-- <cmd>`, `flow:run` targets a runtime already started by `genkit start` in the same directory, and fails with `No runtimes found` if none is running. A `str` input is a JSON string: `'"risotto"'`.
+
+`flow:run` runs `@ai.flow()` actions, not agents. Wrap one agent turn in a small flow to test it (see [Agents](agents.md#verify-an-agent-from-the-cli-flowrun)).
 
 **Inspecting traces from the terminal:**
 ```bash
-genkit trace:list                        # list recent trace IDs
-genkit trace:get <traceId>               # human-readable trace view
-genkit trace:get <traceId> --format json # clean JSON for jq / automated checks
+genkit trace:list --limit 5     # recent trace IDs with status, input, output
+genkit trace:get <traceId>      # full trace as JSON: every span, attributes, input, output
 ```
-Always use `--format json` when piping into `jq` or scripts; default output includes human-oriented formatting and may truncate large payloads.
+`trace:get` prints a `Telemetry API running on ...` line before the JSON on stdout, so strip it before piping into `jq`:
+```bash
+genkit trace:get <traceId> | sed 1d | jq -r '.spans[].displayName'
+# => order_flow
+```
 
 **Built-in CLI documentation lookup:**
 ```bash

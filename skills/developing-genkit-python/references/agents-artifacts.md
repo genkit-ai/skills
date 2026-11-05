@@ -6,9 +6,9 @@ Artifacts are named session deliverables — markdown reports, SQL migrations, g
 
 ## `Artifacts` middleware (`genkit_middleware.exp`)
 
-Import `Artifacts` from `genkit_middleware.exp` (`Middleware()` does not register it). `Artifacts()` injects an active `<artifacts>` inventory into the system prompt and gives the model `write_artifact` and `read_artifact` tools. Pass `Artifacts(readonly=True)` to expose only `read_artifact`.
+Import `Artifacts` from `genkit_middleware.exp` (`Middleware()` does not register it). On every model call, `Artifacts()` appends an `<artifacts>` listing of the session's current artifacts (name, size, source) to the system prompt, and gives the model `write_artifact` and `read_artifact` tools. Pass `Artifacts(readonly=True)` to expose only `read_artifact`. Outside an agent session the tools return an error result instead of raising.
 
-Store-backed agents cannot seed artifacts via `agent.chat(artifacts=...)` (raises `AgentInitError`). Have the model write artifacts on a turn, or write them from a tool or [custom agent](agents-custom.md).
+On a store-backed agent, `agent.chat(artifacts=...)` raises `AgentInitError` (`FAILED_PRECONDITION`); have the model write artifacts on a turn, or write them from a tool or [custom agent](agents-custom.md). Store-less agents can seed `artifacts=` ([state](agents-state.md)).
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
 ## Writing artifacts from tools and custom agents
 
-Construct text parts with `Part.from_text(body)`. Inside an `@ai.tool()`, access the active `Session` via `current_session()` from `genkit.exp`; inside `define_custom_agent`, call `await sess.add_artifacts([...])` on `SessionRunner`. Both take a `list[Artifact]` and automatically emit `chunk.artifact` to streaming callers:
+Inside an `@ai.tool()`, get the active session with `current_session()` from `genkit.exp` (`None` outside an agent turn). Inside a custom agent, call the same method on the `SessionRunner`. `add_artifacts` takes a `list[Artifact]`, replaces by name, and emits one `chunk.artifact` per artifact to streaming callers:
 
 ```python
 from genkit import Part
@@ -74,7 +74,7 @@ async def export_audit_report(markdown_body: str) -> dict[str, object]:
     return {'ok': True, 'name': 'audit-report.md'}
 ```
 
-Inside a custom agent's `handle_turn`, use `sess.add_artifacts` directly:
+From a custom agent's `handle_turn`:
 
 ```python
 from genkit import Part
@@ -87,12 +87,12 @@ async def save_report(sess: SessionRunner, body: str) -> None:
 
 ## Reading artifact text
 
-`Part` exposes `.text` (`str | None`) directly:
+`Part.text` is `str | None`. This matches what `read_artifact` returns to the model:
 
 ```python
 from genkit.exp.agent import Artifact
 
 
 def artifact_text(artifact: Artifact) -> str:
-    return ''.join(p.text for p in artifact.parts if p.text)
+    return '\n'.join(p.text for p in artifact.parts if p.text)
 ```

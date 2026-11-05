@@ -2,9 +2,9 @@
 
 > Requires a [session store](agents-sessions.md). See [agents.md](agents.md).
 
-Every store-backed turn writes an immutable `SessionSnapshot` keyed by `snapshot_id`. Reopening an earlier `snapshot_id` with `await agent.load_chat(snapshot_id=...)` and sending a new message forks a sibling branch without mutating the original timeline.
+Every store-backed turn writes a `SessionSnapshot` keyed by `snapshot_id`, with `parent_id` pointing at the previous turn. Reopening an earlier `snapshot_id` with `await agent.load_chat(snapshot_id=...)` and sending a new message writes a sibling snapshot under the same parent. The original timeline is untouched, and both branches keep the same `session_id`.
 
-Loading a snapshot restores the **entire** `SessionState` at that point — `messages`, `state` (`custom`), and `artifacts` revert together.
+Loading a snapshot restores the **entire** `SessionState` at that point: `messages`, custom `state`, and `artifacts` revert together. `load_chat` only resumes `completed` snapshots (see [sessions](agents-sessions.md) for `load_chat` vs `chat(snapshot_id=...)`).
 
 ## Fork sibling timelines
 
@@ -45,11 +45,17 @@ async def main() -> None:
     chosen_leaf = bold.snapshot_id
     assert chosen_leaf
 
+    print(bold.session_id == minimal.session_id == session_id)
+    # => True
+    print([m.text for m in bold.messages if m.role == 'user'])
+    # => ['Plan a landing page for an AI note-taking app.', 'Direction: dark mode and high contrast.']
+
     # 3. With two leaves, a bare session_id lookup raises FAILED_PRECONDITION
     try:
         await store.get_snapshot(session_id=session_id)
     except GenkitError as err:
-        assert err.status == 'FAILED_PRECONDITION'
+        print(err.status)
+        # => FAILED_PRECONDITION
 
     # 4. Continue linearly from the chosen branch leaf
     resumed = await agent.load_chat(snapshot_id=chosen_leaf)
@@ -62,6 +68,6 @@ if __name__ == '__main__':
 
 ## Branching rules
 
-- **Resume by `snapshot_id` after forking**: Once a conversation has multiple leaf snapshots, `"latest turn for session_id"` is ambiguous. Pass `reject_ambiguous_session=True` on `InMemorySessionStore` or `FileSessionStore` to raise `GenkitError` (`FAILED_PRECONDITION`) instead of silently picking the newest leaf, and resume specific branches by `snapshot_id`.
-- **Edit-and-resubmit / regenerate**: Store each turn's `snapshot_id` alongside the message in your UI. When a user edits an earlier prompt or clicks regenerate, load the parent turn's `snapshot_id` and send the revised message — previous answers remain intact as sibling branches.
-- **Artifact time travel**: When an agent edits files via `Artifacts()` (`genkit_middleware.exp`), rewinding with `load_chat(snapshot_id=checkpoint)` reverts `chat.artifacts` to the exact file contents from that turn.
+- **Resume by `snapshot_id` after forking**: Once a session has multiple leaf snapshots, "latest turn for `session_id`" is ambiguous. By default the store picks the most recently created leaf. Pass `reject_ambiguous_session=True` on `InMemorySessionStore` or `FileSessionStore` to fail instead: `store.get_snapshot(session_id=...)` and `agent.get_snapshot(session_id=...)` raise `GenkitError` (`FAILED_PRECONDITION`), and a turn sent on `agent.chat(session_id=...)` returns a failed turn with that status on `res.error`.
+- **Edit-and-resubmit / regenerate**: Store each turn's `snapshot_id` alongside the message in your UI. When a user edits an earlier prompt or clicks regenerate, load the parent turn's `snapshot_id` and send the revised message. Previous answers stay intact as sibling branches.
+- **Artifact time travel**: When an agent edits files via `Artifacts()` (`genkit_middleware.exp`, see [artifacts](agents-artifacts.md)) or a tool, rewinding with `load_chat(snapshot_id=checkpoint)` restores `chat.artifacts` and `chat.state` to their values at that turn.

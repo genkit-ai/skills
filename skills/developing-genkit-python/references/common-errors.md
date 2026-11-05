@@ -1,85 +1,204 @@
 # Common Errors — Genkit Python 0.13
 
-Fast fixes for 0.13 errors and subtle runtime pitfalls. Upgrading a 0.12 codebase? Read [Migrating from 0.12 to 0.13](migrating-from-0.12.md).
+Find the symptom, apply the fix. Every message below comes from a real 0.13 run. Upgrading a 0.12 codebase? Read [Migrating from 0.12 to 0.13](migrating-from-0.12.md).
+
+---
+
+## `ai.generate` Returns Empty Text and Does Not Raise
+
+`ai.generate` boxes model-side failures into the response: provider rejections, `UNAVAILABLE`, rate limits, and model IDs the provider does not serve. You get `response.text == ''`, `response.finish_reason == 'failed'`, and a `Failure` on `response.error`. Code that only reads `response.text` silently continues with an empty string.
+
+```python
+from genkit import Genkit
+from genkit_google_genai import GoogleAI
+
+ai = Genkit(plugins=[GoogleAI()])
+
+# 1. Prefixed but unserved model ID: no exception
+res = await ai.generate(model='googleai/gemini-9-ultra', prompt='Suggest a dish.')
+print(repr(res.text), res.finish_reason)
+# => '' FinishReason.FAILED
+
+# 2. Check response.error after every call
+if res.error:
+    print(res.error.status, res.error.message)
+    # => NOT_FOUND models/gemini-9-ultra is not found for API version v1beta, or is not supported for generateContent. ...
+```
+
+Problems caught before the request is sent raise instead:
+
+- **`ValueError`** from `GoogleAI()` when `GEMINI_API_KEY` is unset (`[Genkit] GEMINI_API_KEY environment variable not set.`).
+- **`GenkitError` `UNAUTHENTICATED`** on the first `ai.generate` when the key is invalid (`API key not valid. Please pass a valid API key.`).
+- **`GenkitError`** for an unprefixed model string, unknown config keys, and `api_key` in config (sections below).
+
+---
+
+## `Thinking level MINIMAL is not supported for this model`
+
+`gemini-flash-latest` rejects `thinking_level='MINIMAL'`. The call returns a failed response (see above), not an exception:
+
+```python
+from genkit_google_genai import GeminiConfig
+
+res = await ai.generate(prompt='Name one dessert.', config=GeminiConfig(thinking_level='MINIMAL'))
+print(res.error.status, res.error.message)
+# => INVALID_ARGUMENT Thinking level MINIMAL is not supported for this model. Please retry with other thinking level.
+```
+
+Use `'LOW'`, `'MEDIUM'`, or `'HIGH'`:
+
+```python
+res = await ai.generate(prompt='Name one dessert.', config=GeminiConfig(thinking_level='LOW'))
+print(res.text)
+# => Tiramisu.
+```
 
 ---
 
 ## `ImportError` on `ActionRunContext`, `ToolRunContext`, `MediaPart`, `TextPart`, or `genkit.agent`
 
-0.13 enforces one public namespace per symbol and removes 0.12 wrapper types:
+```text
+ImportError: cannot import name 'ActionRunContext' from 'genkit'
+ImportError: cannot import name 'MediaPart' from 'genkit'
+ModuleNotFoundError: No module named 'genkit.agent'
+AttributeError: 'Genkit' object has no attribute 'define_agent'
+ValidationError: 1 validation error for Part
+  Value error, Part(root=...) is gone; use Part.from_text or Part(text=...)
+```
+
+Each symbol has one public home:
 
 ```python
 # Contexts
 from genkit import FlowContext, ToolContext
 from genkit.model import ModelContext
 
-# Parts (MediaPart and TextPart are removed; Part(root=...) raises ValueError)
+# Parts
 from genkit import Media, Message, Part, Role
 text_part = Part.from_text('Hello')
 img_part = Part.from_media('https://example.com/photo.jpg', content_type='image/jpeg')
 
-# Experimental agents & integrations
+# Experimental agents and integrations (define_agent exists only on genkit.exp.Genkit)
 from genkit.exp import Genkit, current_session
 from genkit.exp.agent import Agent, InMemorySessionStore, Session
 from genkit_fastapi.exp import serve_agent
 from genkit_middleware.exp import Artifacts
 ```
 
-Note on `Middleware` imports:
-- `from genkit_middleware import Middleware, Retry, ToolApproval` imports the **`Middleware()` plugin** and built-in middleware classes.
-- `from genkit.middleware import Middleware, MiddlewareContext` imports the **base class** for authoring custom middleware.
+Two different `Middleware` imports:
+- `from genkit_middleware import Middleware, Retry, ToolApproval` imports the **`Middleware()` plugin** and built-in middleware.
+- `from genkit.middleware import Middleware, MiddlewareContext` imports the **base class** for custom middleware.
 
 ---
 
-## `GenkitError` (`INVALID_ARGUMENT`) on Unknown or Nested Config Keys
+## `GenkitError` `INVALID_ARGUMENT` on Config Keys
 
-0.13 validates config keys before calling the model instead of silently dropping typos or nested 0.12 dicts:
+Genkit validates config before calling the model. Typos, nested dicts, and fields that moved off config all raise:
+
+```text
+INVALID_ARGUMENT: googleai/gemini-flash-latest: unknown config key 'temprature'; put provider-only settings in config['extra']
+INVALID_ARGUMENT: thinking_config was flattened; use include_thoughts / thinking_budget / thinking_level
+INVALID_ARGUMENT: googleai/gemini-flash-latest: unknown config key 'tool_choice'; put provider-only settings in config['extra']
+```
+
+Use flat typed config, put provider-native keys in `extra`, and pass `tool_choice` on the call:
 
 ```python
 from genkit_google_genai import GeminiConfig
 
-# Fails in 0.13: config={'thinking_config': {'thinking_level': 'HIGH'}, 'temprature': 0.2}
-# Fix: use flat typed config; put unmodeled provider-native keys in `extra`
 cfg = GeminiConfig(
     temperature=0.2,
     thinking_level='HIGH',
     include_thoughts=True,
     extra={'seed': 7},
 )
+res = await ai.generate(prompt='Pick a wine for salmon.', config=cfg, tool_choice='required', tools=[...])
 ```
 
-`tool_choice` is also no longer a config field — pass `tool_choice='required'` (`'auto' | 'required' | 'none'`) directly on `ai.generate(...)`.
+`GeminiConfig.extra` is wire-shaped and deep-merged into the request body, so nested provider fields go under their wire key (for example `extra={'generationConfig': {...}}`).
 
 ---
 
-## `TypeError: takes N positional arguments`
+## `GenkitError` `INVALID_ARGUMENT`: API Key in `config`
 
-Constructors (`Genkit`, plugins, `GenkitError`) and options after an action's single input on `.run(...)` are keyword-only:
-
-```python
-ai = Genkit(plugins=[GoogleAI()], model=GoogleAI.gemini('gemini-flash-latest'))
-res = await my_flow.run(payload, on_chunk=handle_chunk, context={'uid': 'u1'})
+```text
+INVALID_ARGUMENT: API key belongs in context.secrets, not config. Pass the key as context={'secrets': {'api_key': ...}}.
 ```
 
-Also ensure every `@ai.flow()` and `@ai.tool()` declares **at most one input parameter** (plus an optional `ctx: FlowContext` or `ctx: ToolContext`). Wrap multi-field inputs in a single Pydantic `BaseModel`.
-
----
-
-## `GenkitError` (`INVALID_ARGUMENT`) Passing `api_key` in `config`
-
-Every provider plugin rejects `api_key` inside `config`. Configure the key on the plugin or pass a per-request key in `context`:
+Set the key on the plugin, or pass a per-request key in `context`:
 
 ```python
-# Whole app: OpenAI(api_key=...)
+# Whole app: GoogleAI(api_key=...), OpenAI(api_key=...)
 # Per request:
 await ai.generate(prompt='Hello', context={'secrets': {'api_key': user_key}})
 ```
 
 ---
 
-## Served Flow Returns `500 {"status": "INTERNAL", "message": "Internal Error"}`
+## `GenkitError` `NOT_FOUND`: Unprefixed Model String
 
-Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, `handle_genkit_request`), Genkit redacts `GenkitError` and Python exceptions to `500 Internal Error` so provider errors and stack traces never leak. Raise `PublicError` for errors intended for the client:
+```text
+NOT_FOUND: Failed to resolve model 'gemini-flash-latest'. Ensure the model name includes the plugin namespace (e.g., 'plugin/model').
+```
+
+Plain strings need the `<plugin>/` prefix (`'googleai/gemini-flash-latest'`, `'openai/gpt-4o'`). Model ref helpers (`GoogleAI.gemini('gemini-flash-latest')`, `Anthropic.claude('claude-sonnet-4-6')`, `OpenAI.gpt('gpt-5.2')`) add it for you.
+
+A prefixed ID the provider does not serve resolves and fails at call time on `response.error` instead (see the first section).
+
+---
+
+## Vertex AI Fails on `gemini-flash-latest`
+
+Vertex AI does not serve the Gemini API's rotating `-latest` aliases (`gemini-flash-latest`, `gemini-flash-lite-latest`, `gemini-pro-latest`). The Vertex plugin's known-model list omits them. Use a versioned ID:
+
+```python
+from genkit_google_genai import VertexAI
+
+ai = Genkit(plugins=[VertexAI(location='us-central1')], model=VertexAI.gemini('gemini-3.5-flash'))
+```
+
+---
+
+## `TypeError` When Defining or Calling Flows and Tools
+
+```text
+TypeError: Tool function must be async. Got sync function: lookup_reservation
+TypeError: Flow must be async: sync_menu
+TypeError: tool 'check_allergens' takes one input, but 'allergen' is a second parameter. Put the fields on one input model, or annotate 'allergen' as ToolContext.
+TypeError: Genkit() takes no positional arguments, got 1. Pass keyword arguments instead, e.g. Genkit(plugins=[...], model="...").
+TypeError: Action.run() takes from 1 to 2 positional arguments but 3 were given
+```
+
+- `@ai.tool()` and `@ai.flow()` functions must be `async def`.
+- Each takes at most one input parameter. A context parameter must be annotated (`ctx: FlowContext` or `ctx: ToolContext`); an unannotated `ctx` counts as a second input. Wrap multi-field input in one Pydantic `BaseModel`.
+- Constructors (`Genkit`, plugins, `GenkitError`) and every option after the input on `.run(...)` are keyword-only:
+
+```python
+from pydantic import BaseModel
+from genkit import ToolContext
+
+class AllergenCheck(BaseModel):
+    dish: str
+    allergen: str
+
+@ai.tool()
+async def check_allergens(check: AllergenCheck, ctx: ToolContext) -> bool:
+    """Return True if the dish contains the allergen."""
+    return check.allergen in MENU[check.dish].allergens
+
+res = await plan_menu.run(payload, on_chunk=handle_chunk, context={'uid': 'u1'})
+```
+
+---
+
+## Served Flow Returns 404, 500, or the Wrong Auth Status
+
+Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, `handle_genkit_request`):
+
+- **`404 {"detail":"Not Found"}`**: the route is the Python function name. `menu_suggestion_flow` mounts at `POST /menu_suggestion_flow`, not `/menuSuggestionFlow`. Override with `serve_flow(flow, base_path=...)`.
+- **`500 {"message":"Internal Error","status":"INTERNAL"}`**: the flow raised `GenkitError` or any non-`PublicError` exception. Genkit logs the traceback server-side and redacts the body. Raise `PublicError` for errors the client should see.
+- **`400 ... "status":"INVALID_ARGUMENT"`**: the request `data` failed input validation.
+- **`500 Internal Server Error` (plain text) from a `context_dependency`**: `serve_flow(..., context_dependency=...)` runs a FastAPI dependency before Genkit's handler, so a `PublicError` raised there is not mapped. Raise `fastapi.HTTPException(status_code=401)` in dependencies; `PublicError('UNAUTHENTICATED', ...)` maps to 401 only inside a `genkit_fastapi_handler` `context_provider` or the flow itself.
 
 ```python
 from genkit import PublicError
@@ -88,86 +207,108 @@ from genkit import PublicError
 async def get_invoice(invoice_id: str) -> dict:
     inv = await find_invoice(invoice_id)
     if inv is None:
-        raise PublicError('NOT_FOUND', f'Invoice {invoice_id} not found')  # HTTP 404
+        raise PublicError('NOT_FOUND', f'Invoice {invoice_id} not found')
     return inv
+
+# POST /get_invoice {"data": "INV-9"}
+# => 404 {"message":"Invoice INV-9 not found","status":"NOT_FOUND"}
 ```
 
-The same rule applies in HTTP `context_provider` functions (`raise PublicError('UNAUTHENTICATED', 'Missing token')` -> HTTP 401).
+Full status mapping: [FastAPI](fastapi.md#http-error-redaction--publicerror).
 
 ---
 
 ## `response.output` Is `None` on Structured Output
 
-When a JSON response hits `max_output_tokens` or fails schema parsing, `response.output` returns `None` instead of a partial object, and `response.error` (`Failure`) sets `reason == ErrorReason.INVALID_OUTPUT`:
+When a JSON response is truncated (often by `max_output_tokens`) or does not parse against the schema, `response.output` is `None` and `response.error.reason` is `ErrorReason.INVALID_OUTPUT`:
 
 ```python
 from genkit import ErrorReason
 
-res = await ai.generate(prompt='...', output_schema=InvoiceSummary)
-if res.output is None:
-    if res.error and res.error.reason == ErrorReason.INVALID_OUTPUT:
-        # Retry with higher max_output_tokens or handle parse failure
-        ...
+res = await ai.generate(prompt='Summarize this invoice.', output_schema=InvoiceSummary)
+if res.output is None and res.error and res.error.reason == ErrorReason.INVALID_OUTPUT:
+    print(res.error.message)
+    # => Model output was not valid JSON for the requested schema: {"vendor": "Acme", "total": 12
 ```
+
+Raise `max_output_tokens` or simplify the schema, then retry.
 
 ---
 
-## `{{variable}}` Sent Literally in `ai.generate(prompt=...)`
+## `response.json` Is Not the Model Output
 
-`ai.generate(prompt=..., system=...)` sends strings verbatim without Handlebars rendering. Use `ai.define_prompt` or a `.prompt` file when using `{{...}}` templates:
+`response.json` is Pydantic's deprecated `BaseModel.json` method. Calling it serializes the whole `ModelResponse` and emits `PydanticDeprecatedSince20`. Read:
+
+- `response.text` for plain text.
+- `response.output` for structured output.
+- `response.message` for the full message.
+
+`GenkitError` exposes `e.message`, `e.status`, `e.details`, `e.reason`, and `e.__cause__`. `e.original_message` raises `AttributeError`.
+
+---
+
+## `{{variable}}` Sent Literally
+
+`ai.generate(prompt=..., system=...)` sends strings verbatim. The model receives `Say hello to {{name}}.` as written. Render templates through `ai.define_prompt` or a `.prompt` file:
 
 ```python
 greet = ai.define_prompt(name='greet', prompt='Say hello to {{name}}.')
 res = await greet({'name': 'Sam'})
+# Model receives: Say hello to Sam.
 ```
 
 ---
 
-## Streaming `TypeError` or Leaked Background Flow on `break`
+## Streaming `TypeError` or a Flow That Keeps Running After `break`
 
-1. Do not `await` `.generate_stream(...)`, `.stream(...)`, or `chat.send_stream(...)` — iterate `.stream` (or the `StreamResponse`) and `await` `.response`:
+```text
+TypeError: object ModelStreamResponse can't be used in 'await' expression
+```
+
+1. Do not `await` `ai.generate_stream(...)`, `flow.stream(...)`, or `chat.send_stream(...)`. Iterate the stream, then `await` the final response:
    ```python
-   sr = ai.generate_stream(prompt='...')
+   sr = ai.generate_stream(prompt='Describe the tasting menu.')
    async for chunk in sr.stream:
-       ...
+       print(chunk.text, end='')
    final = await sr.response
    ```
-2. When stopping a flow's `.stream(...)` early with `break`, wrap it in `async with` (or call `await stream.aclose()`); otherwise the background flow keeps running:
+2. To stop a flow stream early, use `async with`. Leaving the block cancels the flow:
    ```python
-   async with my_flow.stream(payload) as stream:
+   async with course_flow.stream(payload) as stream:
        async for chunk in stream:
-           if done_early(chunk):
-               break  # cancels my_flow cleanly
+           if chunk == 'dessert':
+               break  # course_flow receives CancelledError
    ```
 
 ---
 
-## Unprefixed Model String (`NOT_FOUND`) vs Model Refs
+## Cloud Telemetry Enabled but Nothing Reaches Cloud Trace
 
-Plain string model names must include the `<plugin>/` prefix (`'googleai/gemini-flash-latest'`, `'openai/gpt-4o'`). Model ref helpers (`GoogleAI.gemini('gemini-flash-latest')`, `Anthropic.claude('claude-sonnet-4-6')`, `OpenAI.gpt('gpt-5.2')`) stamp the prefix automatically.
+`enable_google_cloud_telemetry(credentials=...)` returns normally but attaches no trace exporter. The only signal is one log line, followed by a misleading success line:
+
+```text
+[error] Error exporting traces to GCP  error="CloudTraceSpanExporter.__init__() got an unexpected keyword argument 'credentials'"
+[info ] Telemetry fully initialized    export_enabled=True ...
+```
+
+Drop `credentials=` and authenticate with Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json`, or the attached service account on GCP):
+
+```python
+from genkit_google_cloud import enable_google_cloud_telemetry
+
+enable_google_cloud_telemetry(project='bistro-prod')
+```
 
 ---
 
-## Missing `.json` on Response / Old `GenkitError` Fields
+## Interrupts and Agent Session Pitfalls
 
-- Plain text -> `response.text`; structured output -> `response.output`; message -> `response.message` (`Candidate` is removed).
-- `GenkitError` exposes `e.message`, `e.status`, `e.details`, `e.reason`, and `e.__cause__` (`original_message`, `http_code`, `trace_id`, and `e.cause` are removed).
-
----
-
-## Event Loop / Reflection Exit Under `genkit start`
-
-Use `ai.run_main(main())` for standalone scripts and CLIs so the process stays alive for the Dev UI under `genkit start`. For FastAPI servers, see [FastAPI](fastapi.md).
-
----
-
-## Interrupts & Agent Session Pitfalls
-
-- **`Interrupt` bypasses `except Exception:`**: `Interrupt` subclasses `BaseException` so a tool's catch-all cannot swallow approval interrupts. Put partial side-effect cleanup in `finally`.
-- **Approval resume**: build restart parts via `i.restart(resumed_metadata={'tool_approved': True})` from `res.interrupts` (see [agents-human-in-the-loop.md](agents-human-in-the-loop.md)).
-- **Turn errors (`AgentError` removed)**: `AgentError` no longer exists. Inspect `res.error` (`Failure`) for failed turns; a call that produces no turn raises `GenkitError`. Prefer returning a structured error dict from tools when the model can recover.
-- **No `snapshot_id` after a turn**: attach a `store` (e.g. `InMemorySessionStore()`) to the agent (see [agents.md](agents.md)).
-- **Cannot send state to a server-managed agent**: store-backed chats resume by ID; mutate state inside the turn (see [agents-state.md](agents-state.md)).
-- **Ambiguous session after a fork**: resume using a leaf `snapshot_id`, not `session_id` (see [agents-branching.md](agents-branching.md)).
-- **Abort seems to do nothing**: `await` the abort (`await turn.abort()`, `await chat.abort()`, or `await task.abort()` — see [agents-background.md](agents-background.md)).
+- **`except Exception:` does not catch `Interrupt`**: `Interrupt` subclasses `BaseException`, so a tool's catch-all cannot swallow approval interrupts. Put side-effect cleanup in `finally`.
+- **Approval resume**: build restart parts with `part.restart(resumed_metadata={'tool_approved': True})` on items from `res.interrupts` (see [agents-human-in-the-loop.md](agents-human-in-the-loop.md)).
+- **`ImportError: cannot import name 'AgentError'`**: failed turns do not raise. `chat.send()` returns a turn with `finish_reason == AgentFinishReason.FAILED` and `res.error`. `AgentInitError` raises from `agent.chat(...)` on bad init; `send` raises `GenkitError` only when no turn result arrives.
+- **`res.snapshot_id` is `None`**: the agent has no store. Pass `store=InMemorySessionStore()` to `define_agent` (see [agents.md](agents.md)).
+- **`AgentInitError: FAILED_PRECONDITION: Cannot send 'state' to a server-managed agent (one with a store). Send 'snapshot_id' or 'session_id' instead.`**: store-backed chats resume by ID. Mutate state inside the turn (see [agents-state.md](agents-state.md)).
+- **Resume picks the wrong branch after a fork**: `session_id` resumes the most recently created leaf. Pass the branch's `snapshot_id` (see [agents-branching.md](agents-branching.md)).
+- **Resume after a failed turn**: only `completed` snapshots resume by `snapshot_id`. Use `agent.chat(session_id=...)` to continue from the last good turn.
+- **`chat.abort()` does nothing**: during a foreground `send` it is a no-op. Run the turn with `detach()` and call `await task.abort()` (see [agents-background.md](agents-background.md)).
 - **Remote client mismatches**: align `state_management` with the server and omit trailing slashes on the base URL (see [agents-http.md](agents-http.md)).

@@ -2,7 +2,7 @@
 
 > See [agents.md](agents.md).
 
-With a `SessionStore`, the server owns conversation history. Every turn commits an immutable `SessionSnapshot`, enabling resume across restarts, [branching](agents-branching.md), and [detached background turns](agents-background.md). [Interrupts](agents-human-in-the-loop.md) work with or without a store.
+With a `SessionStore`, the server owns conversation history. Every turn writes a `SessionSnapshot` keyed by `snapshot_id`, enabling resume across restarts, [branching](agents-branching.md), and [detached background turns](agents-background.md). [Interrupts](agents-human-in-the-loop.md) work with or without a store.
 
 ## Choose a store
 
@@ -49,7 +49,7 @@ agent = ai.define_agent(
 
 
 async def main() -> None:
-    # 1. Run turn 1 and persist its snapshot_id alongside user state
+    # 1. Run turn 1; save res.snapshot_id in your app database
     chat = agent.chat()
     res = await chat.send('Log: migrated auth service to token exchange.')
     checkpoint = res.snapshot_id
@@ -69,10 +69,10 @@ if __name__ == '__main__':
 
 - **`await agent.load_chat(snapshot_id=...)` / `load_chat(session_id=...)`**: reads the stored snapshot immediately and populates `chat.messages`, `chat.state`, and `chat.artifacts`. Pointing `load_chat` at a failed, aborted, or pending leaf loads that row as-is; calling `send()` on a non-completed snapshot returns `res.error` (`SNAPSHOT_NOT_RESUMABLE`).
 - **`agent.chat(session_id=...)`**: attaches a lazy session handle without an upfront read. On the next `send()`, the server automatically walks back past any failed, aborted, or expired leaf to continue from the last completed turn (or starts a fresh session under `session_id` if no turn has completed yet).
-- **`agent.chat(snapshot_id=...)`**: attaches a lazy resume handle to a specific completed snapshot (optionally paired with `session_id=...` as an ownership check).
+- **`agent.chat(snapshot_id=...)`**: attaches a lazy resume handle to a specific completed snapshot.
 - **`await agent.get_snapshot(snapshot_id=...)` / `get_snapshot(session_id=...)`**: inspects the raw `SessionSnapshot` without creating a chat.
 
 ## Typed state and multi-user isolation
 
-- **Typed state**: Pass `state_schema=MyModel` on the agent. Store-backed agents cannot seed state via `chat(state=...)` (raises `AgentInitError`); mutate custom state inside tools via `current_session()` from `genkit.exp` ([state](agents-state.md)).
+- **Typed state**: Pass `state_schema=MyModel` on the agent. On a store-backed agent, `agent.chat(state=...)` raises `AgentInitError` immediately; mutate state from tools with `current_session()` from `genkit.exp` (see [state](agents-state.md)).
 - **Multi-user sessions**: One `Agent` instance safely serves many users on a shared store. Each `agent.chat()` mints a distinct `session_id`; store `session_id` or `snapshot_id` per user in your application database.
