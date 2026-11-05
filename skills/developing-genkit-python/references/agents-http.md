@@ -94,7 +94,11 @@ from fastapi import FastAPI, Header, HTTPException
 from genkit_fastapi.exp import serve_agent
 
 from genkit import PublicError, ToolContext
+from genkit.exp import Genkit
 from genkit.exp.agent import InMemorySessionStore, SessionSnapshot, remote_agent
+from genkit_google_genai import GoogleAI
+
+ai = Genkit(plugins=[GoogleAI()], model=GoogleAI.gemini('gemini-flash-latest'))
 
 
 # 1. Resolve the caller from a header; the dict becomes the action context
