@@ -282,21 +282,14 @@ TypeError: object ModelStreamResponse can't be used in 'await' expression
 
 ---
 
-## Cloud Telemetry Enabled but Nothing Reaches Cloud Trace
-
-`enable_google_cloud_telemetry(credentials=...)` returns normally but attaches no trace exporter. The only signal is one log line, followed by a misleading success line:
-
-```text
-[error] Error exporting traces to GCP  error="CloudTraceSpanExporter.__init__() got an unexpected keyword argument 'credentials'"
-[info ] Telemetry fully initialized    export_enabled=True ...
-```
-
-Drop `credentials=` and authenticate with Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json`, or the attached service account on GCP):
-
+## Cloud Telemetry Enabled but Spans Do Not Reach Cloud Trace
+ 
+By default in local development (`GENKIT_ENV=dev`), `enable_google_cloud_telemetry()` runs in local-only mode to prevent polluting Cloud Trace with local run data. To export traces to GCP from local development, pass `force_dev_export=True`:
+ 
 ```python
 from genkit_google_cloud import enable_google_cloud_telemetry
 
-enable_google_cloud_telemetry(project='bistro-prod')
+enable_google_cloud_telemetry(project='bistro-prod', force_dev_export=True)
 ```
 
 ---

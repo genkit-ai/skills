@@ -111,8 +111,8 @@ Every symbol lives in one public module (never import private `_` submodules; se
 - **Check `response.error`**: provider failures come back on the response, not as exceptions (see [Hello World](#hello-world)).
 - **Gemini thinking levels**: `GeminiConfig(thinking_level='MINIMAL')` fails on `gemini-flash-latest`; use `'LOW'`, `'MEDIUM'`, or `'HIGH'`.
 - **Vertex AI model IDs**: Vertex does not serve `-latest` aliases. Pass a pinned model ID to `VertexAI.gemini(...)`.
-- **Logging**: `genkit.get_logger` is structlog-based. `genkit-google-cloud` does not stamp trace IDs on log lines.
-- **Cloud telemetry auth**: call `enable_google_cloud_telemetry()` with Application Default Credentials; do not pass `credentials=`.
+- **Logging**: `genkit.get_logger` is structlog-based. `enable_google_cloud_telemetry()` injects trace context for GCP log-trace correlation.
+- **Cloud telemetry auth**: call `enable_google_cloud_telemetry()` with Application Default Credentials or explicit `credentials=` (service account dict or `Credentials` instance).
 
 ## Genkit CLI (recommended)
 
