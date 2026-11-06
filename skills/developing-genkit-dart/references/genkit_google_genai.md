@@ -2,6 +2,15 @@
 
 The Google AI plugin provides an interface against the official Google AI Gemini API.
 
+- [Usage](#usage): Lines 14-34
+- [Model refs and Gemma](#model-refs-and-gemma): Lines 36-48
+- [Embeddings](#embeddings): Lines 50-61
+- [Config types are provider-prefixed](#config-types-are-provider-prefixed): Lines 63-85
+- [Image Generation](#image-generation): Lines 87-112
+- [Text-to-Speech (TTS)](#text-to-speech-tts): Lines 114-146
+
+---
+
 ## Usage
 
 ```dart

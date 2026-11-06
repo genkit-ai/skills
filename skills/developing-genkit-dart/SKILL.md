@@ -1,6 +1,10 @@
 ---
 name: developing-genkit-dart
-description: Generates code and provides documentation for the Genkit Dart SDK. Use when the user asks to build AI agents in Dart, use Genkit flows, or integrate LLMs into Dart/Flutter applications.
+description: >-
+  Provides guidance on developing AI-powered applications using the Genkit Dart
+  SDK. Use when the user asks to build AI agents in Dart, use Genkit flows, or
+  integrate LLMs into Dart/Flutter applications. Don't use for Genkit in
+  JavaScript/TypeScript, Go, or Python.
 metadata:
   version: "1.0.0"
   category: AiAndMachineLearning

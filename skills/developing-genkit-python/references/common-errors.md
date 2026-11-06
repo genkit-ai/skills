@@ -2,6 +2,22 @@
 
 Find the symptom, apply the fix. Every message below comes from a real 0.13 run. Upgrading a 0.12 codebase? Read [Migrating from 0.12 to 0.13](migrating-from-0.12.md).
 
+- [ai.generate Returns Empty Text and Does Not Raise](#aigenerate-returns-empty-text-and-does-not-raise): Lines 23-48
+- [Thinking level MINIMAL is not supported for this model](#thinking-level-minimal-is-not-supported-for-this-model): Lines 52-70
+- [ImportError on ActionRunContext, ToolRunContext, MediaPart, TextPart, or genkit.agent](#importerror-on-actionruncontext-toolruncontext-mediapart-textpart-or-genkitagent): Lines 74-106
+- [GenkitError INVALID_ARGUMENT on Config Keys](#genkiterror-invalid_argument-on-config-keys): Lines 110-134
+- [GenkitError INVALID_ARGUMENT: API Key in config](#genkiterror-invalid_argument-api-key-in-config): Lines 138-150
+- [GenkitError NOT_FOUND: Unprefixed Model String](#genkiterror-not_found-unprefixed-model-string): Lines 154-162
+- [Vertex AI Fails on gemini-flash-latest](#vertex-ai-fails-on-gemini-flash-latest): Lines 166-174
+- [TypeError When Defining or Calling Flows and Tools](#typeerror-when-defining-or-calling-flows-and-tools): Lines 178-206
+- [Served Flow Returns 404, 500, or the Wrong Auth Status](#served-flow-returns-404-500-or-the-wrong-auth-status): Lines 210-233
+- [response.output Is None on Structured Output](#responseoutput-is-none-on-structured-output): Lines 237-250
+- [response.json Is Not the Model Output](#responsejson-is-not-the-model-output): Lines 254-262
+- [{{variable}} Sent Literally](#variable-sent-literally): Lines 266-274
+- [Streaming TypeError or a Flow That Keeps Running After break](#streaming-typeerror-or-a-flow-that-keeps-running-after-break): Lines 278-297
+- [Cloud Telemetry Enabled but Spans Do Not Reach Cloud Trace](#cloud-telemetry-enabled-but-spans-do-not-reach-cloud-trace): Lines 301-309
+- [Interrupts and Agent Session Pitfalls](#interrupts-and-agent-session-pitfalls): Lines 313-323
+
 ---
 
 ## `ai.generate` Returns Empty Text and Does Not Raise

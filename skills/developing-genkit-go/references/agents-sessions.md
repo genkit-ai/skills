@@ -10,6 +10,16 @@ snapshot chain carries conversation state forward. A store also enables
 (Interrupts work with or without a store — see
 [human-in-the-loop](agents-human-in-the-loop.md).)
 
+- [Pick a store](#pick-a-store): Lines 23-103
+- [Turns persist automatically](#turns-persist-automatically): Lines 105-115
+- [Resume a conversation](#resume-a-conversation): Lines 117-139
+- [Read a snapshot without running a turn](#read-a-snapshot-without-running-a-turn): Lines 141-158
+- [Typed session state](#typed-session-state): Lines 160-188
+- [Interrupts (human-in-the-loop)](#interrupts-human-in-the-loop): Lines 190-195
+- [Implementing a custom SessionStore](#implementing-a-custom-sessionstore): Lines 197-243
+
+---
+
 ## Pick a store
 
 `ai/exp/localstore` ships two single-process stores. Both are generic over the

@@ -28,6 +28,12 @@ a reference for `use: [...]`. The `@genkit-ai/middleware` package ships a set of
 ready-made ones (covered below); to write your own see
 [building custom middleware](middleware-custom.md).
 
+- [Register middleware as a plugin](#register-middleware-as-a-plugin): Lines 37-58
+- [The @genkit-ai/middleware package](#the-genkit-aimiddleware-package): Lines 60-181
+- [Built-in model middleware (in core)](#built-in-model-middleware-in-core): Lines 183-205
+
+---
+
 ## Register middleware as a plugin
 
 Register each middleware with Genkit via its `.plugin()` method. This is the

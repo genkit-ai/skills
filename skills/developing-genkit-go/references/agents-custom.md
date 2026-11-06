@@ -9,6 +9,14 @@ the turn** — multiple sequential model calls, custom logic between them, manua
 message/state management, or custom progress streaming — use
 `genkitx.DefineCustomAgent`. You provide the function that runs the turn loop.
 
+- [When to use it](#when-to-use-it): Lines 20-30
+- [Signature](#signature): Lines 32-66
+- [Example: multi-step research agent](#example-multi-step-research-agent): Lines 68-157
+- [Custom status streaming](#custom-status-streaming): Lines 159-189
+- [Notes](#notes): Lines 191-202
+
+---
+
 ## When to use it
 
 Reach for `DefineCustomAgent` when a turn needs to:

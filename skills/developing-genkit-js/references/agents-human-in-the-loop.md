@@ -18,6 +18,13 @@ snapshot does it; without one the client round-trips the state blob (the
 Flow: `chat.send(...)` → response has `res.interrupts` → collect human input →
 `chat.resume({ respond: [...] })`.
 
+- [Define an interrupt](#define-an-interrupt): Lines 28-72
+- [Detect and resume (server-side)](#detect-and-resume-server-side): Lines 74-122
+- [Client-side (browser) interrupts](#client-side-browser-interrupts): Lines 124-163
+- [Notes & gotchas](#notes--gotchas): Lines 165-182
+
+---
+
 ## Define an interrupt
 
 Define it like a tool (with `inputSchema`/`outputSchema`) and add it to the

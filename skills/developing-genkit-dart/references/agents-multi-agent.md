@@ -19,6 +19,15 @@ import 'package:genkit_middleware/agents.dart';
 final ai = Genkit(plugins: [googleAI(), AgentsPlugin()]); // retry() is built in
 ```
 
+- [1. Define the sub-agents](#1-define-the-sub-agents): Lines 31-57
+- [2. Wire up the orchestrator](#2-wire-up-the-orchestrator): Lines 59-101
+- [agents() options](#agents-options): Lines 103-113
+- [Background (async) delegation](#background-async-delegation): Lines 115-143
+- [Sharing artifacts between agents](#sharing-artifacts-between-agents): Lines 145-154
+- [Other middleware](#other-middleware): Lines 156-166
+
+---
+
 ## 1. Define the sub-agents
 
 Give each sub-agent a `description` — it's auto-discovered from registry metadata

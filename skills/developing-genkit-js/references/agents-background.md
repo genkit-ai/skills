@@ -9,6 +9,14 @@ and returns a `snapshotId` **immediately**, keeps processing, then updates the
 snapshot to a terminal status (`completed` / `failed` / `aborted` / `expired`).
 The client polls for completion and can abort.
 
+- [Define the agent (store required)](#define-the-agent-store-required): Lines 20-53
+- [Server-side: detach + wait](#server-side-detach--wait): Lines 55-73
+- [Resume a failed or aborted task](#resume-a-failed-or-aborted-task): Lines 75-89
+- [Client-side: detach + poll + abort](#client-side-detach--poll--abort): Lines 91-131
+- [Status values](#status-values): Lines 133-151
+
+---
+
 ## Define the agent (store required)
 
 ```ts

@@ -15,6 +15,14 @@ expose two companion actions:
 These paths match the `remoteAgent` client defaults (`${url}/getSnapshot`,
 `${url}/abort`), so a client only needs the base `url`.
 
+- [A reusable exposeAgent helper](#a-reusable-exposeagent-helper): Lines 26-75
+- [CORS for browser clients](#cors-for-browser-clients): Lines 77-98
+- [Serving a static web UI (optional)](#serving-a-static-web-ui-optional): Lines 100-118
+- [Registering agents/flows](#registering-agentsflows): Lines 120-137
+- [Other host frameworks](#other-host-frameworks): Lines 139-198
+
+---
+
 ## A reusable `exposeAgent` helper
 
 When serving several agents, a small helper keeps registration consistent.

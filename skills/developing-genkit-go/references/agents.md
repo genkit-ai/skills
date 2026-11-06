@@ -27,6 +27,18 @@ Read the file for the level you need:
 - [Advanced custom agents](agents-custom.md): `DefineCustomAgent` for full turn control.
 - [Deploying agents](agents-deployment.md): serving agents over HTTP.
 
+- [Packages and import aliases](#packages-and-import-aliases): Lines 42-59
+- [Setup](#setup): Lines 61-72
+- [Define an agent](#define-an-agent): Lines 74-166
+- [Agents and middleware go hand in hand](#agents-and-middleware-go-hand-in-hand): Lines 168-193
+- [Run an agent (single turn)](#run-an-agent-single-turn): Lines 195-222
+- [Chat with an agent (multi-turn)](#chat-with-an-agent-multi-turn): Lines 224-267
+- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 269-284
+- [Serve an agent over HTTP](#serve-an-agent-over-http): Lines 286-324
+- [Client-managed vs server-managed state](#client-managed-vs-server-managed-state): Lines 326-366
+
+---
+
 ## Packages and import aliases
 
 Agents span a few packages. These aliases are used throughout the agent docs:

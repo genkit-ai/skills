@@ -2,6 +2,23 @@
 
 Genkit Dart is an AI SDK for Dart that provides a unified interface for text generation, structured output, tool calling, and agentic workflows.
 
+- [Initialization](#initialization): Lines 22-33
+- [Reliability: retry transient errors](#reliability-retry-transient-errors): Lines 35-55
+- [Generate Text](#generate-text): Lines 57-67
+- [Stream Responses](#stream-responses): Lines 69-79
+- [Embed Text](#embed-text): Lines 81-95
+- [Define Tools](#define-tools): Lines 97-143
+- [Structured Output](#structured-output): Lines 145-166
+- [Errors and finish reasons](#errors-and-finish-reasons): Lines 168-225
+- [Cancellation](#cancellation): Lines 227-254
+- [Telemetry (instrumentation)](#telemetry-instrumentation): Lines 256-276
+- [Define Flows](#define-flows): Lines 278-326
+- [Calling remote Flows from a dart client](#calling-remote-flows-from-a-dart-client): Lines 328-368
+- [Calling remote Flows from a Javascript client](#calling-remote-flows-from-a-javascript-client): Lines 370-424
+- [Data Models](#data-models): Lines 426-565
+
+---
+
 ## Initialization
 
 ```dart

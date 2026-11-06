@@ -1,5 +1,16 @@
 # Dev Workflow — Genkit Python
 
+- [Agent Responsibility](#agent-responsibility): Lines 14-23
+- [Step 1 - Get a Gemini API Key](#step-1--get-a-gemini-api-key): Lines 27-29
+- [Step 2 - Export the API Key](#step-2--export-the-api-key): Lines 33-43
+- [Step 3 - Install Dependencies](#step-3--install-dependencies): Lines 47-56
+- [Step 4 - Start the Dev UI](#step-4--start-the-dev-ui): Lines 60-104
+- [Step 5 - Test in the Dev UI](#step-5--test-in-the-dev-ui): Lines 108-117
+- [CLI Commands](#cli-commands): Lines 121-160
+- [Troubleshooting](#troubleshooting): Lines 164-170
+
+---
+
 ## Agent Responsibility
 
 After generating or migrating code:

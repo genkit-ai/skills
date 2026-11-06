@@ -7,6 +7,16 @@ HTTP serving lives in core `package:genkit/io.dart` (`GenkitRouter`, plain
 > There is no `startFlowServer` and no `FlowWithContextProvider`. Do not add
 > `shelf_cors_headers`; CORS is `CorsOptions`.
 
+- [Standalone server (no shelf)](#standalone-server-no-shelf): Lines 20-54
+- [Existing shelf app](#existing-shelf-app): Lines 56-86
+- [Own dart:io server](#own-dartio-server): Lines 88-102
+- [Auth: contextProvider](#auth-contextprovider): Lines 104-119
+- [Agents](#agents): Lines 121-125
+- [CORS](#cors): Lines 127-132
+- [Older clients](#older-clients): Lines 134-142
+
+---
+
 ## Standalone server (no shelf)
 
 ```dart

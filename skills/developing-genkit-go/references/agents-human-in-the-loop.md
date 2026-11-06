@@ -20,6 +20,13 @@ The tool side is identical to plain `Generate` (see [tools.md](tools.md)):
 `Interrupted` method. Only the delivery differs: an agent takes the resume parts
 in an `aix.ToolResume` via `conn.SendResume` or `AgentInput.Resume`.
 
+- [Define a resumable tool](#define-a-resumable-tool): Lines 30-101
+- [Detect, claim, and resume (streaming connection)](#detect-claim-and-resume-streaming-connection): Lines 103-165
+- [Single-turn resume with Run](#single-turn-resume-with-run): Lines 167-190
+- [Notes & gotchas](#notes--gotchas): Lines 192-208
+
+---
+
 ## Define a resumable tool
 
 `genkit.DefineResumableTool[In, Out, Res]` defines a tool that can pause by

@@ -11,6 +11,15 @@ and returns its `SnapshotID` **immediately**, keeps processing, then rewrites th
 snapshot to a terminal status (`completed` / `failed` / `aborted`). A reader
 waits on the snapshot (or polls it) and can `Abort` in the meantime.
 
+- [Define the agent (store required)](#define-the-agent-store-required): Lines 23-33
+- [Detach a turn](#detach-a-turn): Lines 35-53
+- [Wait (or poll)](#wait-or-poll): Lines 55-79
+- [Abort and resume](#abort-and-resume): Lines 81-107
+- [Serve detach over HTTP](#serve-detach-over-http): Lines 109-127
+- [Status values (aix.SnapshotStatus)](#status-values-aixsnapshotstatus): Lines 129-142
+
+---
+
 ## Define the agent (store required)
 
 ```go

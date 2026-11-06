@@ -10,6 +10,14 @@ conversation state forward. A store also enables [branching](agents-branching.md
 and [background execution](agents-background.md). (Interrupts work with or without
 a store — see [human-in-the-loop](agents-human-in-the-loop.md).)
 
+- [Pick a store](#pick-a-store): Lines 21-66
+- [Typed session state](#typed-session-state): Lines 68-90
+- [Interrupts (human-in-the-loop)](#interrupts-human-in-the-loop): Lines 92-97
+- [Firestore session store (scalable, Beta)](#firestore-session-store-scalable-beta): Lines 99-132
+- [Implementing a custom SessionStore](#implementing-a-custom-sessionstore): Lines 134-155
+
+---
+
 ## Pick a store
 
 ```ts

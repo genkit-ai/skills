@@ -13,6 +13,16 @@ An A2UI-enabled agent streams more than prose. It streams interactive UI
 as the model responds. The entire server-side integration is a single model
 middleware: add `a2ui()` to an agent's `use` list and nothing else changes.
 
+- [Install](#install): Lines 26-49
+- [Server: add the a2ui() middleware](#server-add-the-a2ui-middleware): Lines 51-124
+- [Client: render surfaces (Flutter + genui)](#client-render-surfaces-flutter--genui): Lines 126-181
+- [Handling user actions](#handling-user-actions): Lines 183-242
+- [Custom catalogs](#custom-catalogs): Lines 245-323
+- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 325-346
+- [How it works](#how-it-works): Lines 348-367
+
+---
+
 ## Install
 
 On the **server** (the shelf app that hosts the agent), add `genkit_a2ui`

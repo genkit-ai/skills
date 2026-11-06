@@ -18,6 +18,17 @@ import (
 )
 ```
 
+- [1. Define the sub-agents](#1-define-the-sub-agents): Lines 32-55
+- [2. Wire up the orchestrator](#2-wire-up-the-orchestrator): Lines 57-94
+- [middlewarex.Agents fields](#middlewarexagents-fields): Lines 96-114
+- [Background delegation (Async: true)](#background-delegation-async-true): Lines 116-155
+- [Continuing a task (continue_task)](#continuing-a-task-continue_task): Lines 157-173
+- [Delegating to a remote agent](#delegating-to-a-remote-agent): Lines 175-197
+- [Sharing artifacts between agents](#sharing-artifacts-between-agents): Lines 199-211
+- [Combining with retries](#combining-with-retries): Lines 213-235
+
+---
+
 ## 1. Define the sub-agents
 
 Give each sub-agent a description via `aix.WithDescription` — it's

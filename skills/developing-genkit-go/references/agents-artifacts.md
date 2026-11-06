@@ -15,6 +15,13 @@ import (
 )
 ```
 
+- [Give the model artifact tools](#give-the-model-artifact-tools): Lines 25-67
+- [The Artifact shape](#the-artifact-shape): Lines 69-80
+- [Programmatic access (inside tools / custom agents)](#programmatic-access-inside-tools--custom-agents): Lines 82-110
+- [Sharing artifacts across agents](#sharing-artifacts-across-agents): Lines 112-128
+
+---
+
 ## Give the model artifact tools
 
 The `middlewarex.Artifacts` middleware (see [using middleware](middleware.md))

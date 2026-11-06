@@ -9,6 +9,13 @@ and returns a `snapshotId` **immediately**, keeps processing, then updates the
 snapshot to a terminal status (`completed` / `failed` / `aborted` / `expired`).
 The client polls for completion and can abort.
 
+- [Define the agent (store required)](#define-the-agent-store-required): Lines 19-46
+- [Client-side: detach + poll + abort](#client-side-detach--poll--abort): Lines 48-87
+- [Server-side: detach + wait](#server-side-detach--wait): Lines 89-101
+- [Status values](#status-values): Lines 103-114
+
+---
+
 ## Define the agent (store required)
 
 ```dart

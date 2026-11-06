@@ -17,6 +17,13 @@ void main() {
 }
 ```
 
+- [Filesystem Middleware](#filesystem-middleware): Lines 27-40
+- [Skills Middleware](#skills-middleware): Lines 42-55
+- [Tool Approval Middleware](#tool-approval-middleware): Lines 57-99
+- [Custom Middleware (core package:genkit)](#custom-middleware-core-packagegenkit): Lines 101-162
+
+---
+
 ## Filesystem Middleware
 Allows the agent to list, read, write, and search/replace files within a restricted root directory.
 

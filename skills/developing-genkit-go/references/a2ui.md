@@ -15,6 +15,15 @@ An A2UI-enabled agent streams more than prose. It streams interactive UI
 as the model responds. The entire Go integration is a single model middleware:
 add `&a2uix.Surfaces{}` to a generate/agent's `ai.WithUse` and nothing else changes.
 
+- [Go is server-only: bring your own client](#go-is-server-only-bring-your-own-client): Lines 27-50
+- [Server: add the a2ui middleware](#server-add-the-a2ui-middleware): Lines 52-116
+- [Serve the agent over HTTP](#serve-the-agent-over-http): Lines 118-164
+- [Custom catalogs](#custom-catalogs): Lines 166-220
+- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 222-242
+- [How it works](#how-it-works): Lines 244-263
+
+---
+
 ## Go is server-only: bring your own client
 
 **Go has no A2UI client/renderer.** The Go plugin is the server half: it injects

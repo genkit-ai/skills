@@ -1,5 +1,12 @@
 # Tools
 
+- [DefineTool](#definetool): Lines 10-31
+- [Using Tools in Generation](#using-tools-in-generation): Lines 33-61
+- [Tool runtime helpers (ai/tool)](#tool-runtime-helpers-aitool): Lines 63-116
+- [Tool interrupts (DefineResumableTool)](#tool-interrupts-defineresumabletool): Lines 118-257
+
+---
+
 ## DefineTool
 
 Define a tool the model can call during generation.

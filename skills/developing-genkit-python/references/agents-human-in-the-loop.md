@@ -6,6 +6,12 @@ An interrupt pauses an agent mid-turn so a human or policy check can inspect the
 
 Turn lifecycle: `chat.send(...)` -> `res.finish_reason == AgentFinishReason.INTERRUPTED` with `res.interrupts` -> human decision -> `chat.resume(...)` / `chat.resume_stream(...)`.
 
+- [Gate tools with ToolApproval](#gate-tools-with-toolapproval): Lines 15-60
+- [Detect and resume (restart vs respond)](#detect-and-resume-restart-vs-respond): Lines 62-116
+- [Custom tool interrupts and Interrupt (BaseException)](#custom-tool-interrupts-and-interrupt-baseexception): Lines 118-156
+
+---
+
 ## Gate tools with `ToolApproval`
 
 `ToolApproval(allowed_tools=[...])` lets listed tools execute immediately and interrupts all other tool calls. An empty list requires approval for every tool. When pairing `ToolApproval` with `Filesystem` or `Artifacts`, list read-only tools (`list_files`, `read_file`, `read_artifact`) in `allowed_tools` if only writes (`write_file`, `edit_file`, `write_artifact`) should pause.

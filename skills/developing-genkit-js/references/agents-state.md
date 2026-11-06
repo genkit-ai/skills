@@ -7,6 +7,13 @@ own structured data (a task list, a workflow status, counters, etc.). Tools read
 and mutate it during a turn, and it is automatically synced to the
 [`remoteAgent`](agents.md#consume-an-agent-from-a-client-remoteagent) client.
 
+- [Declare the state shape](#declare-the-state-shape): Lines 17-45
+- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 47-83
+- [Seed and read state (server-side)](#seed-and-read-state-server-side): Lines 85-102
+- [Auto-sync to the remoteAgent client](#auto-sync-to-the-remoteagent-client): Lines 104-140
+
+---
+
 ## Declare the state shape
 
 Pass a `stateSchema` (Zod) to `defineAgent`. `State` is inferred from it and

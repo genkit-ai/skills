@@ -1,5 +1,12 @@
 # Getting Started
 
+- [Project Setup](#project-setup): Lines 10-24
+- [Initialization](#initialization): Lines 26-90
+- [Genkit CLI](#genkit-cli): Lines 92-136
+- [Import Paths](#import-paths): Lines 138-147
+
+---
+
 ## Project Setup
 
 ```bash

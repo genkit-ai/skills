@@ -1,5 +1,15 @@
 # Common Errors & Pitfalls
 
+- [When Typecheck Fails](#when-typecheck-fails): Lines 13-15
+- [Genkit v1.x vs Pre-1.0 Migration](#genkit-v1x-vs-pre-10-migration): Lines 17-113
+- [Zod & Schema Errors](#zod--schema-errors): Lines 115-121
+- [Tool Usage](#tool-usage): Lines 123-126
+- [Handling Failures in Tool Loops](#handling-failures-in-tool-loops): Lines 128-159
+- [Multimodal & Image Generation](#multimodal--image-generation): Lines 161-169
+- [Audio & Speech Generation](#audio--speech-generation): Lines 171-176
+
+---
+
 ## When Typecheck Fails
 
 **Before searching source code or docs**, check the sections below. Many type errors are caused by deprecated APIs or incorrect imports.
@@ -98,6 +108,7 @@ Genkit v1.x introduced significant API changes. This section covers critical syn
 - **Incorrect (Pre-1.0)**: Importing `defineFlow` globally.
   ```ts
   import { defineFlow } from "@genkit-ai/flow"; // INCORRECT
+  ```
 
 You should never import `@genkit-ai/flow`, `@genkit-ai/ai` or `@genkit-ai/core` packages directly.
 

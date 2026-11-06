@@ -29,6 +29,17 @@ Progressive disclosure — read the file for the level you need:
 - [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
 - [Deploying agents](agents-deployment.md): serving multiple agents over HTTP, CORS, web UI, other frameworks.
 
+- [Setup](#setup): Lines 43-54
+- [Define an agent](#define-an-agent): Lines 56-93
+- [Agents and middleware go hand in hand](#agents-and-middleware-go-hand-in-hand): Lines 95-134
+- [Chat with an agent (server-side)](#chat-with-an-agent-server-side): Lines 136-158
+- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 160-176
+- [Serve an agent over HTTP](#serve-an-agent-over-http): Lines 178-210
+- [Consume an agent from a client (remoteAgent)](#consume-an-agent-from-a-client-remoteagent): Lines 212-240
+- [Client-managed state (no server store)](#client-managed-state-no-server-store): Lines 242-289
+
+---
+
 ## Setup
 
 ```ts

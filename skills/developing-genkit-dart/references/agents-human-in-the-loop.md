@@ -36,6 +36,14 @@ back into the resume).
 Flow: `chat.send(text: ...)` → response has `res.interrupts` → collect human input
 → `chat.resume(respond: [...])`.
 
+- [Define an interrupt (a tool that interrupts)](#define-an-interrupt-a-tool-that-interrupts): Lines 47-111
+- [Detect and resume (server-side)](#detect-and-resume-server-side): Lines 113-169
+- [Client-side (browser) interrupts](#client-side-browser-interrupts): Lines 171-202
+- [Interrupts with tool-approval middleware](#interrupts-with-tool-approval-middleware): Lines 204-229
+- [Notes & gotchas](#notes--gotchas): Lines 231-245
+
+---
+
 ## Define an interrupt (a tool that interrupts)
 
 The example below uses tools that return `.interrupt(...)`, which pauses the
