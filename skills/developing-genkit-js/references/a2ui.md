@@ -13,6 +13,16 @@ An A2UI-enabled agent streams more than prose. It streams interactive UI
 as the model responds. The entire server-side integration is a single model
 middleware: add `a2ui()` to an agent's `use` array and nothing else changes.
 
+- [Install](#install): Lines 26-40
+- [Server: add the a2ui() middleware](#server-add-the-a2ui-middleware): Lines 42-105
+- [Client: render surfaces](#client-render-surfaces): Lines 107-160
+- [Handling user actions](#handling-user-actions): Lines 162-220
+- [Custom catalogs](#custom-catalogs): Lines 223-273
+- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 275-294
+- [How it works](#how-it-works): Lines 296-315
+
+---
+
 ## Install
 
 ```bash

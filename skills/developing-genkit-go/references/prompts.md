@@ -1,5 +1,12 @@
 # Prompts
 
+- [DefinePrompt](#defineprompt): Lines 10-53
+- [DefineDataPrompt (Typed Input/Output)](#definedataprompt-typed-inputoutput): Lines 55-94
+- [.prompt Files (Dotprompt)](#prompt-files-dotprompt): Lines 96-276
+- [Schemas](#schemas): Lines 278-320
+
+---
+
 ## DefinePrompt
 
 Define a reusable prompt in code with a default model and template.

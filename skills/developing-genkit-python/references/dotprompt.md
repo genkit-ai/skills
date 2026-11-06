@@ -1,5 +1,17 @@
 # Dotprompt — Genkit Python
 
+- [What It Is](#what-it-is): Lines 15-17
+- [File Format](#file-format): Lines 19-54
+- [Python Setup](#python-setup): Lines 56-77
+- [Calling a Prompt (Prompt)](#calling-a-prompt-prompt): Lines 79-113
+- [Streaming from a Prompt](#streaming-from-a-prompt): Lines 115-132
+- [Render Without Generating](#render-without-generating): Lines 134-146
+- [Helpers](#helpers): Lines 148-168
+- [Variants & Partials](#variants--partials): Lines 170-173
+- [Prompts with Tools & Middleware](#prompts-with-tools--middleware): Lines 175-190
+
+---
+
 ## What It Is
 
 `.prompt` files pair YAML frontmatter (model, config, input/output schemas, tools, middleware) with Handlebars templates. Handlebars templates **only** render inside `.prompt` files and `ai.define_prompt(...)` — strings passed to `ai.generate(prompt=..., system=...)` are sent to the model verbatim.

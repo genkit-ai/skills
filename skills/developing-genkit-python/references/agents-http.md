@@ -4,6 +4,13 @@
 
 Mount an agent on FastAPI with `serve_agent` from `genkit_fastapi.exp`, and connect from another Python service or CLI with `remote_agent` from `genkit.exp.agent`. Stable flows use `serve_flow` from `genkit_fastapi` ([FastAPI](fastapi.md)).
 
+- [Serve an agent with FastAPI](#serve-an-agent-with-fastapi): Lines 14-49
+- [Connect with remote_agent](#connect-with-remote_agent): Lines 51-87
+- [Auth, context_dependency, and PublicError](#auth-context_dependency-and-publicerror): Lines 89-160
+- [Custom HTTP routes](#custom-http-routes): Lines 162-200
+
+---
+
 ## Serve an agent with FastAPI
 
 `serve_agent(agent)` mounts `POST /{agent.name}` for turns: one-shot JSON by default, SSE when the caller sends `Accept: text/event-stream` or `?stream=true`. When the agent has a `store`, it also mounts `POST /{agent.name}/getSnapshot` (`404` when the snapshot is missing) and `POST /{agent.name}/abort`. Callers can pass `?session_id=` or `?thread_id=` to continue a session when the body `init` carries no session id.

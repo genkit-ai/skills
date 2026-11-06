@@ -6,6 +6,16 @@ Turn a model and tools into a stateful multi-turn conversation with snapshots, t
 
 Deeper topics: [sessions](agents-sessions.md) · [HITL](agents-human-in-the-loop.md) · [branching](agents-branching.md) · [background](agents-background.md) · [state](agents-state.md) · [artifacts](agents-artifacts.md) · [custom](agents-custom.md) · [HTTP](agents-http.md)
 
+- [Define an agent](#define-an-agent): Lines 19-69
+- [Tools, progress chunks, and multipart responses](#tools-progress-chunks-and-multipart-responses): Lines 71-99
+- [Middleware](#middleware): Lines 101-136
+- [Chat and streaming](#chat-and-streaming): Lines 138-169
+- [Errors and cancellation](#errors-and-cancellation): Lines 171-194
+- [Without a store](#without-a-store): Lines 196-216
+- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 218-234
+
+---
+
 ## Define an agent
 
 Import `Genkit` from `genkit.exp` to opt into `define_agent`, `define_prompt_agent`, `define_custom_agent`, and `ai.agent(name)`. Stable `from genkit import Genkit` does not expose agent methods.

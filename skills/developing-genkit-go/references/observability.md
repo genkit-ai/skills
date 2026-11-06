@@ -3,6 +3,13 @@
 > Pluggable instrumentation, `otelgenai`, and the reflection API settings
 > require Genkit Go v1.14.0+.
 
+- [How tracing works](#how-tracing-works): Lines 13-26
+- [Export OpenTelemetry GenAI semantic conventions (otelgenai)](#export-opentelemetry-genai-semantic-conventions-otelgenai): Lines 28-70
+- [Custom instrumentation](#custom-instrumentation): Lines 72-92
+- [Reflection API outside dev](#reflection-api-outside-dev): Lines 94-115
+
+---
+
 ## How tracing works
 
 - **In dev** (`genkit start`), Genkit posts spans straight to the Developer UI's

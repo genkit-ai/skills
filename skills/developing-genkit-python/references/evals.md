@@ -1,10 +1,18 @@
 # Evals — Genkit Python (0.13 Only; Removed in 1.0)
 
-> **Caution:** 0.13 is the last release with evaluators (`ai.define_evaluator`, `ai.define_batch_evaluator`, `ai.evaluate`, `genkit.evaluator`). Genkit 1.0 cuts them and the `genkit-evaluators` package from the 1.0 release; evaluation will return as an additive feature in a later release. `genkit-evaluators` 0.13 requires `genkit<1`.
+> **Warning:** 0.13 is the last release with evaluators (`ai.define_evaluator`, `ai.define_batch_evaluator`, `ai.evaluate`, `genkit.evaluator`). Genkit 1.0 cuts them and the `genkit-evaluators` package from the 1.0 release; evaluation will return as an additive feature in a later release. `genkit-evaluators` 0.13 requires `genkit<1`.
 > - **New projects:** do not add `genkit-evaluators` or `define_evaluator` unless you intend to stay pinned to `genkit==0.13.*`. Prefer `pytest` assertions against your flows and prompts until evaluation returns.
 > - **Migrating from 0.12:** stop and ask the developer before porting evaluator code (see [Migrating from 0.12 to 0.13](migrating-from-0.12.md)).
 
 The patterns below document the `0.13.*` evaluator API for projects staying on the 0.13 release line.
+
+- [Install (0.13 Only)](#install-013-only): Lines 19-23
+- [Two Evaluator Types](#two-evaluator-types): Lines 25-28
+- [Dataset Format](#dataset-format): Lines 30-41
+- [Built-In Evaluators & Programmatic Execution](#built-in-evaluators--programmatic-execution): Lines 43-68
+- [BYO Evaluator (EvaluatorResponse, Score, ScoreStatus, ScoreDetails)](#byo-evaluator-evaluatorresponse-score-scorestatus-scoredetails): Lines 70-108
+- [LLM-Based Judge](#llm-based-judge): Lines 110-166
+- [CLI Execution](#cli-execution): Lines 168-180
 
 ---
 

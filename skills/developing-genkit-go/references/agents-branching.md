@@ -10,6 +10,13 @@ snapshot creates a new, independent snapshot; the original is unchanged.
 To branch, run a turn resuming from an earlier snapshot via
 `aix.WithSnapshotID(id)`.
 
+- [Branch from a checkpoint](#branch-from-a-checkpoint): Lines 20-47
+- ["Pick a variant"](#pick-a-variant): Lines 49-77
+- [Resume by session vs. by snapshot](#resume-by-session-vs-by-snapshot): Lines 79-84
+- [Restore history from a snapshot](#restore-history-from-a-snapshot): Lines 86-109
+
+---
+
 ## Branch from a checkpoint
 
 ```go

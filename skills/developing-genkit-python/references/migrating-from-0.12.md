@@ -2,6 +2,21 @@
 
 Genkit Python 0.13 aligns every symbol, signature, and error contract ahead of 1.0 without deprecation aliases. Use this reference when upgrading a 0.12 codebase or replacing 0.12 patterns (`ActionRunContext`, `ToolRunContext`, `*_model()`, `GeminiConfigSchema`, `options=`, `abort_signal`, `restart_tool`, `RuntimeErrorReason`, `add_gcp_telemetry`, `MediaPart`, `TextPart`, or `from genkit.exp import Agent`).
 
+- [Agent Guardrails Before Editing](#agent-guardrails-before-editing): Lines 20-27
+- [1. Upgrade Packages Together](#1-upgrade-packages-together): Lines 31-44
+- [2. Single-Home Namespace Layout](#2-single-home-namespace-layout): Lines 48-107
+- [3. Removed Symbols & Enums Replaced by Strings](#3-removed-symbols--enums-replaced-by-strings): Lines 111-134
+- [4. Model & Embedder Helpers, Constructors, and Plugins](#4-model--embedder-helpers-constructors-and-plugins): Lines 138-194
+- [5. Config Classes, extra, tool_choice, and API Keys](#5-config-classes-extra-tool_choice-and-api-keys): Lines 198-243
+- [6. Typed Contexts, Multipart Tools, Interrupts, and Cancellation](#6-typed-contexts-multipart-tools-interrupts-and-cancellation): Lines 247-323
+- [7. Errors, HTTP Redaction (PublicError), and genkit.web](#7-errors-http-redaction-publicerror-and-genkitweb): Lines 327-366
+- [8. Prompts, Structured Output, Validation, and Telemetry](#8-prompts-structured-output-validation-and-telemetry): Lines 370-391
+- [9. Plugin & Custom Middleware Authors](#9-plugin--custom-middleware-authors): Lines 395-429
+- [10. Evaluators (0.13 Only - Removed in 1.0)](#10-evaluators-013-only--removed-in-10): Lines 433-458
+- [11. Verification Checklist](#11-verification-checklist): Lines 462-467
+
+---
+
 ## Agent Guardrails Before Editing
 
 1. **Stop before porting evaluators.** Evaluators (`define_evaluator`, `ai.evaluate`, `genkit.evaluator`, `genkit-evaluators`) still run in 0.13, but this is their last release: **Genkit 1.0 cuts them from the 1.0 release** (evaluation will return as an additive feature in a later release; `genkit-evaluators` 0.13 requires `genkit<1`). If the project contains evaluator code, stop and ask the developer before porting it. Recommend deleting evaluator code now; apply the 0.13 renames below only if the developer chooses to stay pinned to `0.13.*`.

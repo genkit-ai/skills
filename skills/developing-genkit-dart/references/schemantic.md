@@ -2,6 +2,17 @@
 
 Schemantic is a general-purpose Dart library used for defining strongly typed data classes that automatically bind to reusable runtime JSON schemas. It is standard for the `genkit-dart` framework but works independently as well.
 
+- [Core Concepts](#core-concepts): Lines 16-22
+- [Installation](#installation): Lines 24-42
+- [Basic Usage](#basic-usage): Lines 44-97
+- [Primitive Schemas](#primitive-schemas): Lines 99-111
+- [Union Types (AnyOf)](#union-types-anyof): Lines 113-130
+- [Field Annotations](#field-annotations): Lines 132-153
+- [Recursive Schemas](#recursive-schemas): Lines 155-166
+- [Non-nullable getters throw on partial data](#non-nullable-getters-throw-on-partial-data): Lines 168-176
+
+---
+
 ## Core Concepts
 
 Always use `schemantic` when strongly typed JSON parsing or programmatic schema validation is required. 

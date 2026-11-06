@@ -2,6 +2,17 @@
 
 Minimal patterns for generation, structured output, streaming, media, flows, tools, interrupts, cancellation, and embeddings.
 
+- [Public Imports & Initialization](#public-imports--initialization): Lines 16-58
+- [Structured Output](#structured-output): Lines 62-95
+- [Streaming (Text & Structured Output)](#streaming-text--structured-output): Lines 99-126
+- [Media Input & Output (Part)](#media-input--output-part): Lines 130-192
+- [Flows & Streaming Flows](#flows--streaming-flows): Lines 196-225
+- [Tools, Multipart Tool Responses, and Interrupts](#tools-multipart-tool-responses-and-interrupts): Lines 229-286
+- [Cancellation](#cancellation): Lines 290-317
+- [Embeddings](#embeddings): Lines 321-347
+
+---
+
 ## Public Imports & Initialization
 
 Import only from public modules (`genkit`, `genkit_google_genai`, `genkit_fastapi`, `genkit_middleware`, `genkit.model`, `genkit.embedder`, `genkit.middleware`, `genkit.web`, `genkit.exp`, `genkit.exp.agent`). Never import private `_` submodules.

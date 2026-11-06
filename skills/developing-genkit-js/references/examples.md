@@ -7,6 +7,15 @@ This reference contains minimal, reproducible examples (MREs) for common Genkit 
 > 2. Install and configure the plugin.
 > 3. Swap the model reference in the code.
 
+- [Basic Text Generation](#basic-text-generation): Lines 19-33
+- [Structured Output](#structured-output): Lines 35-56
+- [Streaming](#streaming): Lines 58-73
+- [Advanced Configuration](#advanced-configuration): Lines 75-112
+- [Multimodal Generation](#multimodal-generation): Lines 114-174
+- [Embeddings](#embeddings): Lines 176-210
+
+---
+
 ## Basic Text Generation
 
 ```ts

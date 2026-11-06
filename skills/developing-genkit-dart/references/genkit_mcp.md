@@ -9,6 +9,12 @@ initialization-based peers automatically.
 > name is preserved in `metadata.originalName` and tool requests still resolve
 > correctly.
 
+- [MCP Host (Recommended)](#mcp-host-recommended): Lines 18-73
+- [MCP Client (Advanced / Single Server)](#mcp-client-advanced--single-server): Lines 75-106
+- [MCP Server](#mcp-server): Lines 108-160
+
+---
+
 ## MCP Host (Recommended)
 Connect to one or more MCP servers and aggregate their capabilities into the Genkit registry automatically.
 

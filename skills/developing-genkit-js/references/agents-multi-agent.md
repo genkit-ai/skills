@@ -10,6 +10,16 @@ appends a `<sub-agents>` block to the orchestrator's system prompt, and — when
 the model calls a delegation tool — runs the sub-agent and returns its response
 as the tool result.
 
+- [1. Define the sub-agents](#1-define-the-sub-agents): Lines 23-51
+- [2. Wire up the orchestrator](#2-wire-up-the-orchestrator): Lines 53-95
+- [agents() options](#agents-options): Lines 97-112
+- [Background delegation (async: true)](#background-delegation-async-true): Lines 114-154
+- [Continuing a task (continue_task)](#continuing-a-task-continue_task): Lines 156-173
+- [Sharing artifacts between agents](#sharing-artifacts-between-agents): Lines 175-186
+- [Other middleware](#other-middleware): Lines 188-212
+
+---
+
 ## 1. Define the sub-agents
 
 Give each sub-agent a `description` — it's auto-discovered and shown to the

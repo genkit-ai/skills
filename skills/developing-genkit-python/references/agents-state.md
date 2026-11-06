@@ -4,6 +4,14 @@
 
 An agent session tracks three layers: `messages`, custom `state` (typed by `state_schema`), and `artifacts`. When `state_schema` (a Pydantic `BaseModel`) is set, `chat.state`, `res.state`, and streamed `chunk.custom` validate into instances of that model instead of bare dicts.
 
+- [Two state-management modes](#two-state-management-modes): Lines 15-20
+- [Client-managed typed state](#client-managed-typed-state): Lines 22-64
+- [Mutating state from tools (current_session)](#mutating-state-from-tools-current_session): Lines 66-115
+- [Live state patches](#live-state-patches): Lines 117-131
+- [Egress redaction (state_transform and chunk_transform)](#egress-redaction-state_transform-and-chunk_transform): Lines 133-163
+
+---
+
 ## Two state-management modes
 
 - **Server-managed (`store=...`)**: Genkit owns persistence. Resume with `snapshot_id` or `session_id`. Passing `state=`, `messages=`, or `artifacts=` to `agent.chat(...)` on a store-backed agent raises `AgentInitError` (`FAILED_PRECONDITION`).

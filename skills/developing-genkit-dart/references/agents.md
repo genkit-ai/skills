@@ -46,6 +46,18 @@ Progressive disclosure — read the file for the level you need:
 - [Advanced custom agents](agents-custom.md): `defineCustomAgent` for full turn control.
 - [Deploying agents](agents-deployment.md): serving multiple agents over HTTP with `GenkitRouter.addAgent`, shelf, CORS.
 
+- [Setup](#setup): Lines 61-83
+- [Define an agent](#define-an-agent): Lines 85-153
+- [Agents and middleware go hand in hand](#agents-and-middleware-go-hand-in-hand): Lines 155-196
+- [Chat with an agent (server-side)](#chat-with-an-agent-server-side): Lines 198-240
+- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 242-255
+- [Serve an agent over HTTP](#serve-an-agent-over-http): Lines 257-278
+- [Consume an agent from a client (remoteAgent)](#consume-an-agent-from-a-client-remoteagent): Lines 280-314
+- [Using from Flutter](#using-from-flutter): Lines 316-390
+- [Client-managed state (no server store)](#client-managed-state-no-server-store): Lines 392-431
+
+---
+
 ## Setup
 
 Register the plugins your agents need on a shared `Genkit` instance. `retry` is

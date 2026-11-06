@@ -1,5 +1,16 @@
 # FastAPI — Genkit Python
 
+- [Install](#install): Lines 14-29
+- [Serve a Flow or Agent](#serve-a-flow-or-agent): Lines 33-87
+- [HTTP Error Redaction & PublicError](#http-error-redaction--publicerror): Lines 91-97
+- [Streaming (SSE)](#streaming-sse): Lines 101-150
+- [Auth & Context Providers](#auth--context-providers): Lines 154-226
+- [Advanced Flow Composition](#advanced-flow-composition): Lines 230-302
+- [Structured Output Endpoint](#structured-output-endpoint): Lines 306-329
+- [Python HTTP Client](#python-http-client): Lines 333-344
+
+---
+
 ## Install
 
 ```bash

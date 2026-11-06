@@ -19,6 +19,14 @@ match the `remoteAgent` client defaults (`${url}/getSnapshot`, `${url}/abort`),
 so a client only needs the base `url`. `hideGetSnapshot: true` /
 `hideAbort: true` remove supported routes; they can't force unsupported ones.
 
+- [Serving several agents (shelf)](#serving-several-agents-shelf): Lines 30-78
+- [Auth](#auth): Lines 80-84
+- [CORS for browser clients](#cors-for-browser-clients): Lines 86-90
+- [Registering agents/flows](#registering-agentsflows): Lines 92-98
+- [Notes](#notes): Lines 100-110
+
+---
+
 ## Serving several agents (shelf)
 
 ```dart

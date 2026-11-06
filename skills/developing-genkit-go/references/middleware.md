@@ -2,6 +2,21 @@
 
 Middleware wraps `Generate` calls to add cross-cutting behavior (retries, logging, fallback, gating, sandboxed tools) without touching the flow that uses it. Middleware composes, so a single `Generate` call can stack several behaviors. Built-ins ship in the `plugins/middleware` package; custom middleware is just a Go struct with two methods.
 
+- [The mental model](#the-mental-model): Lines 20-44
+- [When each hook fires](#when-each-hook-fires): Lines 46-56
+- [Composition order](#composition-order): Lines 58-70
+- [Per-call state](#per-call-state): Lines 72-120
+- [Plugin-level state](#plugin-level-state): Lines 122-157
+- [Composition with WithUse](#composition-with-withuse): Lines 159-172
+- [Inline middleware](#inline-middleware): Lines 174-189
+- [Application-owned middleware](#application-owned-middleware): Lines 191-202
+- [Built-in middleware](#built-in-middleware): Lines 204-374
+- [Practical patterns](#practical-patterns): Lines 376-451
+- [Migration note](#migration-note): Lines 453-455
+- [See also](#see-also): Lines 457-461
+
+---
+
 ## The mental model
 
 A middleware is a config struct that implements two methods:

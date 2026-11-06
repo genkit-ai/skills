@@ -8,6 +8,13 @@ and mutate it during a turn, and it is automatically synced to the
 [`remoteAgent`](agents.md#consume-an-agent-from-a-client-remoteagent) client via
 `customPatch` chunks (so the client's tracked state stays live mid-stream).
 
+- [Declare the state shape](#declare-the-state-shape): Lines 18-55
+- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 57-157
+- [Seed and read state (server-side)](#seed-and-read-state-server-side): Lines 159-182
+- [Auto-sync to the remoteAgent client](#auto-sync-to-the-remoteagent-client): Lines 184-222
+
+---
+
 ## Declare the state shape
 
 Pass a `stateSchema` (a schemantic `.$schema`) to `defineAgent`. It's validated

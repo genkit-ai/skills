@@ -10,6 +10,12 @@ snapshot creates a new, independent snapshot; the original is unchanged.
 To branch, open a new `chat` attached to an earlier snapshot via
 `agent.chat(snapshotId: ...)`.
 
+- [Server-side branching](#server-side-branching): Lines 19-46
+- [Client-side branching ("pick a variant")](#client-side-branching-pick-a-variant): Lines 48-79
+- [Restoring history from a snapshot](#restoring-history-from-a-snapshot): Lines 81-109
+
+---
+
 ## Server-side branching
 
 ```dart

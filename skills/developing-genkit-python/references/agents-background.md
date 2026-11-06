@@ -4,6 +4,13 @@
 
 `await chat.detach(...)` hands a turn to the server, reserves a `snapshot_id` in `SnapshotStatus.PENDING` (with background heartbeat refreshes), and returns a `DetachedTask` handle immediately without waiting for model or tool completion.
 
+- [Detach, poll, and load results](#detach-poll-and-load-results): Lines 14-56
+- [Client detach vs. server cancellation](#client-detach-vs-server-cancellation): Lines 58-82
+- [Tool cancellation (asyncio.CancelledError)](#tool-cancellation-asynciocancellederror): Lines 84-102
+- [Fan-out parallel research](#fan-out-parallel-research): Lines 104-129
+
+---
+
 ## Detach, poll, and load results
 
 Because the originating `chat` never streams a detached turn's chunks, rehydrate the finished conversation with `await agent.load_chat(snapshot_id=task.snapshot_id)` once the task settles:

@@ -1,5 +1,12 @@
 # Flows & HTTP
 
+- [DefineFlow](#defineflow): Lines 10-29
+- [DefineStreamingFlow](#definestreamingflow): Lines 31-99
+- [Named Sub-Steps](#named-sub-steps): Lines 101-123
+- [HTTP Handlers](#http-handlers): Lines 125-190
+
+---
+
 ## DefineFlow
 
 Wrap AI logic in a flow for observability, tracing, and HTTP deployment.

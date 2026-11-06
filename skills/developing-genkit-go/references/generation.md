@@ -1,5 +1,15 @@
 # Generation
 
+- [GenerateText](#generatetext): Lines 13-22
+- [Generate](#generate): Lines 24-37
+- [GenerateData (Structured Output)](#generatedata-structured-output): Lines 39-54
+- [Streaming](#streaming): Lines 56-114
+- [Common Options](#common-options): Lines 116-132
+- [Output Formats](#output-formats): Lines 134-186
+- [Embeddings](#embeddings): Lines 188-223
+
+---
+
 ## GenerateText
 
 Simplest form. Returns a string.

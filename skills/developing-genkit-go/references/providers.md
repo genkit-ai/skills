@@ -1,5 +1,14 @@
 # Model Providers
 
+- [Google AI (Gemini)](#google-ai-gemini): Lines 12-37
+- [Vertex AI](#vertex-ai): Lines 39-55
+- [Anthropic (Claude)](#anthropic-claude): Lines 57-86
+- [OpenAI-Compatible (compat_oai)](#openai-compatible-compat_oai): Lines 88-112
+- [Ollama (Local Models)](#ollama-local-models): Lines 114-141
+- [Multiple Providers](#multiple-providers): Lines 143-166
+
+---
+
 ## Google AI (Gemini)
 
 ```go

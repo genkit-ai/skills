@@ -7,6 +7,15 @@ own structured data (a task list, a workflow status, counters, etc.). Tools read
 and mutate it during a turn, and every mutation is streamed to a connected client
 as a JSON Patch so the client's view stays live.
 
+- [Declare the state shape](#declare-the-state-shape): Lines 19-44
+- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 46-88
+- [Seed and read state](#seed-and-read-state): Lines 90-107
+- [Live state on a connection](#live-state-on-a-connection): Lines 109-136
+- [Prompt templating with state](#prompt-templating-with-state): Lines 138-145
+- [Custom status streaming from a custom agent](#custom-status-streaming-from-a-custom-agent): Lines 147-152
+
+---
+
 ## Declare the state shape
 
 The custom-state type is the `State` type parameter of the agent (and its store).

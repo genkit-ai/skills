@@ -4,6 +4,12 @@
 
 `ai.define_agent` runs a built-in model + tool loop. When you need custom multi-step orchestration, subagent delegation, custom streaming, or manual control over messages, custom state, and artifacts, register a custom turn loop with `ai.define_custom_agent`. Callers still talk to the agent through `chat.send(...)`, `chat.send_stream(...)`, `chat.detach(...)`, and `serve_agent(...)`.
 
+- [Anatomy](#anatomy): Lines 13-46
+- [Streaming custom agent example](#streaming-custom-agent-example): Lines 48-114
+- [Non-streaming handle_turn with tools](#non-streaming-handle_turn-with-tools): Lines 116-170
+
+---
+
 ## Anatomy
 
 Register one async `fn(sess: SessionRunner, ctx: AgentContext) -> AgentResult`. Inside `fn`, define `handle_turn(inp: AgentInput, turn_ctx: TurnContext) -> TurnResult | None`, pass it to `await sess.run(handle_turn)`, and return `await sess.result()`:

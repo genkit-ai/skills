@@ -14,6 +14,15 @@ companion actions:
   `nil` unless the store implements `aix.SnapshotSubscriber` (both `localstore`
   stores do).
 
+- [Request/response shape](#requestresponse-shape): Lines 26-41
+- [Serve with the built-in route layout (recommended)](#serve-with-the-built-in-route-layout-recommended): Lines 43-73
+- [A reusable helper for several agents (manual wiring)](#a-reusable-helper-for-several-agents-manual-wiring): Lines 75-121
+- [CORS for browser clients](#cors-for-browser-clients): Lines 123-149
+- [Registering agents](#registering-agents): Lines 151-157
+- [Verifying locally](#verifying-locally): Lines 159-180
+
+---
+
 ## Request/response shape
 
 The handler accepts `{"data": <AgentInput>, "init": <AgentInit>}`:
