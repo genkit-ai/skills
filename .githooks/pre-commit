@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -e
+
+# Resolve repository root from hook script location
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${HOOK_DIR}/.." && pwd)"
+cd "$REPO_ROOT"
+
+python3 scripts/sync_tocs.py --staged
