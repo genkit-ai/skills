@@ -36,8 +36,22 @@ def get_skills_root(repo_root: Path) -> Path:
     return repo_root / "skills"
 
 
+def is_reference_file(path: Path, skills_root: Path) -> bool:
+    """Returns True if path is strictly skills/<skill>/references/<file>.md."""
+    try:
+        rel = path.resolve().relative_to(skills_root.resolve())
+    except ValueError:
+        return False
+    return (
+        len(rel.parts) == 3
+        and rel.parts[1] == "references"
+        and rel.parts[2].endswith(".md")
+    )
+
+
 TOC_LINE_RE = re.compile(r"^- \[(.+)\]\(#(.+)\): Lines (\d+)-(\d+)$")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
+MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
 CAUTION_RE = re.compile(r"\bCaution:")
 
 
@@ -89,7 +103,8 @@ def check_fences_balanced(text: str) -> tuple[bool, int | None]:
 
 def gfm_base_slug(heading_text: str) -> str:
     """Computes base GitHub Flavored Markdown anchor slug."""
-    s = heading_text.strip().lower().replace("`", "")
+    s = MARKDOWN_LINK_RE.sub(r"\1", heading_text)
+    s = s.strip().lower().replace("`", "")
     s = re.sub(r"[^\w\s-]", "", s)
     s = re.sub(r" ", "-", s)
     return s
@@ -97,7 +112,7 @@ def gfm_base_slug(heading_text: str) -> str:
 
 def display_title_from_h2(raw_h2: str) -> str:
     """Formats H2 heading text for TOC display title."""
-    text = raw_h2[3:].strip()
+    text = MARKDOWN_LINK_RE.sub(r"\1", raw_h2[3:].strip())
     # Remove backticks and brackets so markdown link syntax stays valid,
     # and replace Unicode em-dashes with hyphens.
     text = (
@@ -141,12 +156,12 @@ def generate_reference_content(orig_text: str) -> str:
         intro_lines.pop()
 
     body_lines = raw_lines[first_h2:]
+    prefix = (intro_lines + [""]) if intro_lines else []
+    cleaned = prefix + body_lines
 
-    # Remove TOC if content (excluding TOC) is 100 lines or fewer
-    if len(raw_lines) <= 100:
+    # Remove TOC if content (excluding TOC and separator) is 100 lines or fewer
+    if len(cleaned) <= 100:
         if any(TOC_LINE_RE.match(l) for l in orig_text.splitlines()):
-            prefix = (intro_lines + [""]) if intro_lines else []
-            cleaned = prefix + body_lines
             return "\n".join(cleaned) + "\n"
         return orig_text
 
@@ -192,7 +207,6 @@ def generate_reference_content(orig_text: str) -> str:
                 end_idx -= 1
         sections.append((title, anchor, h_idx, end_idx))
 
-    prefix = (intro_lines + [""]) if intro_lines else []
     body_offset = len(prefix) + len(sections) + 3
     toc_lines = [
         f"- [{title}](#{anchor}): Lines {body_offset + h_idx + 1}-{body_offset + end_idx + 1}"
@@ -201,6 +215,13 @@ def generate_reference_content(orig_text: str) -> str:
 
     final_lines = prefix + toc_lines + ["", "---", ""] + body_lines
     return "\n".join(final_lines) + "\n"
+
+
+def unquote_yaml_scalar(val: str) -> str:
+    """Strips matching single or double outer quotes from a single-line YAML scalar."""
+    if len(val) >= 2 and val[0] == val[-1] and val[0] in ("'", '"'):
+        return val[1:-1]
+    return val
 
 
 def parse_skill_frontmatter(
@@ -221,7 +242,7 @@ def parse_skill_frontmatter(
 
     for line in fm_text.splitlines():
         if line.startswith("name:"):
-            name = line.split(":", 1)[1].strip().strip("'\"")
+            name = unquote_yaml_scalar(line.split(":", 1)[1].strip())
             in_desc = False
         elif line.startswith("description:"):
             rest = line.split(":", 1)[1].strip()
@@ -231,9 +252,10 @@ def parse_skill_frontmatter(
                 desc_lines = []
             else:
                 in_desc = False
-                desc_lines = [rest]
+                unquoted = unquote_yaml_scalar(rest).strip()
+                desc_lines = [unquoted] if unquoted else []
         elif in_desc:
-            if line.startswith("  ") or line.startswith("\t") or not line.strip():
+            if line.startswith((" ", "\t")) or not line.strip():
                 desc_lines.append(line.strip())
             else:
                 in_desc = False
@@ -272,13 +294,14 @@ def parse_skill_frontmatter(
     return {"name": name, "description": desc}, None
 
 
-def check_hygiene_for_file(path: Path) -> list[str]:
+def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
     """Validates CommonMark fences, LeakR Caution keyword, and frontmatter."""
     errors: list[str] = []
-    try:
-        text = path.read_text(encoding="utf-8")
-    except Exception as e:
-        return [f"{path}: Failed to read file: {e}"]
+    if text is None:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except Exception as e:
+            return [f"{path}: Failed to read file: {e}"]
 
     # 1. Check code fences
     balanced, start_line = check_fences_balanced(text)
@@ -312,7 +335,7 @@ def get_staged_skill_md_files(repo_root: Path | None = None) -> list[Path]:
     root = repo_root or get_repo_root()
     try:
         res = subprocess.run(
-            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+            ["git", "diff", "--cached", "--name-only", "--diff-filter=ACMR"],
             cwd=root,
             capture_output=True,
             text=True,
@@ -327,10 +350,26 @@ def get_staged_skill_md_files(repo_root: Path | None = None) -> list[Path]:
     for line in res.stdout.splitlines():
         p = line.strip()
         if p.startswith("skills/") and p.endswith(".md"):
-            abs_p = root / p
-            if abs_p.is_file():
-                staged.append(abs_p)
+            staged.append(root / p)
     return staged
+
+
+def read_staged_file(repo_root: Path, rel_posix: str) -> str | None:
+    """Reads staged UTF-8 content directly from the Git index (:path)."""
+    try:
+        res = subprocess.run(
+            ["git", "show", f":{rel_posix}"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        return res.stdout
+    except (subprocess.CalledProcessError, OSError, UnicodeDecodeError) as e:
+        err_msg = e.stderr if isinstance(e, subprocess.CalledProcessError) else str(e)
+        print(f"Error reading staged content for {rel_posix}: {err_msg}", file=sys.stderr)
+        return None
 
 
 def run_fix(
@@ -346,7 +385,7 @@ def run_fix(
             for p in missing:
                 print(f"Error: Target file not found: {p}", file=sys.stderr)
             return 1
-        files = target_files
+        files = [p for p in target_files if is_reference_file(p, skills_root)]
     else:
         files = sorted(skills_root.glob("*/references/*.md"))
 
@@ -372,34 +411,40 @@ def run_fix(
 def run_staged(repo_root: Path | None = None) -> int:
     """Fixes drifted TOCs in staged reference files, restages, and checks hygiene."""
     root = repo_root or get_repo_root()
+    skills_root = get_skills_root(root)
     staged = get_staged_skill_md_files(root)
     if not staged:
         return 0
 
     all_errors: list[str] = []
 
-    # 1. Update and restage any drifted TOCs in staged reference files
-    staged_refs = [
-        f
-        for f in staged
-        if f.match("*/references/*.md") or "references" in f.parts
-    ]
-    for path in staged_refs:
-        orig = path.read_text(encoding="utf-8")
-        updated = generate_reference_content(orig)
-        if updated != orig:
-            path.write_text(updated, encoding="utf-8")
-            rel = path.relative_to(root).as_posix()
-            try:
-                subprocess.run(["git", "add", rel], cwd=root, check=True)
-            except (subprocess.CalledProcessError, OSError) as e:
-                all_errors.append(f"{rel}: Failed to stage updated TOC: {e}")
-                continue
-            print(f"[sync_tocs] Updated and restaged TOC for {rel}")
-
-    # 2. Enforce hygiene checks on all staged markdown files
     for path in staged:
-        errs = check_hygiene_for_file(path)
+        rel = path.relative_to(root).as_posix()
+        staged_text = read_staged_file(root, rel)
+        if staged_text is None:
+            all_errors.append(f"{rel}: Failed to read staged file from Git index")
+            continue
+
+        if is_reference_file(path, skills_root):
+            updated = generate_reference_content(staged_text)
+            if updated != staged_text:
+                disk_text = path.read_text(encoding="utf-8") if path.is_file() else None
+                if disk_text != staged_text:
+                    all_errors.append(
+                        f"{rel}: Staged TOC is out of date, and file has unstaged changes. "
+                        "Stage all edits or run 'python3 scripts/sync_tocs.py --fix'."
+                    )
+                else:
+                    path.write_text(updated, encoding="utf-8")
+                    try:
+                        subprocess.run(["git", "add", rel], cwd=root, check=True)
+                    except (subprocess.CalledProcessError, OSError) as e:
+                        all_errors.append(f"{rel}: Failed to stage updated TOC: {e}")
+                        continue
+                    staged_text = updated
+                    print(f"[sync_tocs] Updated and restaged TOC for {rel}")
+
+        errs = check_hygiene_for_file(path, text=staged_text)
         all_errors.extend(errs)
 
     if all_errors:
@@ -426,11 +471,7 @@ def run_check(
             for p in missing:
                 print(f"Error: Target file not found: {p}", file=sys.stderr)
             return 1
-        ref_files = [
-            p
-            for p in target_files
-            if p.match("*/references/*.md") or "references" in p.parts
-        ]
+        ref_files = [p for p in target_files if is_reference_file(p, skills_root)]
         hygiene_files = [p for p in target_files if p.suffix == ".md"]
     else:
         ref_files = sorted(skills_root.glob("*/references/*.md"))
