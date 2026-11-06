@@ -1,6 +1,11 @@
 ---
 name: developing-genkit-python
-description: Develop AI-powered applications using Genkit Python (0.13) and migrate Genkit Python 0.12 projects to 0.13. Use when building AI agents, flows, tools, structured outputs, or FastAPI routes in Python, upgrading from Genkit 0.12, or debugging Genkit imports, config errors, or traces.
+description: >-
+  Provides guidance on developing AI-powered applications using Genkit Python
+  (0.13) and migrating Genkit Python 0.12 projects to 0.13. Use when building AI
+  agents, flows, tools, structured outputs, or FastAPI routes in Python,
+  upgrading from Genkit 0.12, or debugging Genkit imports, config errors, or
+  traces. Don't use for Genkit in JavaScript/TypeScript, Go, or Dart.
 metadata:
   version: "1.0.0"
   category: AiAndMachineLearning

@@ -1,6 +1,11 @@
 ---
 name: developing-genkit-go
-description: Develop AI-powered applications using Genkit in Go. Use when the user asks to build AI features, agents, flows, or tools in Go using Genkit, or when working with Genkit Go code involving generation, prompts, streaming, tool calling, or model providers.
+description: >-
+  Provides guidance on developing AI-powered applications using Genkit in Go.
+  Use when the user asks to build AI features, agents, flows, or tools in Go
+  using Genkit, or when working with Genkit Go code involving generation,
+  prompts, streaming, tool calling, or model providers. Don't use for Genkit in
+  JavaScript/TypeScript, Python, or Dart.
 metadata:
   version: "1.0.0"
   category: AiAndMachineLearning
