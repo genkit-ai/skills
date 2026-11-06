@@ -27,7 +27,7 @@ def get_repo_root() -> Path:
         p = Path(res.stdout.strip())
         if p.is_dir():
             return p
-    except Exception:
+    except (subprocess.CalledProcessError, OSError):
         pass
     return Path(__file__).resolve().parent.parent
 
@@ -145,7 +145,8 @@ def generate_reference_content(orig_text: str) -> str:
     # Remove TOC if content (excluding TOC) is 100 lines or fewer
     if len(raw_lines) <= 100:
         if any(TOC_LINE_RE.match(l) for l in orig_text.splitlines()):
-            cleaned = intro_lines + [""] + body_lines
+            prefix = (intro_lines + [""]) if intro_lines else []
+            cleaned = prefix + body_lines
             return "\n".join(cleaned) + "\n"
         return orig_text
 
@@ -191,15 +192,14 @@ def generate_reference_content(orig_text: str) -> str:
                 end_idx -= 1
         sections.append((title, anchor, h_idx, end_idx))
 
-    body_offset = len(intro_lines) + 1 + len(sections) + 3
+    prefix = (intro_lines + [""]) if intro_lines else []
+    body_offset = len(prefix) + len(sections) + 3
     toc_lines = [
         f"- [{title}](#{anchor}): Lines {body_offset + h_idx + 1}-{body_offset + end_idx + 1}"
         for title, anchor, h_idx, end_idx in sections
     ]
 
-    final_lines = (
-        intro_lines + [""] + toc_lines + ["", "---", ""] + body_lines
-    )
+    final_lines = prefix + toc_lines + ["", "---", ""] + body_lines
     return "\n".join(final_lines) + "\n"
 
 
@@ -233,17 +233,35 @@ def parse_skill_frontmatter(
                 in_desc = False
                 desc_lines = [rest]
         elif in_desc:
-            if line.startswith("  ") or line.startswith("\t"):
+            if line.startswith("  ") or line.startswith("\t") or not line.strip():
                 desc_lines.append(line.strip())
             else:
                 in_desc = False
+
+    while desc_lines and not desc_lines[-1]:
+        desc_lines.pop()
+    while desc_lines and not desc_lines[0]:
+        desc_lines.pop(0)
 
     if not name:
         return None, "Missing 'name' field in frontmatter"
     if not desc_lines:
         return None, "Missing 'description' field in frontmatter"
 
-    desc = " ".join(desc_lines) if desc_folded else "\n".join(desc_lines)
+    if desc_folded:
+        paragraphs: list[str] = []
+        current: list[str] = []
+        for dl in desc_lines:
+            if dl:
+                current.append(dl)
+            elif current:
+                paragraphs.append(" ".join(current))
+                current = []
+        if current:
+            paragraphs.append(" ".join(current))
+        desc = "\n".join(paragraphs)
+    else:
+        desc = "\n".join(desc_lines)
     desc_bytes = len(desc.encode("utf-8"))
     if desc_bytes > 1024:
         return (
@@ -269,11 +287,11 @@ def check_hygiene_for_file(path: Path) -> list[str]:
             f"{path}:{start_line}: Unclosed CommonMark code fence starting here"
         )
 
-    # 2. Check LeakR Caution keyword
-    for idx, line in enumerate(text.splitlines(), start=1):
-        if CAUTION_RE.search(line):
+    # 2. Check LeakR Caution keyword (skipping fenced code blocks)
+    for idx, line, in_fence in iter_non_fenced(text.splitlines()):
+        if not in_fence and CAUTION_RE.search(line):
             errors.append(
-                f"{path}:{idx}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
+                f"{path}:{idx + 1}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
             )
 
     # 3. Check SKILL.md frontmatter if applicable
@@ -300,8 +318,9 @@ def get_staged_skill_md_files(repo_root: Path | None = None) -> list[Path]:
             text=True,
             check=True,
         )
-    except subprocess.CalledProcessError as e:
-        print(f"Error querying git staged files: {e.stderr}", file=sys.stderr)
+    except (subprocess.CalledProcessError, OSError) as e:
+        err_msg = e.stderr if isinstance(e, subprocess.CalledProcessError) else str(e)
+        print(f"Error querying git staged files: {err_msg}", file=sys.stderr)
         return []
 
     staged: list[Path] = []
@@ -339,7 +358,7 @@ def run_fix(
         updated = generate_reference_content(orig)
         if updated != orig:
             path.write_text(updated, encoding="utf-8")
-            rel = path.relative_to(root)
+            rel = path.relative_to(root).as_posix()
             print(f"Updated TOC in {rel}")
             fixed_count += 1
 
@@ -370,8 +389,12 @@ def run_staged(repo_root: Path | None = None) -> int:
         updated = generate_reference_content(orig)
         if updated != orig:
             path.write_text(updated, encoding="utf-8")
-            rel = str(path.relative_to(root))
-            subprocess.run(["git", "add", rel], cwd=root, check=True)
+            rel = path.relative_to(root).as_posix()
+            try:
+                subprocess.run(["git", "add", rel], cwd=root, check=True)
+            except (subprocess.CalledProcessError, OSError) as e:
+                all_errors.append(f"{rel}: Failed to stage updated TOC: {e}")
+                continue
             print(f"[sync_tocs] Updated and restaged TOC for {rel}")
 
     # 2. Enforce hygiene checks on all staged markdown files
@@ -418,7 +441,7 @@ def run_check(
         orig = path.read_text(encoding="utf-8")
         updated = generate_reference_content(orig)
         if updated != orig:
-            rel = str(path.relative_to(root))
+            rel = path.relative_to(root).as_posix()
             toc_drift.append(rel)
             all_errors.append(f"{rel}: TOC is out of date")
 

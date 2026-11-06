@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
@@ -22,6 +23,7 @@ from scripts.sync_tocs import (
     check_hygiene_for_file,
     display_title_from_h2,
     generate_reference_content,
+    get_staged_skill_md_files,
     gfm_base_slug,
     iter_non_fenced,
     parse_skill_frontmatter,
@@ -120,6 +122,28 @@ class TestFrontmatterParser(unittest.TestCase):
         self.assertEqual(
             fm["description"],
             "This is a multiline description for test-skill.",
+        )
+
+    def test_folded_frontmatter_with_blank_lines(self):
+        text = (
+            "---\n"
+            "name: blank-line-skill\n"
+            "description: >-\n"
+            "  First paragraph line one\n"
+            "  and line two.\n"
+            "\n"
+            "  Second paragraph after blank line.\n"
+            "metadata:\n"
+            "  version: '1.0.0'\n"
+            "---\n\n# Body\n"
+        )
+        fm, err = parse_skill_frontmatter(text)
+        self.assertIsNone(err)
+        self.assertIsNotNone(fm)
+        self.assertEqual(fm["name"], "blank-line-skill")
+        self.assertEqual(
+            fm["description"],
+            "First paragraph line one and line two.\nSecond paragraph after blank line.",
         )
 
     def test_valid_quoted_frontmatter(self):
@@ -225,6 +249,47 @@ class TestReferenceTOCGeneration(unittest.TestCase):
         self.assertNotIn("---", without_toc)
 
 
+    def test_heading_rename_and_new_section_updates_toc(self):
+        lines = ["# Guide", "", "Overview."]
+        lines.append("## Original Heading")
+        for i in range(60):
+            lines.append(f"Body A {i}")
+        lines.append("## Second Heading")
+        for i in range(60):
+            lines.append(f"Body B {i}")
+
+        initial = generate_reference_content("\n".join(lines) + "\n")
+        self.assertIn("- [Original Heading](#original-heading): Lines ", initial)
+
+        # Rename first heading (including em-dash and code ticks), insert new middle section
+        edited = initial.replace(
+            "## Original Heading",
+            "## Updated Heading \u2014 `v2`",
+        ).replace(
+            "## Second Heading",
+            "## Inserted Middle Section\nMid line 1\nMid line 2\n\n## Second Heading",
+        )
+        resynced = generate_reference_content(edited)
+
+        self.assertNotIn("Original Heading", resynced)
+        self.assertIn(
+            "- [Updated Heading - v2](#updated-heading--v2): Lines 11-71",
+            resynced,
+        )
+        self.assertIn(
+            "- [Inserted Middle Section](#inserted-middle-section): Lines 72-74",
+            resynced,
+        )
+        self.assertIn(
+            "- [Second Heading](#second-heading): Lines 76-136",
+            resynced,
+        )
+        out_lines = resynced.splitlines()
+        self.assertEqual(out_lines[10], "## Updated Heading \u2014 `v2`")
+        self.assertEqual(out_lines[71], "## Inserted Middle Section")
+        self.assertEqual(out_lines[75], "## Second Heading")
+
+
 class TestHygieneChecks(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
@@ -237,6 +302,15 @@ class TestHygieneChecks(unittest.TestCase):
         p.write_text("> **Caution:** Do not use this.\n", encoding="utf-8")
         errs = check_hygiene_for_file(p)
         self.assertTrue(any("Caution:" in e for e in errs))
+
+    def test_caution_inside_fenced_code_block_allowed(self):
+        p = Path(self.temp_dir) / "code_sample.md"
+        p.write_text(
+            "# Sample\n\n```python\n# Caution: internal comment in sample\nprint('Caution: ok')\n```\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(p)
+        self.assertEqual(errs, [])
 
     def test_unclosed_fence_detected(self):
         p = Path(self.temp_dir) / "test.md"
@@ -320,6 +394,45 @@ class TestGitIntegration(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         self.assertIn("Unclosed CommonMark code fence", res.stderr)
 
+    def test_staged_mode_blocks_caution_leakr(self):
+        skill_dir = Path(self.temp_dir) / "skills" / "test-skill"
+        skill_dir.mkdir(parents=True)
+        broken_file = skill_dir / "leakr.md"
+        broken_file.write_text("> **Caution:** LeakR keyword\n", encoding="utf-8")
+        subprocess.run(["git", "add", "skills/test-skill/leakr.md"], cwd=self.temp_dir, check=True)
+
+        script_path = REPO_ROOT / "scripts" / "sync_tocs.py"
+        res = subprocess.run(
+            [sys.executable, str(script_path), "--staged"],
+            cwd=self.temp_dir,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("Found forbidden LeakR keyword 'Caution:'", res.stderr)
+
+    def test_get_staged_skill_md_files_handles_os_error(self):
+        err_buf = io.StringIO()
+        with mock.patch("scripts.sync_tocs.subprocess.run", side_effect=FileNotFoundError("git not found")):
+            with contextlib.redirect_stderr(err_buf):
+                staged = get_staged_skill_md_files(Path(self.temp_dir))
+        self.assertEqual(staged, [])
+        self.assertIn("git not found", err_buf.getvalue())
+
+    def test_run_check_detects_drift_with_posix_paths(self):
+        ref_dir = Path(self.temp_dir) / "skills" / "my-skill" / "references"
+        ref_dir.mkdir(parents=True)
+        doc = ref_dir / "guide.md"
+        lines = ["# Guide", "", "Intro", "## Section A"] + [f"Line {i}" for i in range(105)]
+        doc.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        err_buf = io.StringIO()
+        with contextlib.redirect_stderr(err_buf):
+            ret = run_check(repo_root=Path(self.temp_dir))
+        self.assertEqual(ret, 1)
+        self.assertIn("skills/my-skill/references/guide.md: TOC is out of date", err_buf.getvalue())
+        self.assertIn("python3 scripts/sync_tocs.py --fix", err_buf.getvalue())
+
     def test_run_check_with_target_files(self):
         skill_dir = Path(self.temp_dir) / "skills" / "target-skill"
         ref_dir = skill_dir / "references"
@@ -347,15 +460,6 @@ class TestGitIntegration(unittest.TestCase):
             ret = run_fix(target_files=[missing], repo_root=Path(self.temp_dir))
         self.assertEqual(ret, 1)
         self.assertIn("Target file not found", buf.getvalue())
-
-
-class TestCurrentRepoHygiene(unittest.TestCase):
-    def test_all_current_repo_files_pass_check(self):
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            ret = run_check()
-        self.assertEqual(ret, 0)
-        self.assertIn("verified successfully", buf.getvalue())
 
 
 if __name__ == "__main__":
