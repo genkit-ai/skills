@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.sync_tocs import (
     check_hygiene_for_file,
+    format_markdown_hygiene,
     generate_reference_content,
     is_reference_file,
     parse_skill_frontmatter,
@@ -162,6 +163,47 @@ class TestSyncTocs(unittest.TestCase):
         subprocess.run(["git", "add", "skills/demo/bad.md"], cwd=self.temp_dir, check=True)
         bad.write_text("```bash\nclosed\n```\n", encoding="utf-8")
         self.assertEqual(subprocess.run(script, cwd=self.temp_dir, capture_output=True, text=True).returncode, 1)
+
+    def test_autofix_formatting_and_staged_restage(self):
+        raw = (
+            "# Guide\n\n\n"
+            "## Overview\n"
+            "- Missing blank line after heading \n\n"
+            "Prose before list:\n"
+            "1. "
+            + ("overlong numbered item words `[0, 1]` ``nested `code` span`` " * 4).strip()
+            + "\n\n"
+            + ("plain prose words [Setup Guide](setup.md) " * 3).strip()
+            + " \n"
+        )
+        fixed = format_markdown_hygiene(raw)
+        # Idempotent and passes all hygiene checks
+        self.assertEqual(format_markdown_hygiene(fixed), fixed)
+        temp_md = self.temp_dir / "autofixed.md"
+        temp_md.write_text(fixed, encoding="utf-8")
+        self.assertEqual(check_hygiene_for_file(temp_md), [])
+
+        # Verify --staged auto-formats and restages formatting issues in SKILL.md and references/*.md
+        subprocess.run(["git", "init"], cwd=self.temp_dir, capture_output=True, check=True)
+        skill_md = self.temp_dir / "skills" / "demo" / "SKILL.md"
+        skill_md.parent.mkdir(parents=True, exist_ok=True)
+        skill_md.write_text(
+            "---\nname: demo\ndescription: Demo skill.\n---\n\n" + raw,
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "skills/demo/SKILL.md"], cwd=self.temp_dir, check=True)
+
+        script = [sys.executable, str(REPO_ROOT / "scripts" / "sync_tocs.py"), "--staged"]
+        res = subprocess.run(script, cwd=self.temp_dir, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        staged = subprocess.run(
+            ["git", "show", ":skills/demo/SKILL.md"],
+            cwd=self.temp_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        self.assertEqual(check_hygiene_for_file(skill_md, text=staged), [])
 
 
 if __name__ == "__main__":
