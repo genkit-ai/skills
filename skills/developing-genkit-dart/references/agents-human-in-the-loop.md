@@ -42,7 +42,7 @@ input
 - [Detect and resume (server-side)](#detect-and-resume-server-side): Lines 115-172
 - [Client-side (browser) interrupts](#client-side-browser-interrupts): Lines 174-205
 - [Interrupts with tool-approval middleware](#interrupts-with-tool-approval-middleware): Lines 207-232
-- [Notes & gotchas](#notes--gotchas): Lines 234-248
+- [Notes and gotchas](#notes-and-gotchas): Lines 234-248
 
 ---
 
@@ -231,7 +231,7 @@ final resumed = ctx.resumed; // the payload passed to `.restart(...)`
 final isApproved = resumed is Map && resumed['tool-approved'] == true;
 ```
 
-## Notes & gotchas
+## Notes and gotchas
 
 - **No store required.** Interrupts work with either a
   [session store](agents-sessions.md) or

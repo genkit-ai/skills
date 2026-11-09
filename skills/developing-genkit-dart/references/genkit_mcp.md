@@ -10,7 +10,7 @@ initialization-based peers automatically.
 > correctly.
 
 - [MCP Host (Recommended)](#mcp-host-recommended): Lines 18-74
-- [MCP Client (Advanced / Single Server)](#mcp-client-advanced--single-server): Lines 76-110
+- [MCP Client (Advanced or Single Server)](#mcp-client-advanced-or-single-server): Lines 76-110
 - [MCP Server](#mcp-server): Lines 112-165
 
 ---
@@ -73,7 +73,7 @@ final host = defineMcpHost(
 );
 ```
 
-## MCP Client (Advanced / Single Server)
+## MCP Client (Advanced or Single Server)
 Connecting to a single MCP server with a client object is an advanced usecase
 for when you need manual control over the client lifecycle. Standalone clients
 do not automatically register tools into the registry, so they must be passed

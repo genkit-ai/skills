@@ -2,9 +2,9 @@
 
 - [Install](#install): Lines 14-35
 - [Serve a Flow or Agent](#serve-a-flow-or-agent): Lines 39-95
-- [HTTP Error Redaction & PublicError](#http-error-redaction--publicerror): Lines 99-114
+- [HTTP Error Redaction and PublicError](#http-error-redaction-and-publicerror): Lines 99-114
 - [Streaming (SSE)](#streaming-sse): Lines 118-171
-- [Auth & Context Providers](#auth--context-providers): Lines 175-250
+- [Auth and Context Providers](#auth-and-context-providers): Lines 175-250
 - [Advanced Flow Composition](#advanced-flow-composition): Lines 254-328
 - [Structured Output Endpoint](#structured-output-endpoint): Lines 332-356
 - [Python HTTP Client](#python-http-client): Lines 360-372
@@ -96,7 +96,7 @@ uvicorn main:app                                   # production (no Dev UI)
 
 ---
 
-## HTTP Error Redaction & `PublicError`
+## HTTP Error Redaction and `PublicError`
 
 Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`,
 `handle_genkit_request`), Genkit separates internal errors from caller-visible
@@ -172,7 +172,7 @@ curl -N -X POST http://localhost:8080/api/stream_brief \
 
 ---
 
-## Auth & Context Providers
+## Auth and Context Providers
 
 ### 1. FastAPI `Depends` via `serve_flow(..., context_dependency=...)`
 

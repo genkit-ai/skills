@@ -11,9 +11,9 @@ snapshot to a terminal status (`completed` / `failed` / `aborted` / `expired`).
 The client polls for completion and can abort.
 
 - [Define the agent (store required)](#define-the-agent-store-required): Lines 21-54
-- [Server-side: detach + wait](#server-side-detach--wait): Lines 56-74
+- [Server-side: detach and wait](#server-side-detach-and-wait): Lines 56-74
 - [Resume a failed or aborted task](#resume-a-failed-or-aborted-task): Lines 76-91
-- [Client-side: detach + poll + abort](#client-side-detach--poll--abort): Lines 93-133
+- [Client-side: detach, poll, and abort](#client-side-detach-poll-and-abort): Lines 93-133
 - [Status values](#status-values): Lines 135-155
 
 ---
@@ -53,7 +53,7 @@ app.post(
 );
 ```
 
-## Server-side: detach + wait
+## Server-side: detach and wait
 
 `chat.detach(message)` returns a `DetachedTask` carrying the `snapshotId`.
 `task.wait()` blocks until a terminal state and resolves with the final
@@ -90,7 +90,7 @@ if (snap.status === 'failed' || snap.status === 'aborted') {
 }
 ```
 
-## Client-side: detach + poll + abort
+## Client-side: detach, poll, and abort
 
 On the client (`genkit/beta/client`), `task.poll()` yields snapshots until a
 terminal status; `task.abort()` cancels the background work.

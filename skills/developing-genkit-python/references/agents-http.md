@@ -124,7 +124,7 @@ Errors surface at three boundaries:
   the agent's state mode) is a `PublicError` and keeps its status too
   (`FAILED_PRECONDITION` -> `400`). Any other exception returns a redacted
   `500`. Full rules:
-  [HTTP Error Redaction](fastapi.md#http-error-redaction--publicerror).
+  [HTTP Error Redaction](fastapi.md#http-error-redaction-and-publicerror).
 - **Inside a running turn**: tool and store exceptions do not become HTTP
   errors. The response is `200` with `finishReason: "failed"` and `error`; the
   client sees `res.finish_reason == AgentFinishReason.FAILED` and `res.error`.

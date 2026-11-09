@@ -22,7 +22,7 @@ Flow: `chat.send(...)` → response has `res.interrupts` → collect human input
 - [Define an interrupt](#define-an-interrupt): Lines 29-73
 - [Detect and resume (server-side)](#detect-and-resume-server-side): Lines 75-126
 - [Client-side (browser) interrupts](#client-side-browser-interrupts): Lines 128-168
-- [Notes & gotchas](#notes--gotchas): Lines 170-188
+- [Notes and gotchas](#notes-and-gotchas): Lines 170-188
 
 ---
 
@@ -167,7 +167,7 @@ if (pending) {
 > (`res.interrupts.length > 0`); show the approval UI from `interrupt.input`
 > instead, then render the model's reply after resuming.
 
-## Notes & gotchas
+## Notes and gotchas
 
 - **No store required.** Interrupts work with either a
   [session store](agents-sessions.md)

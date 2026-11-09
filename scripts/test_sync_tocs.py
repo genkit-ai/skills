@@ -105,6 +105,33 @@ class TestSyncTocs(unittest.TestCase):
         self.assertTrue(any("LIST_NO_LINE" in e for e in errs), errs)
         self.assertEqual(sum("LINE_OVER_80" in e for e in errs), 1, errs)
 
+        # 4. LINK_ID (double-hyphen H2 slugs, '{{var}}' H2 headings, '--' anchor links),
+        #    LIST_NO_LINE after headings (while allowing indented code blocks with blank lines in lists),
+        #    WHITESPACE_LINES (consecutive blank lines), and CURL_PIPE_SH
+        ref_dir = self.temp_dir / "skills" / "demo" / "references"
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        extra_lint = ref_dir / "guide.md"
+        extra_lint.write_text(
+            "# Guide\n\n"
+            "## Notes & Gotchas\n"
+            "- Missing blank line after heading\n"
+            "  ```python\n"
+            "  x = 1\n\n"
+            "  y = 2\n"
+            "  ```\n"
+            "- Valid continuation bullet after indented fence\n\n\n"
+            "## `{{variable}}` Sent Literally\n\n"
+            "See [bad](other.md#bad--anchor).\n\n"
+            "- Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`\n"
+            "- Allowed native CLI: `curl -sL cli.genkit.dev | bash`\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(extra_lint)
+        self.assertEqual(sum("LINK_ID" in e for e in errs), 3, errs)
+        self.assertEqual(sum("LIST_NO_LINE" in e for e in errs), 1, errs)
+        self.assertEqual(sum("WHITESPACE_LINES" in e for e in errs), 1, errs)
+        self.assertEqual(sum("CURL_PIPE_SH" in e for e in errs), 1, errs)
+
     def test_frontmatter_validation(self):
         valid = "---\nname: demo\ndescription: >-\n Para 1.\n\n Para 2.\n---\n"
         fm, err = parse_skill_frontmatter(valid)

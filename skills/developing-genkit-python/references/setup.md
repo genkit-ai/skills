@@ -36,7 +36,7 @@ dependencies = [
 ]
 ```
 
-## Packages & Imports
+## Packages and Imports
 
 PyPI distribution names use hyphens (`genkit-*`); Python import modules use
 underscores (`genkit_*`). Import everything from each package's top-level module

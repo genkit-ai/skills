@@ -72,7 +72,7 @@ import './genkit.js';
    variables (e.g. `GEMINI_API_KEY` for Google providers). Wait for the user to
    prompt further before creating any specific flows.
 
-## Next Steps & Troubleshooting
+## Next Steps and Troubleshooting
 
 - **Documentation**: Use the [CLI](docs-and-cli.md) to access documentation
   (e.g., `genkit docs:search`).

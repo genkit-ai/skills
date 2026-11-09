@@ -24,7 +24,7 @@ in an `aix.ToolResume` via `conn.SendResume` or `AgentInput.Resume`.
 - [Define a resumable tool](#define-a-resumable-tool): Lines 31-102
 - [Detect, claim, and resume (streaming connection)](#detect-claim-and-resume-streaming-connection): Lines 104-167
 - [Single-turn resume with Run](#single-turn-resume-with-run): Lines 169-192
-- [Notes & gotchas](#notes--gotchas): Lines 194-213
+- [Notes and gotchas](#notes-and-gotchas): Lines 194-213
 
 ---
 
@@ -191,7 +191,7 @@ fmt.Println(out.Message.Text())
 For a client-managed agent, pass `aix.WithState(out.State)` instead of
 `WithSessionID`. Over HTTP the same object rides in `data.resume`.
 
-## Notes & gotchas
+## Notes and gotchas
 
 - **No store required.** Interrupts work with a
   [session store](agents-sessions.md)

@@ -8,8 +8,8 @@ authoritative command details, always run `genkit --help` or
 - [Documentation](#documentation): Lines 23-30
 - [Development Workflow (recommended)](#development-workflow-recommended): Lines 32-68
 - [Flow Execution (secondary)](#flow-execution-secondary): Lines 70-93
-- [Evaluation](#evaluation): Lines 95-116
-- [Tracing](#tracing): Lines 118-133
+- [Evaluation](#evaluation): Lines 95-115
+- [Tracing](#tracing): Lines 117-132
 
 ---
 
@@ -93,7 +93,6 @@ analytics notice), e.g.
         ```
 
 ## Evaluation
-
 
 -   **Evaluate a flow**: `genkit eval:flow <flowName> [data] -- <run cmd>`
     -   Runs a flow and evaluates the output against configured evaluators. As

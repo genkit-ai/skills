@@ -17,7 +17,7 @@ the 0.13 release line.
 - [Install (0.13 Only)](#install-013-only): Lines 27-31
 - [Two Evaluator Types](#two-evaluator-types): Lines 33-41
 - [Dataset Format](#dataset-format): Lines 43-56
-- [Built-In Evaluators & Programmatic Execution](#built-in-evaluators--programmatic-execution): Lines 58-84
+- [Built-In Evaluators and Programmatic Execution](#built-in-evaluators-and-programmatic-execution): Lines 58-84
 - [BYO Evaluator (EvaluatorResponse, Score, ScoreStatus, ScoreDetails)](#byo-evaluator-evaluatorresponse-score-scorestatus-scoredetails): Lines 86-131
 - [LLM-Based Judge](#llm-based-judge): Lines 133-193
 - [CLI Execution](#cli-execution): Lines 195-210
@@ -55,7 +55,7 @@ uv add 'genkit-evaluators==0.13.*'
 reference-free evaluators). In Python, the same rows are
 `BaseDataPoint(test_case_id=..., input=..., output=..., reference=...)`.
 
-## Built-In Evaluators & Programmatic Execution
+## Built-In Evaluators and Programmatic Execution
 
 ```python
 from genkit import Genkit

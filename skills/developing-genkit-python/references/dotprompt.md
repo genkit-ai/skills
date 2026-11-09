@@ -7,8 +7,8 @@
 - [Streaming from a Prompt](#streaming-from-a-prompt): Lines 127-145
 - [Render Without Generating](#render-without-generating): Lines 147-161
 - [Helpers](#helpers): Lines 163-187
-- [Variants & Partials](#variants--partials): Lines 189-196
-- [Prompts with Tools & Middleware](#prompts-with-tools--middleware): Lines 198-220
+- [Variants and Partials](#variants-and-partials): Lines 189-196
+- [Prompts with Tools and Middleware](#prompts-with-tools-and-middleware): Lines 198-220
 
 ---
 
@@ -186,7 +186,7 @@ Built-in helpers: `role`, `json`, `media`, `history`, `section`, `ifEquals`,
 
 Use `{{list ingredients}}` in the `.prompt` body.
 
-## Variants & Partials
+## Variants and Partials
 
 - **Variants**: save `<name>.<variant>.prompt` (e.g. `recipe.vegan.prompt`) and
   load with `ai.prompt('recipe', variant='vegan')`.
@@ -195,7 +195,7 @@ Use `{{list ingredients}}` in the `.prompt` body.
   `ai.define_partial('disclaimer', '...')`, then include via `{{>disclaimer}}`
   or `{{>disclaimer region=region}}`.
 
-## Prompts with Tools & Middleware
+## Prompts with Tools and Middleware
 
 - **Tools**: list registered tool names under `tools:` in YAML frontmatter, or
   pass `tools=[lookup_rate]` when calling

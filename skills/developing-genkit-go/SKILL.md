@@ -188,7 +188,6 @@ into `jq` or other parsers. The **default** output is human-oriented (banner/log
 lines, possible truncation on large traces), so don't pipe that form directly;
 use `--format json`, grep, or the Dev UI trace viewer.
 
-
 **Documentation:**
 ```bash
 genkit docs:search "streaming" go
@@ -200,7 +199,6 @@ See [references/getting-started.md](references/getting-started.md) for full CLI
 and Developer UI details.
 
 ## Key Guidance
-
 
 - **Pass `g` explicitly.** The `*Genkit` instance returned by `genkit.Init` is
   the central registry. Pass it to all Genkit functions rather than storing it

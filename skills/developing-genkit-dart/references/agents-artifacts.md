@@ -29,7 +29,7 @@ name) and are returned in `res.artifacts` / tracked on the client's
 - [Give the model artifact tools](#give-the-model-artifact-tools): Lines 37-99
 - [How artifacts flow](#how-artifacts-flow): Lines 101-113
 - [The Artifact shape](#the-artifact-shape): Lines 115-124
-- [Programmatic access (inside tools / custom agents)](#programmatic-access-inside-tools--custom-agents): Lines 126-142
+- [Programmatic access (inside tools and custom agents)](#programmatic-access-inside-tools-and-custom-agents): Lines 126-142
 - [Reading artifacts on the client](#reading-artifacts-on-the-client): Lines 144-171
 
 ---
@@ -123,7 +123,7 @@ final artifact = Artifact(
 );
 ```
 
-## Programmatic access (inside tools / custom agents)
+## Programmatic access (inside tools and custom agents)
 
 Use the active session. `ai.currentSession()` returns `null` when there's no
 active session, so only call it inside an agent turn.

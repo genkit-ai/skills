@@ -15,11 +15,11 @@ middleware: add `a2ui()` to an agent's `use` list and nothing else changes.
 
 - [Install](#install): Lines 26-49
 - [Server: add the a2ui() middleware](#server-add-the-a2ui-middleware): Lines 51-124
-- [Client: render surfaces (Flutter + genui)](#client-render-surfaces-flutter--genui): Lines 126-184
+- [Client: render surfaces (Flutter and genui)](#client-render-surfaces-flutter-and-genui): Lines 126-184
 - [Handling user actions](#handling-user-actions): Lines 186-248
-- [Custom catalogs](#custom-catalogs): Lines 251-331
-- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 333-356
-- [How it works](#how-it-works): Lines 358-379
+- [Custom catalogs](#custom-catalogs): Lines 250-330
+- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 332-355
+- [How it works](#how-it-works): Lines 357-378
 
 ---
 
@@ -123,7 +123,7 @@ Use `validate: 'strict'` during development to fail fast on malformed JSON or
 components outside the catalog. See [Security](#security-and-the-trust-boundary)
 for what `'strict'` does and does not check.
 
-## Client: render surfaces (Flutter + genui)
+## Client: render surfaces (Flutter and genui)
 
 `package:genkit_a2ui/client.dart` is browser/Flutter-safe (no `dart:io`).
 Consume
@@ -246,7 +246,6 @@ automatically. To capture what the user entered, the model must:
 The catalog capabilities injected into the system prompt already instruct the
 model to do this. Without both steps, the action arrives with an empty
 `context`.
-
 
 ## Custom catalogs
 

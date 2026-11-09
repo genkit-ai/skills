@@ -2,11 +2,11 @@
 
 - [When Typecheck Fails](#when-typecheck-fails): Lines 13-16
 - [Genkit v1.x vs Pre-1.0 Migration](#genkit-v1x-vs-pre-10-migration): Lines 18-124
-- [Zod & Schema Errors](#zod--schema-errors): Lines 126-135
+- [Zod and Schema Errors](#zod-and-schema-errors): Lines 126-135
 - [Tool Usage](#tool-usage): Lines 137-142
 - [Handling Failures in Tool Loops](#handling-failures-in-tool-loops): Lines 144-175
-- [Multimodal & Image Generation](#multimodal--image-generation): Lines 177-187
-- [Audio & Speech Generation](#audio--speech-generation): Lines 189-196
+- [Multimodal and Image Generation](#multimodal-and-image-generation): Lines 177-187
+- [Audio and Speech Generation](#audio-and-speech-generation): Lines 189-196
 
 ---
 
@@ -123,7 +123,7 @@ syntax updates.
 You should never import `@genkit-ai/flow`, `@genkit-ai/ai` or `@genkit-ai/core`
 packages directly.
 
-## Zod & Schema Errors
+## Zod and Schema Errors
 
 - **Import Source**: ALWAYS use `import { z } from "genkit"`.
   - Using `zod` directly from `zod` package may cause instance mismatches or
@@ -174,7 +174,7 @@ packages directly.
   `{ ok: false, reason: '...' }` from the tool when the model can fix the input;
   throw only when the system can't continue.
 
-## Multimodal & Image Generation
+## Multimodal and Image Generation
 
 - **Missing responseModalities**: When using image generation models (like
   `gemini-nano-banana-2.1`), you **MUST** specify the response modalities in the
@@ -186,7 +186,7 @@ packages directly.
   ```
   Failure to do so will result in errors or incorrect output format.
 
-## Audio & Speech Generation
+## Audio and Speech Generation
 
 - **Raw PCM Data vs MP3**: Some providers (e.g., Google GenAI) return raw PCM
   data, while others (e.g., OpenAI) return MP3.

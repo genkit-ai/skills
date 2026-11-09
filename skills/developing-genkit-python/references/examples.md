@@ -3,18 +3,18 @@
 Minimal patterns for generation, structured output, streaming, media, flows,
 tools, interrupts, cancellation, and embeddings.
 
-- [Public Imports & Initialization](#public-imports--initialization): Lines 17-66
+- [Public Imports and Initialization](#public-imports-and-initialization): Lines 17-66
 - [Structured Output](#structured-output): Lines 70-106
-- [Streaming (Text & Structured Output)](#streaming-text--structured-output): Lines 110-138
-- [Media Input & Output (Part)](#media-input--output-part): Lines 142-206
-- [Flows & Streaming Flows](#flows--streaming-flows): Lines 210-244
+- [Streaming (Text and Structured Output)](#streaming-text-and-structured-output): Lines 110-138
+- [Media Input and Output (Part)](#media-input-and-output-part): Lines 142-206
+- [Flows and Streaming Flows](#flows-and-streaming-flows): Lines 210-244
 - [Tools, Multipart Tool Responses, and Interrupts](#tools-multipart-tool-responses-and-interrupts): Lines 248-311
 - [Cancellation](#cancellation): Lines 315-343
 - [Embeddings](#embeddings): Lines 347-374
 
 ---
 
-## Public Imports & Initialization
+## Public Imports and Initialization
 
 Import only from public modules (`genkit`, `genkit_google_genai`,
 `genkit_fastapi`, `genkit_middleware`, `genkit.model`, `genkit.embedder`,
@@ -107,7 +107,7 @@ Built-in `output_format` values: `'text'`, `'json'`, `'array'`, `'enum'`,
 
 ---
 
-## Streaming (Text & Structured Output)
+## Streaming (Text and Structured Output)
 
 ```python
 sr = ai.generate_stream(prompt='Explain sourdough fermentation.')
@@ -139,7 +139,7 @@ recipe = final.output  # RecipeCard | None
 
 ---
 
-## Media Input & Output (`Part`)
+## Media Input and Output (`Part`)
 
 Construct parts with `Part.from_text(...)` and `Part.from_media(...)`. Inspect
 parts via `part.text` and `part.media`.
@@ -207,7 +207,7 @@ while not op.done:
 
 ---
 
-## Flows & Streaming Flows
+## Flows and Streaming Flows
 
 Flows validate both input and return values against their type annotations.
 Calling `await summarize(inp)` or `await summarize.run(inp)` raises body

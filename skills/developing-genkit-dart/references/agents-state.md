@@ -9,7 +9,7 @@ and mutate it during a turn, and it is automatically synced to the
 `customPatch` chunks (so the client's tracked state stays live mid-stream).
 
 - [Declare the state shape](#declare-the-state-shape): Lines 18-55
-- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 57-160
+- [Read and mutate state inside tools](#read-and-mutate-state-inside-tools): Lines 57-160
 - [Seed and read state (server-side)](#seed-and-read-state-server-side): Lines 162-186
 - [Auto-sync to the remoteAgent client](#auto-sync-to-the-remoteagent-client): Lines 188-227
 
@@ -54,7 +54,7 @@ final taskAgent = ai.defineAgent(
 `stateSchema` works with the standard `defineAgent` — you do **not** need
 `defineCustomAgent` for custom state.
 
-## Read & mutate state inside tools
+## Read and mutate state inside tools
 
 Tools call `ai.currentSession<State>()` to access the live, **typed** session,
 then `session.getCustom()` / `session.updateCustom(mutator)`. `updateCustom` is

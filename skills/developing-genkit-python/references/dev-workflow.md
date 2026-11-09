@@ -1,11 +1,11 @@
 # Dev Workflow — Genkit Python
 
 - [Agent Responsibility](#agent-responsibility): Lines 14-30
-- [Step 1 - Get a Gemini API Key](#step-1--get-a-gemini-api-key): Lines 34-37
-- [Step 2 - Export the API Key](#step-2--export-the-api-key): Lines 41-51
-- [Step 3 - Install Dependencies](#step-3--install-dependencies): Lines 55-65
-- [Step 4 - Start the Dev UI](#step-4--start-the-dev-ui): Lines 69-114
-- [Step 5 - Test in the Dev UI](#step-5--test-in-the-dev-ui): Lines 118-130
+- [Step 1: Get a Gemini API Key](#step-1-get-a-gemini-api-key): Lines 34-37
+- [Step 2: Export the API Key](#step-2-export-the-api-key): Lines 41-51
+- [Step 3: Install Dependencies](#step-3-install-dependencies): Lines 55-65
+- [Step 4: Start the Dev UI](#step-4-start-the-dev-ui): Lines 69-114
+- [Step 5: Test in the Dev UI](#step-5-test-in-the-dev-ui): Lines 118-130
 - [CLI Commands](#cli-commands): Lines 134-182
 - [Troubleshooting](#troubleshooting): Lines 186-194
 
@@ -31,14 +31,14 @@ verification.
 
 ---
 
-## Step 1 — Get a Gemini API Key
+## Step 1: Get a Gemini API Key
 
 If the developer needs a key, create one at
 `https://aistudio.google.com/apikey`.
 
 ---
 
-## Step 2 — Export the API Key
+## Step 2: Export the API Key
 
 ```bash
 export GEMINI_API_KEY=your-api-key-here
@@ -52,7 +52,7 @@ echo 'export GEMINI_API_KEY=your-api-key-here' >> ~/.zshrc && source ~/.zshrc
 
 ---
 
-## Step 3 — Install Dependencies
+## Step 3: Install Dependencies
 
 Replace `/path/to/your-project` with the project's absolute path:
 
@@ -66,7 +66,7 @@ uv add 'genkit==0.13.*' 'genkit-google-genai==0.13.*'
 
 ---
 
-## Step 4 — Start the Dev UI
+## Step 4: Start the Dev UI
 
 The examples below use this `src/main.py`:
 
@@ -115,7 +115,7 @@ Wait for the CLI to print `Genkit Developer UI: http://localhost:4000`.
 
 ---
 
-## Step 5 — Test in the Dev UI
+## Step 5: Test in the Dev UI
 
 1. Open **`http://localhost:4000`** in a browser.
 2. Pick the registered flow, prompt, or model from the left sidebar. Flows
@@ -188,7 +188,7 @@ genkit docs:read python/flows.md
 - `genkit: command not found` — `npm install -g genkit-cli`
 - `GEMINI_API_KEY` missing — `export GEMINI_API_KEY=your-key`
 - Port 4000 busy — `genkit start --port 4001 -- uv run src/main.py`
-- `uv: command not found` — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- `uv: command not found` — `pipx install uv` or `pip install uv`
 - Action missing in Dev UI — ensure standalone scripts enter via
   `ai.run_main(main())` and check terminal output for startup import or
   validation errors (see [Common Errors](common-errors.md)).

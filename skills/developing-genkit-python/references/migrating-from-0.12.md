@@ -10,14 +10,14 @@ codebase or replacing 0.12 patterns (`ActionRunContext`, `ToolRunContext`,
 - [Agent Guardrails Before Editing](#agent-guardrails-before-editing): Lines 25-51
 - [1. Upgrade Packages Together](#1-upgrade-packages-together): Lines 55-70
 - [2. Single-Home Namespace Layout](#2-single-home-namespace-layout): Lines 74-164
-- [3. Removed Symbols & Enums Replaced by Strings](#3-removed-symbols--enums-replaced-by-strings): Lines 168-206
-- [4. Model & Embedder Helpers, Constructors, and Plugins](#4-model--embedder-helpers-constructors-and-plugins): Lines 210-267
+- [3. Removed Symbols and Enums Replaced by Strings](#3-removed-symbols-and-enums-replaced-by-strings): Lines 168-206
+- [4. Model and Embedder Helpers, Constructors, and Plugins](#4-model-and-embedder-helpers-constructors-and-plugins): Lines 210-267
 - [5. Config Classes, extra, tool_choice, and API Keys](#5-config-classes-extra-tool_choice-and-api-keys): Lines 271-327
 - [6. Typed Contexts, Multipart Tools, Interrupts, and Cancellation](#6-typed-contexts-multipart-tools-interrupts-and-cancellation): Lines 331-421
 - [7. Errors, HTTP Redaction (PublicError), and genkit.web](#7-errors-http-redaction-publicerror-and-genkitweb): Lines 425-488
 - [8. Prompts, Structured Output, Validation, and Telemetry](#8-prompts-structured-output-validation-and-telemetry): Lines 492-525
-- [9. Plugin & Custom Middleware Authors](#9-plugin--custom-middleware-authors): Lines 529-567
-- [10. Evaluators (0.13 Only - Removed in 1.0)](#10-evaluators-013-only--removed-in-10): Lines 571-601
+- [9. Plugin and Custom Middleware Authors](#9-plugin-and-custom-middleware-authors): Lines 529-567
+- [10. Evaluators (0.13 Only, Removed in 1.0)](#10-evaluators-013-only-removed-in-10): Lines 571-601
 - [11. Verification Checklist](#11-verification-checklist): Lines 605-616
 
 ---
@@ -165,7 +165,7 @@ raises `GenkitError`. Tools in a detached turn are cancelled with
 
 ---
 
-## 3. Removed Symbols & Enums Replaced by Strings
+## 3. Removed Symbols and Enums Replaced by Strings
 
 0.12 model and config enums (`GoogleAIGeminiVersion`, `KnownGemini*`,
 `KnownGpt`, `KnownClaude`, `*Version`, `GeminiEmbeddingModels`,
@@ -207,7 +207,7 @@ Other removed items and their 0.13 replacements:
 
 ---
 
-## 4. Model & Embedder Helpers, Constructors, and Plugins
+## 4. Model and Embedder Helpers, Constructors, and Plugins
 
 Model helpers drop `_model`, and `.embedding()` becomes `.embedder()`:
 
@@ -526,7 +526,7 @@ errors with `error_body(e)` and `error_status(e)` from `genkit.web`.
 
 ---
 
-## 9. Plugin & Custom Middleware Authors
+## 9. Plugin and Custom Middleware Authors
 
 ```python
 # Custom middleware: BaseMiddleware -> Middleware, GenerateMiddlewareContext -> MiddlewareContext
@@ -568,7 +568,7 @@ class PiiRedact(Middleware[PiiRedactConfig]):
 
 ---
 
-## 10. Evaluators (0.13 Only — Removed in 1.0)
+## 10. Evaluators (0.13 Only, Removed in 1.0)
 
 Apply only if the developer explicitly confirms keeping evaluators pinned to
 `genkit==0.13.*`. Renames: `EvalFnResponse` -> `EvaluatorResponse`,

@@ -56,6 +56,10 @@ REL_PARENT_LINK_RE = re.compile(r"\[[^\]]+\]\(\s*\.\./[^)]*\)")
 LIST_ITEM_RE = re.compile(r"^(\s*(?:>\s*)?)(-\s+|\*\s+|\+\s+|\d+\.\s+)(.*)$")
 YAML_KEY_VALUE_RE = re.compile(r"^[a-zA-Z0-9_-]+: ", re.MULTILINE)
 INLINE_CODE_RE = re.compile(r"(`+)(?:(?!\1).)+\1")
+CURL_PIPE_SH_RE = re.compile(
+    r"\b(?:curl|wget)\b(?!.*cli\.genkit\.dev).*?\|\s*(?:sudo\s+)?(?:ba)?sh\b"
+)
+LOCAL_ANCHOR_LINK_RE = re.compile(r"\[[^\]]+\]\((?!https?://|mailto:)([^)]*#[^)]+)\)")
 CAUTION_RE = re.compile(r"\bCaution:")
 
 
@@ -331,10 +335,14 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
                     )
 
     # 3. Line-level checks (LeakR Caution, SNIPPET_EM_DASH, LINK_RELATIVE_G3DOC,
-    #    WHITESPACE_TRAILING, LIST_NO_LINE, LINE_OVER_80)
+    #    LINK_ID, CURL_PIPE_SH, WHITESPACE_LINES, WHITESPACE_TRAILING, LIST_NO_LINE, LINE_OVER_80)
     raw_lines = text.splitlines()
     in_frontmatter = False
     in_list = False
+    blank_streak = 0
+    check_h2_double_hyphen = path.parent.name == "references" or any(
+        TOC_LINE_RE.match(l) for l in raw_lines
+    )
 
     for idx, line, in_fence in iter_non_fenced(raw_lines):
         lno = idx + 1
@@ -351,12 +359,42 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
             stripped.startswith("```") or stripped.startswith("~~~")
         ) and len(stripped) - len(stripped.lstrip(stripped[0])) >= 3
 
+        if CURL_PIPE_SH_RE.search(line):
+            errors.append(
+                f"{path}:{lno}: Piping curl/wget output into a shell is forbidden; use signed package installation instead [CURL_PIPE_SH]"
+            )
+
         if in_fence:
+            blank_streak = 0
+            if is_fence_delimiter and not line.startswith("  "):
+                in_list = False
             if not is_fence_delimiter and ("\u2014" in line or "\u2013" in line):
                 errors.append(
                     f"{path}:{lno}: Found em/en-dash inside fenced code block; use '-' instead [SNIPPET_EM_DASH]"
                 )
             continue
+
+        if line == "":
+            blank_streak += 1
+            in_list = False
+            if blank_streak >= 2:
+                errors.append(
+                    f"{path}:{lno}: Consecutive blank lines are not allowed [WHITESPACE_LINES]"
+                )
+            continue
+        blank_streak = 0
+
+        if line.startswith("## "):
+            h2_body = line[3:].strip()
+            if "{{" in h2_body:
+                errors.append(
+                    f"{path}:{lno}: H2 heading contains '{{{{...}}}}' template syntax which breaks static heading IDs [LINK_ID]"
+                )
+            if check_h2_double_hyphen and "--" in gfm_base_slug(h2_body):
+                errors.append(
+                    f"{path}:{lno}: H2 heading produces double-hyphen slug '#{gfm_base_slug(h2_body)}' "
+                    "that mismatches between GitHub and g3doc; replace standalone '&', '+', '/', or '—' with words/punctuation [LINK_ID]"
+                )
 
         if CAUTION_RE.search(line):
             errors.append(
@@ -380,6 +418,13 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
             errors.append(
                 f"{path}:{lno}: Relative link uses '../' parent traversal [LINK_RELATIVE_G3DOC]"
             )
+        if not TOC_LINE_RE.match(line):
+            for m_anc in LOCAL_ANCHOR_LINK_RE.finditer(line_without_code):
+                frag = m_anc.group(1).split("#", 1)[1]
+                if "--" in frag:
+                    errors.append(
+                        f"{path}:{lno}: Anchor link '#{frag}' contains '--' which mismatches between GitHub and g3doc [LINK_ID]"
+                    )
 
         is_list_first = bool(LIST_ITEM_RE.match(line))
         if is_list_first and idx > 0:
@@ -387,7 +432,6 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
             if (
                 prev.strip() != ""
                 and not LIST_ITEM_RE.match(prev)
-                and not prev.lstrip().startswith("#")
                 and not (prev.startswith("  ") and in_list)
                 and not (line.lstrip().startswith(">") and prev.lstrip().startswith(">"))
             ):
@@ -397,7 +441,7 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
 
         if is_list_first:
             in_list = True
-        elif line.strip() == "":
+        elif not line.startswith("  "):
             in_list = False
 
         chk = line.rstrip("\\").rstrip(" \t") if line.endswith("\\") else line

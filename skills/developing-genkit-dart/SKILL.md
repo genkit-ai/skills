@@ -204,7 +204,6 @@ into `jq` or other parsers. The **default** output is human-oriented (banner/log
 lines, possible truncation on large traces), so don't pipe that form directly;
 use `--format json`, grep, or the Dev UI trace viewer.
 
-
 **Documentation:**
 ```bash
 genkit docs:search "streaming" dart
@@ -245,6 +244,7 @@ Genkit Dart uses schemantic for all of its data models so it's a CRITICAL skill
 to understand for using Genkit Dart.
 
 ## Best Practices
+
 - **Agent or flow?** If the task is conversational, multi-turn, or described as
   "an agent", "assistant", or "chatbot", build it with `ai.defineAgent` (see
   [Agents](references/agents.md)) rather than hand-rolling a `generate` + tools

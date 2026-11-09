@@ -260,10 +260,8 @@ into `jq` or other parsers. The **default** output is human-oriented (banner/log
 lines, possible truncation on large traces), so don't pipe that form directly;
 use `--format json`, grep, or the Dev UI trace viewer.
 
-
 See [CLI Reference](references/docs-and-cli.md) for more commands, and
 `genkit --help` for the full list.
-
 
 ## References
 

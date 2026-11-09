@@ -15,7 +15,7 @@ Upgrading a 0.12 codebase? Read
 - [Served Flow Returns 404, 500, or the Wrong Auth Status](#served-flow-returns-404-500-or-the-wrong-auth-status): Lines 236-271
 - [response.output Is None on Structured Output](#responseoutput-is-none-on-structured-output): Lines 275-290
 - [response.json Is Not the Model Output](#responsejson-is-not-the-model-output): Lines 294-305
-- [{{variable}} Sent Literally](#variable-sent-literally): Lines 309-319
+- [Prompt Variable Sent Literally](#prompt-variable-sent-literally): Lines 309-319
 - [Streaming TypeError or a Flow That Keeps Running After break](#streaming-typeerror-or-a-flow-that-keeps-running-after-break): Lines 323-344
 - [Cloud Telemetry Enabled but Spans Do Not Reach Cloud Trace](#cloud-telemetry-enabled-but-spans-do-not-reach-cloud-trace): Lines 348-359
 - [Interrupts and Agent Session Pitfalls](#interrupts-and-agent-session-pitfalls): Lines 363-392
@@ -268,7 +268,7 @@ async def get_invoice(invoice_id: str) -> dict:
 # => 404 {"message":"Invoice INV-9 not found","status":"NOT_FOUND"}
 ```
 
-Full status mapping: [FastAPI](fastapi.md#http-error-redaction--publicerror).
+Full status mapping: [FastAPI](fastapi.md#http-error-redaction-and-publicerror).
 
 ---
 
@@ -306,7 +306,7 @@ Read:
 
 ---
 
-## `{{variable}}` Sent Literally
+## Prompt Variable Sent Literally
 
 `ai.generate(prompt=..., system=...)` sends strings verbatim. The model receives
 `Say hello to {{name}}.` as written. Render templates through `ai.define_prompt`

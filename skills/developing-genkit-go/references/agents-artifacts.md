@@ -17,7 +17,7 @@ import (
 
 - [Give the model artifact tools](#give-the-model-artifact-tools): Lines 25-69
 - [The Artifact shape](#the-artifact-shape): Lines 71-82
-- [Programmatic access (inside tools / custom agents)](#programmatic-access-inside-tools--custom-agents): Lines 84-112
+- [Programmatic access (inside tools and custom agents)](#programmatic-access-inside-tools-and-custom-agents): Lines 84-112
 - [Sharing artifacts across agents](#sharing-artifacts-across-agents): Lines 114-131
 
 ---
@@ -81,7 +81,7 @@ artifact := &aix.Artifact{
 
 Writing the same `Name` again **replaces** the artifact (dedup by name).
 
-## Programmatic access (inside tools / custom agents)
+## Programmatic access (inside tools and custom agents)
 
 Use the session's artifact store. `aix.ArtifactStoreFromContext(ctx)` returns a
 `State`-agnostic view (so tools don't need to know the agent's `State` type), or

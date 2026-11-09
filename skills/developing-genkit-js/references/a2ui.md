@@ -17,9 +17,9 @@ middleware: add `a2ui()` to an agent's `use` array and nothing else changes.
 - [Server: add the a2ui() middleware](#server-add-the-a2ui-middleware): Lines 43-106
 - [Client: render surfaces](#client-render-surfaces): Lines 108-162
 - [Handling user actions](#handling-user-actions): Lines 164-224
-- [Custom catalogs](#custom-catalogs): Lines 227-277
-- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 279-299
-- [How it works](#how-it-works): Lines 301-322
+- [Custom catalogs](#custom-catalogs): Lines 226-276
+- [Security and the trust boundary](#security-and-the-trust-boundary): Lines 278-298
+- [How it works](#how-it-works): Lines 300-321
 
 ---
 
@@ -222,7 +222,6 @@ new ContextProvider(document.body as any, {
   initialValue: renderMarkdown,
 });
 ```
-
 
 ## Custom catalogs
 

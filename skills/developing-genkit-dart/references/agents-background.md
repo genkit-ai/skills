@@ -10,8 +10,8 @@ snapshot to a terminal status (`completed` / `failed` / `aborted` / `expired`).
 The client polls for completion and can abort.
 
 - [Define the agent (store required)](#define-the-agent-store-required): Lines 19-46
-- [Client-side: detach + poll + abort](#client-side-detach--poll--abort): Lines 48-87
-- [Server-side: detach + wait](#server-side-detach--wait): Lines 89-101
+- [Client-side: detach, poll, and abort](#client-side-detach-poll-and-abort): Lines 48-87
+- [Server-side: detach and wait](#server-side-detach-and-wait): Lines 89-101
 - [Status values](#status-values): Lines 103-115
 
 ---
@@ -45,7 +45,7 @@ final genkit = GenkitRouter()
   ..addAgent(backgroundAgent, path: '/api/backgroundAgent');
 ```
 
-## Client-side: detach + poll + abort
+## Client-side: detach, poll, and abort
 
 On the client (`package:genkit/client.dart`), `chat.detach(text: ...)` (or
 `chat.detach(...)`) resolves immediately with a `DetachedTask` carrying the
@@ -86,7 +86,7 @@ await for (final snap in task.poll(interval: Duration(milliseconds: 1500))) {
 await task.abort();
 ```
 
-## Server-side: detach + wait
+## Server-side: detach and wait
 
 You can also detach from a server-side chat and wait for the result. `task.wait`
 polls the store until a terminal state and resolves with the final snapshot.

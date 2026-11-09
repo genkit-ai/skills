@@ -9,7 +9,7 @@ client
 as a JSON Patch so the client's view stays live.
 
 - [Declare the state shape](#declare-the-state-shape): Lines 20-46
-- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 48-91
+- [Read and mutate state inside tools](#read-and-mutate-state-inside-tools): Lines 48-91
 - [Seed and read state](#seed-and-read-state): Lines 93-110
 - [Live state on a connection](#live-state-on-a-connection): Lines 112-141
 - [Prompt templating with state](#prompt-templating-with-state): Lines 143-151
@@ -45,7 +45,7 @@ taskAgent := genkitx.DefineAgent(g, "taskAgent",
 )
 ```
 
-## Read & mutate state inside tools
+## Read and mutate state inside tools
 
 Inside a tool, get the live session from context with
 `aix.SessionFromContext[State](ctx)`, then read with `session.Custom()` and
