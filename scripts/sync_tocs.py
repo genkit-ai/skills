@@ -52,6 +52,10 @@ def is_reference_file(path: Path, skills_root: Path) -> bool:
 TOC_LINE_RE = re.compile(r"^- \[(.+)\]\(#(.+)\): Lines (\d+)-(\d+)$")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+REL_PARENT_LINK_RE = re.compile(r"\[[^\]]+\]\(\s*\.\./[^)]*\)")
+LIST_ITEM_RE = re.compile(r"^(\s*(?:>\s*)?)(-\s+|\*\s+|\+\s+|\d+\.\s+)(.*)$")
+YAML_KEY_VALUE_RE = re.compile(r"^[a-zA-Z0-9_-]+: ", re.MULTILINE)
+INLINE_CODE_RE = re.compile(r"(`+)(?:(?!\1).)+\1")
 CAUTION_RE = re.compile(r"\bCaution:")
 
 
@@ -295,7 +299,7 @@ def parse_skill_frontmatter(
 
 
 def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
-    """Validates CommonMark fences, LeakR Caution keyword, and frontmatter."""
+    """Validates CommonMark fences, CheckLint rules, LeakR Caution keyword, and frontmatter."""
     errors: list[str] = []
     if text is None:
         try:
@@ -303,21 +307,123 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
         except Exception as e:
             return [f"{path}: Failed to read file: {e}"]
 
-    # 1. Check code fences
+    # 1. Check code fences (SNIPPET_UNCLOSED)
     balanced, start_line = check_fences_balanced(text)
     if not balanced:
         errors.append(
-            f"{path}:{start_line}: Unclosed CommonMark code fence starting here"
+            f"{path}:{start_line}: Unclosed CommonMark code fence starting here [SNIPPET_UNCLOSED]"
         )
 
-    # 2. Check LeakR Caution keyword (skipping fenced code blocks)
-    for idx, line, in_fence in iter_non_fenced(text.splitlines()):
-        if not in_fence and CAUTION_RE.search(line):
+    # 2. Check for mid-file '---' pairs within first 1500 chars that match YAML key-value heuristic
+    # and cause devsitelinter's YamlMetadataParser to skip code fences (SNIPPET_UNCLOSED).
+    if not text.startswith("---\n") and not text.startswith("---\r\n"):
+        first_hr = text[:1500].find("\n---\n")
+        if first_hr != -1:
+            second_hr = text.find("\n---\n", first_hr + 4)
+            if second_hr != -1:
+                between = text[first_hr + 5 : second_hr]
+                m_kv = YAML_KEY_VALUE_RE.search(between)
+                if m_kv:
+                    hr_line = text[: first_hr + 1].count("\n") + 1
+                    errors.append(
+                        f"{path}:{hr_line}: Mid-file '---' block contains YAML-like line "
+                        f"'{m_kv.group(0).strip()}' that hijacks frontmatter parsing [SNIPPET_UNCLOSED]"
+                    )
+
+    # 3. Line-level checks (LeakR Caution, SNIPPET_EM_DASH, LINK_RELATIVE_G3DOC,
+    #    WHITESPACE_TRAILING, LIST_NO_LINE, LINE_OVER_80)
+    raw_lines = text.splitlines()
+    in_frontmatter = False
+    in_list = False
+
+    for idx, line, in_fence in iter_non_fenced(raw_lines):
+        lno = idx + 1
+        if idx == 0 and line == "---":
+            in_frontmatter = True
+            continue
+        if in_frontmatter:
+            if line == "---":
+                in_frontmatter = False
+            continue
+
+        stripped = line.lstrip()
+        is_fence_delimiter = (
+            stripped.startswith("```") or stripped.startswith("~~~")
+        ) and len(stripped) - len(stripped.lstrip(stripped[0])) >= 3
+
+        if in_fence:
+            if not is_fence_delimiter and ("\u2014" in line or "\u2013" in line):
+                errors.append(
+                    f"{path}:{lno}: Found em/en-dash inside fenced code block; use '-' instead [SNIPPET_EM_DASH]"
+                )
+            continue
+
+        if CAUTION_RE.search(line):
             errors.append(
-                f"{path}:{idx + 1}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
+                f"{path}:{lno}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
             )
 
-    # 3. Check SKILL.md frontmatter if applicable
+        for m_code in INLINE_CODE_RE.finditer(line):
+            code_span = m_code.group(0)
+            if "\u2014" in code_span or "\u2013" in code_span:
+                errors.append(
+                    f"{path}:{lno}: Found em/en-dash inside inline code span; use '-' instead [SNIPPET_EM_DASH]"
+                )
+
+        if line.endswith(" ") and (line.strip() == "" or not line.endswith("  ")):
+            errors.append(
+                f"{path}:{lno}: Trailing whitespace at end of line [WHITESPACE_TRAILING]"
+            )
+
+        line_without_code = INLINE_CODE_RE.sub("", line)
+        if REL_PARENT_LINK_RE.search(line_without_code):
+            errors.append(
+                f"{path}:{lno}: Relative link uses '../' parent traversal [LINK_RELATIVE_G3DOC]"
+            )
+
+        is_list_first = bool(LIST_ITEM_RE.match(line))
+        if is_list_first and idx > 0:
+            prev = raw_lines[idx - 1]
+            if (
+                prev.strip() != ""
+                and not LIST_ITEM_RE.match(prev)
+                and not prev.lstrip().startswith("#")
+                and not (prev.startswith("  ") and in_list)
+                and not (line.lstrip().startswith(">") and prev.lstrip().startswith(">"))
+            ):
+                errors.append(
+                    f"{path}:{lno}: List item must be preceded by a blank line [LIST_NO_LINE]"
+                )
+
+        if is_list_first:
+            in_list = True
+        elif line.strip() == "":
+            in_list = False
+
+        chk = line.rstrip("\\").rstrip(" \t") if line.endswith("\\") else line
+        if len(chk) > 80:
+            if (
+                chk.lstrip().startswith("|")
+                or chk.lstrip().startswith("#")
+                or TOC_LINE_RE.match(chk)
+                or chk.strip() in ("---", "***")
+                or " " not in chk.strip()
+            ):
+                continue
+            if any(
+                len(m.group(0)) / len(chk) > 0.5
+                for m in MARKDOWN_LINK_RE.finditer(chk)
+            ):
+                continue
+            if is_list_first and len(chk) < 200:
+                nxt = raw_lines[idx + 1] if idx + 1 < len(raw_lines) else ""
+                if nxt == "" or LIST_ITEM_RE.match(nxt):
+                    continue
+            errors.append(
+                f"{path}:{lno}: Line exceeds 80 characters ({len(chk)} chars) [LINE_OVER_80]"
+            )
+
+    # 4. Check SKILL.md frontmatter if applicable
     if path.name == "SKILL.md":
         fm, err = parse_skill_frontmatter(text)
         if err:

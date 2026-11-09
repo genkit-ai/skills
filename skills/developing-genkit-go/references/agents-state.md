@@ -4,21 +4,23 @@
 
 Beyond message history, an agent session can hold typed **custom state** — your
 own structured data (a task list, a workflow status, counters, etc.). Tools read
-and mutate it during a turn, and every mutation is streamed to a connected client
+and mutate it during a turn, and every mutation is streamed to a connected
+client
 as a JSON Patch so the client's view stays live.
 
-- [Declare the state shape](#declare-the-state-shape): Lines 19-44
-- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 46-88
-- [Seed and read state](#seed-and-read-state): Lines 90-107
-- [Live state on a connection](#live-state-on-a-connection): Lines 109-136
-- [Prompt templating with state](#prompt-templating-with-state): Lines 138-145
-- [Custom status streaming from a custom agent](#custom-status-streaming-from-a-custom-agent): Lines 147-152
+- [Declare the state shape](#declare-the-state-shape): Lines 20-46
+- [Read & mutate state inside tools](#read--mutate-state-inside-tools): Lines 48-91
+- [Seed and read state](#seed-and-read-state): Lines 93-110
+- [Live state on a connection](#live-state-on-a-connection): Lines 112-141
+- [Prompt templating with state](#prompt-templating-with-state): Lines 143-151
+- [Custom status streaming from a custom agent](#custom-status-streaming-from-a-custom-agent): Lines 153-158
 
 ---
 
 ## Declare the state shape
 
-The custom-state type is the `State` type parameter of the agent (and its store).
+The custom-state type is the `State` type parameter of the agent (and its
+store).
 It lives under `Custom` of `aix.SessionState[State]`.
 
 ```go
@@ -80,7 +82,8 @@ addTask := genkit.DefineTool(g, "addTask",
 ```
 
 `aix.SessionFromContext[State]` returns `nil` outside an active session (or when
-the `State` type does not match), so guard against it. Note the tool's context is
+the `State` type does not match), so guard against it. Note the tool's context
+is
 `ctx.Context` (the `*ai.ToolContext` embeds the standard `context.Context`).
 
 > Do not call other `Session` methods (or send on a `Responder`) from inside the
@@ -108,7 +111,8 @@ if out.State != nil {
 
 ## Live state on a connection
 
-A connection tracks custom state as it streams: each `Receive()`d chunk carries a
+A connection tracks custom state as it streams: each `Receive()`d chunk carries
+a
 `CustomPatch` (an RFC 6902 JSON Patch delta), which the connection applies to an
 internal copy. Read it any time with `conn.Custom()`.
 
@@ -132,12 +136,14 @@ for chunk, err := range conn.Receive() {
 ```
 
 The first `CustomPatch` of each turn is a whole-document replace (re-basing the
-client); later patches are incremental diffs. The authoritative final state is on
+client); later patches are incremental diffs. The authoritative final state is
+on
 `out.State` (client-managed) or the turn-end snapshot (server-managed).
 
 ## Prompt templating with state
 
-Inside a prompt template, the session's custom state is available as `{{@state}}`,
+Inside a prompt template, the session's custom state is available as
+`{{@state}}`,
 evaluated fresh at render time so the template always sees the latest values.
 
 ```go

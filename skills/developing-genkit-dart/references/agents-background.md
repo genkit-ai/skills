@@ -12,7 +12,7 @@ The client polls for completion and can abort.
 - [Define the agent (store required)](#define-the-agent-store-required): Lines 19-46
 - [Client-side: detach + poll + abort](#client-side-detach--poll--abort): Lines 48-87
 - [Server-side: detach + wait](#server-side-detach--wait): Lines 89-101
-- [Status values](#status-values): Lines 103-114
+- [Status values](#status-values): Lines 103-115
 
 ---
 
@@ -59,7 +59,7 @@ import 'package:genkit/experimental_client.dart'; // remoteAgent, DetachedTask
 
 final agent = remoteAgent(url: '/api/backgroundAgent');
 
-// Submit — resolves immediately with a handle.
+// Submit - resolves immediately with a handle.
 final task = await agent.chat().detach(text: 'Quantum computing impact');
 print(task.snapshotId);
 
@@ -103,7 +103,8 @@ print(snapshot?.status?.value); // 'completed' | 'failed' | 'aborted' | 'expired
 ## Status values
 
 - `pending` — still processing.
-- `completed` — completed successfully (read the result from `snapshot.messages`).
+- `completed` — completed successfully (read the result from
+  `snapshot.messages`).
 - `failed` — error during processing.
 - `aborted` — cancelled by the client via `abort()`.
 - `expired` — the background worker stopped responding (e.g. server restart);

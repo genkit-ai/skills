@@ -2,17 +2,25 @@
 
 > See [agents.md](agents.md).
 
-`ai.define_agent` runs a built-in model + tool loop. When you need custom multi-step orchestration, subagent delegation, custom streaming, or manual control over messages, custom state, and artifacts, register a custom turn loop with `ai.define_custom_agent`. Callers still talk to the agent through `chat.send(...)`, `chat.send_stream(...)`, `chat.detach(...)`, and `serve_agent(...)`.
+`ai.define_agent` runs a built-in model + tool loop. When you need custom
+multi-step orchestration, subagent delegation, custom streaming, or manual
+control over messages, custom state, and artifacts, register a custom turn loop
+with `ai.define_custom_agent`. Callers still talk to the agent through
+`chat.send(...)`, `chat.send_stream(...)`, `chat.detach(...)`, and
+`serve_agent(...)`.
 
-- [Anatomy](#anatomy): Lines 13-46
-- [Streaming custom agent example](#streaming-custom-agent-example): Lines 48-114
-- [Non-streaming handle_turn with tools](#non-streaming-handle_turn-with-tools): Lines 116-170
+- [Anatomy](#anatomy): Lines 18-75
+- [Streaming custom agent example](#streaming-custom-agent-example): Lines 77-143
+- [Non-streaming handle_turn with tools](#non-streaming-handle_turn-with-tools): Lines 145-204
 
 ---
 
 ## Anatomy
 
-Register one async `fn(sess: SessionRunner, ctx: AgentContext) -> AgentResult`. Inside `fn`, define `handle_turn(inp: AgentInput, turn_ctx: TurnContext) -> TurnResult | None`, pass it to `await sess.run(handle_turn)`, and return `await sess.result()`:
+Register one async `fn(sess: SessionRunner, ctx: AgentContext) -> AgentResult`.
+Inside `fn`, define
+`handle_turn(inp: AgentInput, turn_ctx: TurnContext) -> TurnResult | None`, pass
+it to `await sess.run(handle_turn)`, and return `await sess.result()`:
 
 ```python
 from genkit.exp.agent import (
@@ -39,11 +47,32 @@ async def custom_fn(sess: SessionRunner, ctx: AgentContext) -> AgentResult:
 
 Runtime mechanics:
 
-- **Automatic user message append**: Before calling `handle_turn`, `sess.run` appends `inp.message` (`AgentInput` carries `message`, `resume`, and `detach`) to session history. `await sess.get_messages()` already returns `list[Message]` including the current user prompt — do not wrap items in `Message(m)`.
-- **`TurnContext` (`turn_ctx`)**: Exposes `snapshot_id` (pre-reserved at turn start when a `store` is configured, `None` otherwise), `parent_snapshot_id`, and `turn_index`. Pre-reserving `snapshot_id` lets you name external worktrees or scratch directories after the snapshot before the turn commits. `turn_index` is 0-based within one invocation; each `chat.send` starts a new invocation, so it does not count turns across the session.
-- **`SessionRunner` (`sess`) helpers**: `get_messages()` / `add_messages([...])` / `set_messages([...])`, `get_custom()` / `update_custom(sync_fn)`, and `get_artifacts()` / `add_artifacts([...])`. Both `add_messages` and `add_artifacts` take a `list`.
-- **Turn completion and failures**: `TurnResult` accepts `(finish_reason=..., error=...)` — it does **not** take `messages=`. Raising an exception inside `handle_turn` ends the turn with `finish_reason=AgentFinishReason.FAILED`, populates `res.error` on the caller's `AgentResponse`, and stops the turn loop. `chat.send` returns that failed turn; it does not raise.
-- **Model failures do not raise**: `ai.generate` and `ai.generate_stream` report provider errors on `response.error` with `finish_reason='failed'`. Raise a `GenkitError` from it so the caller's `res.error` keeps the provider status (e.g. `UNAVAILABLE`); otherwise the caller sees a generic `UNKNOWN` "Agent turn failed." (or a silent `STOP` if you hardcode the finish reason).
+- **Automatic user message append**: Before calling `handle_turn`, `sess.run`
+  appends `inp.message` (`AgentInput` carries `message`, `resume`, and `detach`)
+  to session history. `await sess.get_messages()` already returns
+  `list[Message]` including the current user prompt — do not wrap items in
+  `Message(m)`.
+- **`TurnContext` (`turn_ctx`)**: Exposes `snapshot_id` (pre-reserved at turn
+  start when a `store` is configured, `None` otherwise), `parent_snapshot_id`,
+  and `turn_index`. Pre-reserving `snapshot_id` lets you name external worktrees
+  or scratch directories after the snapshot before the turn commits.
+  `turn_index` is 0-based within one invocation; each `chat.send` starts a new
+  invocation, so it does not count turns across the session.
+- **`SessionRunner` (`sess`) helpers**: `get_messages()` / `add_messages([...])`
+  / `set_messages([...])`, `get_custom()` / `update_custom(sync_fn)`, and
+  `get_artifacts()` / `add_artifacts([...])`. Both `add_messages` and
+  `add_artifacts` take a `list`.
+- **Turn completion and failures**: `TurnResult` accepts
+  `(finish_reason=..., error=...)` — it does **not** take `messages=`. Raising
+  an exception inside `handle_turn` ends the turn with
+  `finish_reason=AgentFinishReason.FAILED`, populates `res.error` on the
+  caller's `AgentResponse`, and stops the turn loop. `chat.send` returns that
+  failed turn; it does not raise.
+- **Model failures do not raise**: `ai.generate` and `ai.generate_stream` report
+  provider errors on `response.error` with `finish_reason='failed'`. Raise a
+  `GenkitError` from it so the caller's `res.error` keeps the provider status
+  (e.g. `UNAVAILABLE`); otherwise the caller sees a generic `UNKNOWN` "Agent
+  turn failed." (or a silent `STOP` if you hardcode the finish reason).
 
 ## Streaming custom agent example
 
@@ -115,7 +144,11 @@ if __name__ == '__main__':
 
 ## Non-streaming `handle_turn` with tools
 
-When `ai.generate(..., tools=[...])` runs a multi-step tool loop inside `handle_turn`, `res.messages` contains the full conversation transcript (prior history + intermediate tool requests/responses + final model reply, plus a leading `Role.SYSTEM` message when `system=` was passed). Strip `Role.SYSTEM` and save the updated transcript with `await sess.set_messages(...)`:
+When `ai.generate(..., tools=[...])` runs a multi-step tool loop inside
+`handle_turn`, `res.messages` contains the full conversation transcript (prior
+history + intermediate tool requests/responses + final model reply, plus a
+leading `Role.SYSTEM` message when `system=` was passed). Strip `Role.SYSTEM`
+and save the updated transcript with `await sess.set_messages(...)`:
 
 ```python
 from datetime import datetime, timezone
@@ -167,4 +200,5 @@ async def ops_agent_fn(sess: SessionRunner, ctx: AgentContext) -> AgentResult:
 ops_agent = ai.define_custom_agent(name='opsAgent', fn=ops_agent_fn, store=InMemorySessionStore())
 ```
 
-Related guides: [state](agents-state.md) · [artifacts](agents-artifacts.md) · [tools](agents.md#tools-progress-chunks-and-multipart-responses)
+Related guides: [state](agents-state.md) · [artifacts](agents-artifacts.md) ·
+[tools](agents.md#tools-progress-chunks-and-multipart-responses)

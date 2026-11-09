@@ -158,7 +158,7 @@ final turn = chat.sendStream(text: 'Create index.html and styles.css');
 await for (final chunk in turn.stream) {
   final artifact = chunk.artifact;
   if (artifact != null) {
-    // artifact.name, artifact.parts — render/store it live.
+    // artifact.name, artifact.parts - render/store it live.
   }
 }
 final res = await turn.response;

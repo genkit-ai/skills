@@ -57,6 +57,54 @@ class TestSyncTocs(unittest.TestCase):
         fenced_caution.write_text("```python\n# Caution: allowed inside fence\n```\n", encoding="utf-8")
         self.assertEqual(check_hygiene_for_file(fenced_caution), [])
 
+    def test_checklint_rules(self):
+        # 1. Mid-file '---' block with YAML-like 'key: value' line triggers SNIPPET_UNCLOSED
+        bogus_yaml = self.temp_dir / "bogus_yaml.md"
+        bogus_yaml.write_text(
+            "# Evals\n\n- [Sec](#sec): Lines 7-20\n\n---\n\n## Sec\n\nFields: `a`, `b`\n\n```yaml\n---\nmodel: m\n---\n```\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(bogus_yaml)
+        self.assertTrue(any("SNIPPET_UNCLOSED" in e and "Fields:" in e for e in errs), errs)
+
+        # Bolding '**Fields:**' resolves the mid-file frontmatter false positive
+        fixed_yaml = self.temp_dir / "fixed_yaml.md"
+        fixed_yaml.write_text(
+            "# Evals\n\n- [Sec](#sec): Lines 7-20\n\n---\n\n## Sec\n\n**Fields:** `a`, `b`\n\n```yaml\n---\nmodel: m\n---\n```\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(check_hygiene_for_file(fixed_yaml), [])
+
+        # 2. SNIPPET_EM_DASH in fenced code blocks and single/double-backtick inline code spans
+        em_dash_doc = self.temp_dir / "em_dash.md"
+        em_dash_doc.write_text(
+            "# Doc\n\nInline `bad \u2014 dash` and ``also `bad` \u2013 dash`` here.\n\n```python\n# comment \u2014 dash\n```\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(em_dash_doc)
+        self.assertEqual(sum("SNIPPET_EM_DASH" in e for e in errs), 3, errs)
+
+        # 3. LINK_RELATIVE_G3DOC, LIST_NO_LINE, WHITESPACE_TRAILING, and LINE_OVER_80
+        lint_doc = self.temp_dir / "lint_errors.md"
+        lint_doc.write_text(
+            "# Doc\n\n"
+            "See [SKILL.md](../SKILL.md#imports).\n\n"
+            "Trailing space here. \n\n"
+            "No blank line before list:\n"
+            "- Item one\n\n"
+            + ("word " * 18).strip()
+            + "\n\n"
+            + "- "
+            + (" single-line list item under 200 chars is exempt " * 2).strip()
+            + "\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(lint_doc)
+        self.assertTrue(any("LINK_RELATIVE_G3DOC" in e for e in errs), errs)
+        self.assertTrue(any("WHITESPACE_TRAILING" in e for e in errs), errs)
+        self.assertTrue(any("LIST_NO_LINE" in e for e in errs), errs)
+        self.assertEqual(sum("LINE_OVER_80" in e for e in errs), 1, errs)
+
     def test_frontmatter_validation(self):
         valid = "---\nname: demo\ndescription: >-\n Para 1.\n\n Para 2.\n---\n"
         fm, err = parse_skill_frontmatter(valid)

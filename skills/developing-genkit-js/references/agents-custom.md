@@ -11,7 +11,7 @@ message/state management, or custom progress streaming — use
 - [When to use it](#when-to-use-it): Lines 18-28
 - [Signature](#signature): Lines 30-54
 - [Example: multi-step research agent](#example-multi-step-research-agent): Lines 56-127
-- [Custom status streaming](#custom-status-streaming): Lines 129-148
+- [Custom status streaming](#custom-status-streaming): Lines 129-149
 
 ---
 
@@ -130,7 +130,8 @@ export const researchAgent = ai.defineCustomAgent(
 
 Calling `session.updateCustom(...)` during the turn automatically emits a
 `customPatch` chunk, so the `remoteAgent` client's tracked
-[custom state](agents-state.md) (e.g. the `status` field) stays live **mid-stream**
+[custom state](agents-state.md) (e.g. the `status` field) stays live
+**mid-stream**
 without any extra wiring. Stream model output separately with
 `sendChunk({ modelChunk })`.
 

@@ -1,13 +1,13 @@
 # FastAPI — Genkit Python
 
-- [Install](#install): Lines 14-29
-- [Serve a Flow or Agent](#serve-a-flow-or-agent): Lines 33-87
-- [HTTP Error Redaction & PublicError](#http-error-redaction--publicerror): Lines 91-97
-- [Streaming (SSE)](#streaming-sse): Lines 101-150
-- [Auth & Context Providers](#auth--context-providers): Lines 154-226
-- [Advanced Flow Composition](#advanced-flow-composition): Lines 230-302
-- [Structured Output Endpoint](#structured-output-endpoint): Lines 306-329
-- [Python HTTP Client](#python-http-client): Lines 333-344
+- [Install](#install): Lines 14-35
+- [Serve a Flow or Agent](#serve-a-flow-or-agent): Lines 39-95
+- [HTTP Error Redaction & PublicError](#http-error-redaction--publicerror): Lines 99-114
+- [Streaming (SSE)](#streaming-sse): Lines 118-171
+- [Auth & Context Providers](#auth--context-providers): Lines 175-250
+- [Advanced Flow Composition](#advanced-flow-composition): Lines 254-328
+- [Structured Output Endpoint](#structured-output-endpoint): Lines 332-356
+- [Python HTTP Client](#python-http-client): Lines 360-372
 
 ---
 
@@ -20,13 +20,19 @@ uv add 'genkit-fastapi==0.13.*' fastapi uvicorn
 Imports are split between stable flow serving and experimental agent serving:
 
 - **Stable flows (`genkit_fastapi`)**:
-  - `serve_flow` — mount a flow as a FastAPI `APIRouter` (supports `base_path=` and `context_dependency=`)
-  - `genkit_fastapi_handler` — decorator stacking `@app.post('/...')` directly over `@ai.flow()` (supports `context_provider=`)
-  - `handle_genkit_request` — low-level handler for custom `@app.post` routes with multiple FastAPI `Depends(...)` parameters
+  - `serve_flow` — mount a flow as a FastAPI `APIRouter` (supports `base_path=`
+    and `context_dependency=`)
+  - `genkit_fastapi_handler` — decorator stacking `@app.post('/...')` directly
+    over `@ai.flow()` (supports `context_provider=`)
+  - `handle_genkit_request` — low-level handler for custom `@app.post` routes
+    with multiple FastAPI `Depends(...)` parameters
 - **Experimental agents (`genkit_fastapi.exp`)**:
-  - `serve_agent` — mount an experimental `Agent` (`genkit.exp.Genkit`) as an `APIRouter` (see [Agent HTTP](agents-http.md))
+  - `serve_agent` — mount an experimental `Agent` (`genkit.exp.Genkit`) as an
+    `APIRouter` (see [Agent HTTP](agents-http.md))
 - **Framework-agnostic web utilities (`genkit.web`)**:
-  - `RequestData`, `ContextProvider`, `StreamHandle`, `to_sse`, `read_body`, `wants_stream`, `result_json`, `error_body`, `error_json`, `error_sse`, `error_status`
+  - `RequestData`, `ContextProvider`, `StreamHandle`, `to_sse`, `read_body`,
+    `wants_stream`, `result_json`, `error_body`, `error_json`, `error_sse`,
+    `error_status`
 
 ---
 
@@ -76,9 +82,11 @@ if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-If your app only serves flows (no agents), import `Genkit` from `genkit` instead of `genkit.exp`.
+If your app only serves flows (no agents), import `Genkit` from `genkit` instead
+of `genkit.exp`.
 
-With `GENKIT_ENV=dev` (which `genkit start` sets automatically), the Dev UI reflection server starts on a background thread, so either entrypoint works:
+With `GENKIT_ENV=dev` (which `genkit start` sets automatically), the Dev UI
+reflection server starts on a background thread, so either entrypoint works:
 
 ```bash
 genkit start -- uv run uvicorn main:app --reload   # reload-friendly ASGI dev server + Dev UI
@@ -90,17 +98,29 @@ uvicorn main:app                                   # production (no Dev UI)
 
 ## HTTP Error Redaction & `PublicError`
 
-Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, `handle_genkit_request`), Genkit separates internal errors from caller-visible errors:
+Over HTTP (`serve_flow`, `serve_agent`, `genkit_fastapi_handler`,
+`handle_genkit_request`), Genkit separates internal errors from caller-visible
+errors:
 
-- **`PublicError(status, message, details)`**: returns the corresponding HTTP status (`NOT_FOUND` -> 404, `INVALID_ARGUMENT` -> 400, `UNAUTHENTICATED` -> 401, `PERMISSION_DENIED` -> 403) with `status`, `message`, and `details`. Keep secrets and cross-tenant data out of `PublicError`.
-- **Invalid flow input**: returns HTTP 400 with field names and Pydantic's built-in messages (never echoing submitted values; custom validator text shows as `Invalid value` unless the validator raises `PublicError`).
-- **Any other `GenkitError`, provider error, or Python exception**: logged server-side with full traceback (`5xx`) and returned to the client as `500 {"status": "INTERNAL", "message": "Internal Error"}`.
+- **`PublicError(status, message, details)`**: returns the corresponding HTTP
+  status (`NOT_FOUND` -> 404, `INVALID_ARGUMENT` -> 400, `UNAUTHENTICATED` ->
+  401, `PERMISSION_DENIED` -> 403) with `status`, `message`, and `details`. Keep
+  secrets and cross-tenant data out of `PublicError`.
+- **Invalid flow input**: returns HTTP 400 with field names and Pydantic's
+  built-in messages (never echoing submitted values; custom validator text shows
+  as `Invalid value` unless the validator raises `PublicError`).
+- **Any other `GenkitError`, provider error, or Python exception**: logged
+  server-side with full traceback (`5xx`) and returned to the client as
+  `500 {"status": "INTERNAL", "message": "Internal Error"}`.
 
 ---
 
 ## Streaming (SSE)
 
-`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, and `handle_genkit_request` stream Server-Sent Events when the client sends `Accept: text/event-stream` (or `?stream=true`), and automatically cancel the running flow if the client disconnects. Otherwise they return `{"result": ...}`.
+`serve_flow`, `serve_agent`, `genkit_fastapi_handler`, and
+`handle_genkit_request` stream Server-Sent Events when the client sends
+`Accept: text/event-stream` (or `?stream=true`), and automatically cancel the
+running flow if the client disconnects. Otherwise they return `{"result": ...}`.
 
 **Wire format (SSE):**
 ```text
@@ -108,7 +128,8 @@ data: {"message": "<chunk>"}
 data: {"message": "<chunk>"}
 data: {"result": "<final output>"}
 ```
-Errors during streaming emit `data: {"error": {...}}` formatted with the same `PublicError` redaction rules.
+Errors during streaming emit `data: {"error": {...}}` formatted with the same
+`PublicError` redaction rules.
 
 **Minimal streaming FastAPI flow (`FlowContext`):**
 
@@ -204,7 +225,8 @@ async def ask(question: str) -> str:
 
 ### 3. Custom Route Escape Hatch (`handle_genkit_request` or `genkit.web`)
 
-When a route needs multiple `Depends(...)` parameters while keeping the Genkit wire format:
+When a route needs multiple `Depends(...)` parameters while keeping the Genkit
+wire format:
 
 ```python
 from fastapi import Depends, Request
@@ -223,7 +245,9 @@ async def custom_brief(
     )
 ```
 
-If writing a completely custom non-Genkit JSON wrapper around `await my_flow.run(data)`, map exceptions with `error_body(e)` and `error_status(e)` from `genkit.web` so internal errors stay redacted.
+If writing a completely custom non-Genkit JSON wrapper around
+`await my_flow.run(data)`, map exceptions with `error_body(e)` and
+`error_status(e)` from `genkit.web` so internal errors stay redacted.
 
 ---
 
@@ -231,7 +255,9 @@ If writing a completely custom non-Genkit JSON wrapper around `await my_flow.run
 
 ### Nested Flow Streaming
 
-Forward a child flow's chunks to the parent's SSE stream via `await child.run(input, on_chunk=ctx.send_chunk)`. All arguments after the input on `.run(...)` are keyword-only:
+Forward a child flow's chunks to the parent's SSE stream via
+`await child.run(input, on_chunk=ctx.send_chunk)`. All arguments after the input
+on `.run(...)` are keyword-only:
 
 ```python
 class SectionInput(BaseModel):
@@ -305,7 +331,8 @@ async def review_diff(input: CodeReviewInput) -> ReviewFindings:
 
 ## Structured Output Endpoint
 
-Check `response.output is None` before returning so truncated model replies surface cleanly instead of failing output validation:
+Check `response.output is None` before returning so truncated model replies
+surface cleanly instead of failing output validation:
 
 ```python
 from genkit import PublicError
@@ -332,7 +359,8 @@ async def analyze_sentiment(text: str) -> SentimentResult:
 
 ## Python HTTP Client
 
-Genkit HTTP endpoints expect `{"data": ...}` on input (`{"data": null}` uses the flow parameter's default) and return `{"result": ...}`:
+Genkit HTTP endpoints expect `{"data": ...}` on input (`{"data": null}` uses the
+flow parameter's default) and return `{"result": ...}`:
 
 ```python
 import httpx

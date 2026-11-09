@@ -1,9 +1,9 @@
 # Flows & HTTP
 
 - [DefineFlow](#defineflow): Lines 10-29
-- [DefineStreamingFlow](#definestreamingflow): Lines 31-99
-- [Named Sub-Steps](#named-sub-steps): Lines 101-123
-- [HTTP Handlers](#http-handlers): Lines 125-190
+- [DefineStreamingFlow](#definestreamingflow): Lines 31-101
+- [Named Sub-Steps](#named-sub-steps): Lines 103-125
+- [HTTP Handlers](#http-handlers): Lines 127-192
 
 ---
 
@@ -34,7 +34,9 @@ Flows that stream chunks back to the caller. Two common patterns:
 
 ### Pattern 1: Passthrough Streaming
 
-Pass the stream callback directly through to `WithStreaming`. The callback type is `ai.ModelStreamCallback` = `func(context.Context, *ai.ModelResponseChunk) error`:
+Pass the stream callback directly through to `WithStreaming`. The callback type
+is `ai.ModelStreamCallback` =
+`func(context.Context, *ai.ModelResponseChunk) error`:
 
 ```go
 genkit.DefineStreamingFlow(g, "streamingJokeFlow",

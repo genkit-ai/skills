@@ -2,13 +2,30 @@
 
 > See [agents.md](agents.md) · [sessions](agents-sessions.md).
 
-Artifacts are named session deliverables — markdown reports, SQL migrations, generated files — persisted in `SessionState.artifacts` and exposed as `chat.artifacts`, `res.artifacts`, and streamed `chunk.artifact`. Writing an artifact whose `name` already exists replaces the previous version in place.
+Artifacts are named session deliverables — markdown reports, SQL migrations,
+generated files — persisted in `SessionState.artifacts` and exposed as
+`chat.artifacts`, `res.artifacts`, and streamed `chunk.artifact`. Writing an
+artifact whose `name` already exists replaces the previous version in place.
+
+- [Artifacts middleware (genkit_middleware.exp)](#artifacts-middleware-genkit_middlewareexp): Lines 16-66
+- [Writing artifacts from tools and custom agents](#writing-artifacts-from-tools-and-custom-agents): Lines 68-107
+- [Reading artifact text](#reading-artifact-text): Lines 109-120
+
+---
 
 ## `Artifacts` middleware (`genkit_middleware.exp`)
 
-Import `Artifacts` from `genkit_middleware.exp` (`Middleware()` does not register it). On every model call, `Artifacts()` appends an `<artifacts>` listing of the session's current artifacts (name, size, source) to the system prompt, and gives the model `write_artifact` and `read_artifact` tools. Pass `Artifacts(readonly=True)` to expose only `read_artifact`. Outside an agent session the tools return an error result instead of raising.
+Import `Artifacts` from `genkit_middleware.exp` (`Middleware()` does not
+register it). On every model call, `Artifacts()` appends an `<artifacts>`
+listing of the session's current artifacts (name, size, source) to the system
+prompt, and gives the model `write_artifact` and `read_artifact` tools. Pass
+`Artifacts(readonly=True)` to expose only `read_artifact`. Outside an agent
+session the tools return an error result instead of raising.
 
-On a store-backed agent, `agent.chat(artifacts=...)` raises `AgentInitError` (`FAILED_PRECONDITION`); have the model write artifacts on a turn, or write them from a tool or [custom agent](agents-custom.md). Store-less agents can seed `artifacts=` ([state](agents-state.md)).
+On a store-backed agent, `agent.chat(artifacts=...)` raises `AgentInitError`
+(`FAILED_PRECONDITION`); have the model write artifacts on a turn, or write them
+from a tool or [custom agent](agents-custom.md). Store-less agents can seed
+`artifacts=` ([state](agents-state.md)).
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -50,7 +67,11 @@ if __name__ == '__main__':
 
 ## Writing artifacts from tools and custom agents
 
-Inside an `@ai.tool()`, get the active session with `current_session()` from `genkit.exp` (`None` outside an agent turn). Inside a custom agent, call the same method on the `SessionRunner`. `add_artifacts` takes a `list[Artifact]`, replaces by name, and emits one `chunk.artifact` per artifact to streaming callers:
+Inside an `@ai.tool()`, get the active session with `current_session()` from
+`genkit.exp` (`None` outside an agent turn). Inside a custom agent, call the
+same method on the `SessionRunner`. `add_artifacts` takes a `list[Artifact]`,
+replaces by name, and emits one `chunk.artifact` per artifact to streaming
+callers:
 
 ```python
 from genkit import Part
@@ -87,7 +108,8 @@ async def save_report(sess: SessionRunner, body: str) -> None:
 
 ## Reading artifact text
 
-`Part.text` is `str | None`. This matches what `read_artifact` returns to the model:
+`Part.text` is `str | None`. This matches what `read_artifact` returns to the
+model:
 
 ```python
 from genkit.exp.agent import Artifact

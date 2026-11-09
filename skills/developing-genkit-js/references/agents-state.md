@@ -39,7 +39,7 @@ export const taskAgent = ai.defineAgent({
   stateSchema: TaskState,
   system: 'You manage the user\'s task list. Use the tools to modify it.',
   tools: [
-    /* addTask, toggleTask, removeTask — below */
+    /* addTask, toggleTask, removeTask - below */
   ],
 });
 ```

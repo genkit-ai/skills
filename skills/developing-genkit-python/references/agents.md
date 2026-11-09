@@ -1,24 +1,33 @@
 # Agents (Experimental)
 
-> Experimental APIs live under `.exp` modules (`genkit.exp`, `genkit.exp.agent`, `genkit_fastapi.exp`, `genkit_middleware.exp`, `genkit_google_cloud.exp`) and can change between minor releases.
+> Experimental APIs live under `.exp` modules (`genkit.exp`, `genkit.exp.agent`,
+> `genkit_fastapi.exp`, `genkit_middleware.exp`, `genkit_google_cloud.exp`) and
+> can change between minor releases.
 
-Turn a model and tools into a stateful multi-turn conversation with snapshots, typed custom state, human approvals, branching, and detached background runs.
+Turn a model and tools into a stateful multi-turn conversation with snapshots,
+typed custom state, human approvals, branching, and detached background runs.
 
-Deeper topics: [sessions](agents-sessions.md) · [HITL](agents-human-in-the-loop.md) · [branching](agents-branching.md) · [background](agents-background.md) · [state](agents-state.md) · [artifacts](agents-artifacts.md) · [custom](agents-custom.md) · [HTTP](agents-http.md)
+Deeper topics: [sessions](agents-sessions.md) ·
+[HITL](agents-human-in-the-loop.md) · [branching](agents-branching.md) ·
+[background](agents-background.md) · [state](agents-state.md) ·
+[artifacts](agents-artifacts.md) · [custom](agents-custom.md) ·
+[HTTP](agents-http.md)
 
-- [Define an agent](#define-an-agent): Lines 19-69
-- [Tools, progress chunks, and multipart responses](#tools-progress-chunks-and-multipart-responses): Lines 71-99
-- [Middleware](#middleware): Lines 101-136
-- [Chat and streaming](#chat-and-streaming): Lines 138-169
-- [Errors and cancellation](#errors-and-cancellation): Lines 171-194
-- [Without a store](#without-a-store): Lines 196-216
-- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 218-234
+- [Define an agent](#define-an-agent): Lines 26-85
+- [Tools, progress chunks, and multipart responses](#tools-progress-chunks-and-multipart-responses): Lines 87-117
+- [Middleware](#middleware): Lines 119-169
+- [Chat and streaming](#chat-and-streaming): Lines 171-206
+- [Errors and cancellation](#errors-and-cancellation): Lines 208-247
+- [Without a store](#without-a-store): Lines 249-271
+- [Verify an agent from the CLI (flow:run)](#verify-an-agent-from-the-cli-flowrun): Lines 273-290
 
 ---
 
 ## Define an agent
 
-Import `Genkit` from `genkit.exp` to opt into `define_agent`, `define_prompt_agent`, `define_custom_agent`, and `ai.agent(name)`. Stable `from genkit import Genkit` does not expose agent methods.
+Import `Genkit` from `genkit.exp` to opt into `define_agent`,
+`define_prompt_agent`, `define_custom_agent`, and `ai.agent(name)`. Stable
+`from genkit import Genkit` does not expose agent methods.
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -59,18 +68,27 @@ agent = ai.define_agent(
 
 Key `define_agent` keyword arguments:
 
-- **`model`**: `GoogleAI.gemini('gemini-flash-latest')` (or a `'plugin/model'` string)
-- **`config`**: typed config such as `GeminiConfig(thinking_level='HIGH')` or `AnthropicConfig(thinking='adaptive', effort='high')`
-- **`use`**: middleware instances (`Retry`, `Fallback`, `ToolApproval`, `Filesystem`, `Skills`, `Artifacts`, `Surfaces`)
-- **`state_schema`**: Pydantic `BaseModel` typing `chat.state`, `res.state`, and `chunk.custom` ([state](agents-state.md))
+- **`model`**: `GoogleAI.gemini('gemini-flash-latest')` (or a `'plugin/model'`
+  string)
+- **`config`**: typed config such as `GeminiConfig(thinking_level='HIGH')` or
+  `AnthropicConfig(thinking='adaptive', effort='high')`
+- **`use`**: middleware instances (`Retry`, `Fallback`, `ToolApproval`,
+  `Filesystem`, `Skills`, `Artifacts`, `Surfaces`)
+- **`state_schema`**: Pydantic `BaseModel` typing `chat.state`, `res.state`, and
+  `chunk.custom` ([state](agents-state.md))
 - **`max_turns`**: tool-loop ceiling per user message (default 50)
-- **`state_transform` / `chunk_transform`**: egress hooks that redact client views without altering stored state
+- **`state_transform` / `chunk_transform`**: egress hooks that redact client
+  views without altering stored state
 
-For `.prompt` files or `ai.define_prompt(...)`, wire the registered prompt name directly with `ai.define_prompt_agent(name='greeterPrompt', store=...)`. For custom turn loops, use [`ai.define_custom_agent(...)`](agents-custom.md).
+For `.prompt` files or `ai.define_prompt(...)`, wire the registered prompt name
+directly with `ai.define_prompt_agent(name='greeterPrompt', store=...)`. For
+custom turn loops, use [`ai.define_custom_agent(...)`](agents-custom.md).
 
 ## Tools, progress chunks, and multipart responses
 
-A tool takes at most one typed input parameter (a Pydantic `BaseModel` for structured arguments or a scalar like `str`, or no input parameter) plus an optional `ToolContext[ChunkT]` parameter.
+A tool takes at most one typed input parameter (a Pydantic `BaseModel` for
+structured arguments or a scalar like `str`, or no input parameter) plus an
+optional `ToolContext[ChunkT]` parameter.
 
 ```python
 import asyncio
@@ -100,14 +118,29 @@ async def prepare_order(dish: str, ctx: ToolContext[PrepProgress]) -> MultipartT
 
 ## Middleware
 
-Import standard middleware from `genkit_middleware`, session-bound `Artifacts` from `genkit_middleware.exp`, and generative UI `Surfaces` from `genkit_a2ui`. Register `Middleware()` in `plugins=[...]` when you want standard middleware listed in the Dev UI or referenced by `.prompt` files; passing instances in `use=[...]` works either way.
+Import standard middleware from `genkit_middleware`, session-bound `Artifacts`
+from `genkit_middleware.exp`, and generative UI `Surfaces` from `genkit_a2ui`.
+Register `Middleware()` in `plugins=[...]` when you want standard middleware
+listed in the Dev UI or referenced by `.prompt` files; passing instances in
+`use=[...]` works either way.
 
-- **`Filesystem`** (`genkit_middleware`): `list_files` and `read_file` scoped to `root_dir`; pass `allow_write_access=True` to add `write_file` and `edit_file`.
-- **`ToolApproval`** (`genkit_middleware`): tools in `allowed_tools` run automatically; all other tools pause the turn with an interrupt ([HITL](agents-human-in-the-loop.md)). It gates every tool call, including the ones `Filesystem` and `Artifacts` add.
-- **`Skills`** (`genkit_middleware`): injects `SKILL.md` descriptions and exposes `use_skill`.
-- **`Retry` / `Fallback`** (`genkit_middleware`): `Retry` retries transient failures (`UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `ABORTED`, `INTERNAL` by default); `Fallback` switches to alternate models.
-- **`Artifacts`** (`genkit_middleware.exp`): adds `read_artifact` and `write_artifact` tools plus an active artifact listing in the system prompt ([artifacts](agents-artifacts.md)).
-- **`Surfaces`** (`genkit_a2ui`): A2UI surface instructions, validation, and part parsing.
+- **`Filesystem`** (`genkit_middleware`): `list_files` and `read_file` scoped to
+  `root_dir`; pass `allow_write_access=True` to add `write_file` and
+  `edit_file`.
+- **`ToolApproval`** (`genkit_middleware`): tools in `allowed_tools` run
+  automatically; all other tools pause the turn with an interrupt
+  ([HITL](agents-human-in-the-loop.md)). It gates every tool call, including the
+  ones `Filesystem` and `Artifacts` add.
+- **`Skills`** (`genkit_middleware`): injects `SKILL.md` descriptions and
+  exposes `use_skill`.
+- **`Retry` / `Fallback`** (`genkit_middleware`): `Retry` retries transient
+  failures (`UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `ABORTED`,
+  `INTERNAL` by default); `Fallback` switches to alternate models.
+- **`Artifacts`** (`genkit_middleware.exp`): adds `read_artifact` and
+  `write_artifact` tools plus an active artifact listing in the system prompt
+  ([artifacts](agents-artifacts.md)).
+- **`Surfaces`** (`genkit_a2ui`): A2UI surface instructions, validation, and
+  part parsing.
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -137,7 +170,8 @@ coding_agent = ai.define_agent(
 
 ## Chat and streaming
 
-Run one turn at a time per `AgentChat`. Use `ai.run_main(main())` for standalone scripts.
+Run one turn at a time per `AgentChat`. Use `ai.run_main(main())` for standalone
+scripts.
 
 ```python
 async def main() -> None:
@@ -165,16 +199,35 @@ if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-- **`await agent.load_chat(snapshot_id=...)`**: fetches the stored snapshot immediately so `chat.messages`, `chat.state`, and `chat.artifacts` are populated locally.
-- **`agent.chat(session_id=...)`**: attaches a lazy resume handle that continues from the session's last completed turn, skipping any failed or aborted leaf.
+- **`await agent.load_chat(snapshot_id=...)`**: fetches the stored snapshot
+  immediately so `chat.messages`, `chat.state`, and `chat.artifacts` are
+  populated locally.
+- **`agent.chat(session_id=...)`**: attaches a lazy resume handle that continues
+  from the session's last completed turn, skipping any failed or aborted leaf.
 
 ## Errors and cancellation
 
 Genkit separates turn failures from call failures:
 
-- **Turn failure (`res.error`)**: When an agent turn starts and fails at runtime, `chat.send(...)` does **not** raise. It returns `AgentResponse` with `res.finish_reason == AgentFinishReason.FAILED`, `res.text == ''`, and `res.error` (`Failure` with `status`, `message`, `details`, and `reason: ErrorReason`). The chat drops the unanswered user prompt from `chat.messages`, and the next `send()` continues from the last completed snapshot.
-- **No turn result (`GenkitError`)**: When no turn runs at all (dropped HTTP connection, or `AgentInitError` from passing `snapshot_id` to a storeless agent), `chat.send(...)` raises `GenkitError` and restores local chat state. Mismatched init arguments (a `state` blob to a store-backed agent, or `messages`/`state` mixed with a resume id) raise `AgentInitError` from `agent.chat(...)` itself.
-- **Cancellation**: native `asyncio.CancelledError`; put tool cleanup in `try` / `finally`. `await turn.abort()` detaches the client stream only. To cancel a running turn server-side, start it with `chat.detach(...)` and call `await task.abort()`; `chat.abort()` during a foreground `send()` does not stop that turn ([background](agents-background.md#client-detach-vs-server-cancellation)).
+- **Turn failure (`res.error`)**: When an agent turn starts and fails at
+  runtime, `chat.send(...)` does **not** raise. It returns `AgentResponse` with
+  `res.finish_reason == AgentFinishReason.FAILED`, `res.text == ''`, and
+  `res.error` (`Failure` with `status`, `message`, `details`, and
+  `reason: ErrorReason`). The chat drops the unanswered user prompt from
+  `chat.messages`, and the next `send()` continues from the last completed
+  snapshot.
+- **No turn result (`GenkitError`)**: When no turn runs at all (dropped HTTP
+  connection, or `AgentInitError` from passing `snapshot_id` to a storeless
+  agent), `chat.send(...)` raises `GenkitError` and restores local chat state.
+  Mismatched init arguments (a `state` blob to a store-backed agent, or
+  `messages`/`state` mixed with a resume id) raise `AgentInitError` from
+  `agent.chat(...)` itself.
+- **Cancellation**: native `asyncio.CancelledError`; put tool cleanup in `try` /
+  `finally`. `await turn.abort()` detaches the client stream only. To cancel a
+  running turn server-side, start it with `chat.detach(...)` and call
+  `await task.abort()`; `chat.abort()` during a foreground `send()` does not
+  stop that turn
+  ([background](agents-background.md#client-detach-vs-server-cancellation)).
 
 ```python
 from genkit import ErrorReason, GenkitError
@@ -195,7 +248,9 @@ else:
 
 ## Without a store
 
-Omit `store=` when the client owns conversation state. `snapshot_id` stays `None`; round-trip `messages`, `state`, and `artifacts` into the next `agent.chat(...)` call:
+Omit `store=` when the client owns conversation state. `snapshot_id` stays
+`None`; round-trip `messages`, `state`, and `artifacts` into the next
+`agent.chat(...)` call:
 
 ```python
 stateless = ai.define_agent(
@@ -217,7 +272,8 @@ await resumed.send('What is my name? One word.')
 
 ## Verify an agent from the CLI (`flow:run`)
 
-`genkit flow:run` invokes flows, not agents directly. Wrap a turn in a small flow and propagate `res.error` so failures surface cleanly:
+`genkit flow:run` invokes flows, not agents directly. Wrap a turn in a small
+flow and propagate `res.error` so failures surface cleanly:
 
 ```python
 from genkit import GenkitError

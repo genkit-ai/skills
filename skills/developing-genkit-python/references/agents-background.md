@@ -1,19 +1,26 @@
 # Background Agents & Cancellation (Experimental)
 
-> Requires a [session store](agents-sessions.md). For abort to cancel a running turn, the store must also implement `SnapshotSubscriber` (`InMemorySessionStore`, `FileSessionStore`, and `FirestoreSessionStore` do). See [agents.md](agents.md).
+> Requires a [session store](agents-sessions.md). For abort to cancel a running
+> turn, the store must also implement `SnapshotSubscriber`
+> (`InMemorySessionStore`, `FileSessionStore`, and `FirestoreSessionStore` do).
+> See [agents.md](agents.md).
 
-`await chat.detach(...)` hands a turn to the server, reserves a `snapshot_id` in `SnapshotStatus.PENDING` (with background heartbeat refreshes), and returns a `DetachedTask` handle immediately without waiting for model or tool completion.
+`await chat.detach(...)` hands a turn to the server, reserves a `snapshot_id` in
+`SnapshotStatus.PENDING` (with background heartbeat refreshes), and returns a
+`DetachedTask` handle immediately without waiting for model or tool completion.
 
-- [Detach, poll, and load results](#detach-poll-and-load-results): Lines 14-56
-- [Client detach vs. server cancellation](#client-detach-vs-server-cancellation): Lines 58-82
-- [Tool cancellation (asyncio.CancelledError)](#tool-cancellation-asynciocancellederror): Lines 84-102
-- [Fan-out parallel research](#fan-out-parallel-research): Lines 104-129
+- [Detach, poll, and load results](#detach-poll-and-load-results): Lines 19-66
+- [Client detach vs. server cancellation](#client-detach-vs-server-cancellation): Lines 68-110
+- [Tool cancellation (asyncio.CancelledError)](#tool-cancellation-asynciocancellederror): Lines 112-134
+- [Fan-out parallel research](#fan-out-parallel-research): Lines 136-162
 
 ---
 
 ## Detach, poll, and load results
 
-Because the originating `chat` never streams a detached turn's chunks, rehydrate the finished conversation with `await agent.load_chat(snapshot_id=task.snapshot_id)` once the task settles:
+Because the originating `chat` never streams a detached turn's chunks, rehydrate
+the finished conversation with
+`await agent.load_chat(snapshot_id=task.snapshot_id)` once the task settles:
 
 ```python
 from genkit_google_genai import GoogleAI
@@ -53,16 +60,34 @@ if __name__ == '__main__':
     ai.run_main(main())
 ```
 
-Terminal snapshot statuses on `poll()` / `wait()` are `COMPLETED`, `FAILED`, `ABORTED`, and `EXPIRED` (reported on read when a pending turn's heartbeat goes stale). Always check `snapshot.status == SnapshotStatus.COMPLETED` before reading reply messages.
+Terminal snapshot statuses on `poll()` / `wait()` are `COMPLETED`, `FAILED`,
+`ABORTED`, and `EXPIRED` (reported on read when a pending turn's heartbeat goes
+stale). Always check `snapshot.status == SnapshotStatus.COMPLETED` before
+reading reply messages.
 
 ## Client detach vs. server cancellation
 
-Always `await` abort calls. Genkit distinguishes stopping a local listener from cancelling work on the server:
+Always `await` abort calls. Genkit distinguishes stopping a local listener from
+cancelling work on the server:
 
-- **Client detach (`await turn.abort()` or `asyncio.timeout` / `asyncio.wait_for`)**: stops streaming locally and resolves `turn.response` as cancelled immediately while the server turn keeps running to completion in the background. Wrapping `turn.stream` or `await turn.response` in `async with asyncio.timeout(...)` detaches the client the same way and re-raises `TimeoutError`.
-- **Server cancel (`await task.abort()`, `await chat.abort()`, or `await agent.abort(snapshot_id)`)**: flips a pending snapshot to `SnapshotStatus.ABORTED` in the store and cancels the running server task. Returns the snapshot's **previous** `SnapshotStatus` (`SnapshotStatus.PENDING` if this call stopped a live turn; a terminal status if the turn had already finished).
+- **Client detach (`await turn.abort()` or `asyncio.timeout` /
+  `asyncio.wait_for`)**: stops streaming locally and resolves `turn.response` as
+  cancelled immediately while the server turn keeps running to completion in the
+  background. Wrapping `turn.stream` or `await turn.response` in
+  `async with asyncio.timeout(...)` detaches the client the same way and
+  re-raises `TimeoutError`.
+- **Server cancel (`await task.abort()`, `await chat.abort()`, or
+  `await agent.abort(snapshot_id)`)**: flips a pending snapshot to
+  `SnapshotStatus.ABORTED` in the store and cancels the running server task.
+  Returns the snapshot's **previous** `SnapshotStatus` (`SnapshotStatus.PENDING`
+  if this call stopped a live turn; a terminal status if the turn had already
+  finished).
 
-`chat.abort()` targets the chat's last recorded snapshot, so calling it while a foreground `send()` is in flight does not stop that turn: it returns the previous turn's status (`SnapshotStatus.COMPLETED`), or raises `ValueError` on a first turn with no snapshot yet. Use `detach()` + `task.abort()` to cancel a running turn.
+`chat.abort()` targets the chat's last recorded snapshot, so calling it while a
+foreground `send()` is in flight does not stop that turn: it returns the
+previous turn's status (`SnapshotStatus.COMPLETED`), or raises `ValueError` on a
+first turn with no snapshot yet. Use `detach()` + `task.abort()` to cancel a
+running turn.
 
 ```python
 chat = agent.chat()
@@ -79,11 +104,18 @@ print(res.text)
 # => Q4 2025 audit: ...
 ```
 
-On the very first turn of a session, a client-side `turn.abort()` detaches before the client receives `session_id` or `snapshot_id`. Prefer `await chat.detach(...)` + `await task.abort()` whenever you need a recoverable server-side cancel handle from turn start.
+On the very first turn of a session, a client-side `turn.abort()` detaches
+before the client receives `session_id` or `snapshot_id`. Prefer
+`await chat.detach(...)` + `await task.abort()` whenever you need a recoverable
+server-side cancel handle from turn start.
 
 ## Tool cancellation (`asyncio.CancelledError`)
 
-When a server turn is aborted (or an in-process caller cancels), Python delivers standard `asyncio.CancelledError` into active model requests, retry sleeps, and running `@ai.tool()` coroutines at the current `await` (there is no abort-signal attribute on `ToolContext`). Clean up partial external work in `try` / `finally` (and always re-raise `CancelledError` if caught):
+When a server turn is aborted (or an in-process caller cancels), Python delivers
+standard `asyncio.CancelledError` into active model requests, retry sleeps, and
+running `@ai.tool()` coroutines at the current `await` (there is no abort-signal
+attribute on `ToolContext`). Clean up partial external work in `try` / `finally`
+(and always re-raise `CancelledError` if caught):
 
 ```python
 import asyncio
@@ -103,7 +135,8 @@ async def run_backfill(table: str) -> dict[str, object]:
 
 ## Fan-out parallel research
 
-A single `AgentChat` runs one turn at a time. To run background branches concurrently, fork independent chats from a shared checkpoint `snapshot_id`:
+A single `AgentChat` runs one turn at a time. To run background branches
+concurrently, fork independent chats from a shared checkpoint `snapshot_id`:
 
 ```python
 import asyncio

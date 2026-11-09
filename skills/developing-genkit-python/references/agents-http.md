@@ -2,18 +2,26 @@
 
 > See [agents.md](agents.md) · [FastAPI](fastapi.md).
 
-Mount an agent on FastAPI with `serve_agent` from `genkit_fastapi.exp`, and connect from another Python service or CLI with `remote_agent` from `genkit.exp.agent`. Stable flows use `serve_flow` from `genkit_fastapi` ([FastAPI](fastapi.md)).
+Mount an agent on FastAPI with `serve_agent` from `genkit_fastapi.exp`, and
+connect from another Python service or CLI with `remote_agent` from
+`genkit.exp.agent`. Stable flows use `serve_flow` from `genkit_fastapi`
+([FastAPI](fastapi.md)).
 
-- [Serve an agent with FastAPI](#serve-an-agent-with-fastapi): Lines 14-49
-- [Connect with remote_agent](#connect-with-remote_agent): Lines 51-87
-- [Auth, context_dependency, and PublicError](#auth-context_dependency-and-publicerror): Lines 89-160
-- [Custom HTTP routes](#custom-http-routes): Lines 162-200
+- [Serve an agent with FastAPI](#serve-an-agent-with-fastapi): Lines 17-59
+- [Connect with remote_agent](#connect-with-remote_agent): Lines 61-105
+- [Auth, context_dependency, and PublicError](#auth-context_dependency-and-publicerror): Lines 107-193
+- [Custom HTTP routes](#custom-http-routes): Lines 195-238
 
 ---
 
 ## Serve an agent with FastAPI
 
-`serve_agent(agent)` mounts `POST /{agent.name}` for turns: one-shot JSON by default, SSE when the caller sends `Accept: text/event-stream` or `?stream=true`. When the agent has a `store`, it also mounts `POST /{agent.name}/getSnapshot` (`404` when the snapshot is missing) and `POST /{agent.name}/abort`. Callers can pass `?session_id=` or `?thread_id=` to continue a session when the body `init` carries no session id.
+`serve_agent(agent)` mounts `POST /{agent.name}` for turns: one-shot JSON by
+default, SSE when the caller sends `Accept: text/event-stream` or
+`?stream=true`. When the agent has a `store`, it also mounts
+`POST /{agent.name}/getSnapshot` (`404` when the snapshot is missing) and
+`POST /{agent.name}/abort`. Callers can pass `?session_id=` or `?thread_id=` to
+continue a session when the body `init` carries no session id.
 
 ```python
 import uvicorn
@@ -42,7 +50,9 @@ if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8080)
 ```
 
-Override the route path with `serve_agent(agent, base_path='/chat')`. Add FastAPI's `CORSMiddleware` as usual if browsers call the agent from another origin. Run alongside the Developer UI with:
+Override the route path with `serve_agent(agent, base_path='/chat')`. Add
+FastAPI's `CORSMiddleware` as usual if browsers call the agent from another
+origin. Run alongside the Developer UI with:
 
 ```bash
 genkit start -- uv run server.py
@@ -50,7 +60,10 @@ genkit start -- uv run server.py
 
 ## Connect with `remote_agent`
 
-`remote_agent` returns an `AgentClient` with the same `chat()`, `load_chat()`, `get_snapshot()`, and `abort()` surface as an in-process `Agent`. `timeout` (default `60.0`) is the longest wait for the next bytes from the server, not a cap on the whole turn.
+`remote_agent` returns an `AgentClient` with the same `chat()`, `load_chat()`,
+`get_snapshot()`, and `abort()` surface as an in-process `Agent`. `timeout`
+(default `60.0`) is the longest wait for the next bytes from the server, not a
+cap on the whole turn.
 
 ```python
 from genkit.exp.agent import remote_agent
@@ -84,17 +97,37 @@ async def run_client() -> None:
     # => We were discussing Tokyo.
 ```
 
-Pass `state_schema=MyStateModel` to `remote_agent(...)` when you want `chat.state`, `res.state`, and `chunk.custom` validated into a Pydantic model on the client. Omit any trailing slash on `url`; the client derives `{url}/getSnapshot` and `{url}/abort` from it. A timeout surfaces as `GenkitError` `DEADLINE_EXCEEDED`, a refused or dropped connection as `UNAVAILABLE`.
+Pass `state_schema=MyStateModel` to `remote_agent(...)` when you want
+`chat.state`, `res.state`, and `chunk.custom` validated into a Pydantic model on
+the client. Omit any trailing slash on `url`; the client derives
+`{url}/getSnapshot` and `{url}/abort` from it. A timeout surfaces as
+`GenkitError` `DEADLINE_EXCEEDED`, a refused or dropped connection as
+`UNAVAILABLE`.
 
 ## Auth, `context_dependency`, and `PublicError`
 
-Resolve caller identity on the server with `context_dependency`, a FastAPI dependency applied to the turn, `getSnapshot`, and `abort` routes. Return a `dict`; other return values (such as Pydantic models) are dropped. Tools read it from `ctx.context` (or `Genkit.current_context()`), and `SessionStore` methods receive it as `context=`.
+Resolve caller identity on the server with `context_dependency`, a FastAPI
+dependency applied to the turn, `getSnapshot`, and `abort` routes. Return a
+`dict`; other return values (such as Pydantic models) are dropped. Tools read it
+from `ctx.context` (or `Genkit.current_context()`), and `SessionStore` methods
+receive it as `context=`.
 
 Errors surface at three boundaries:
 
-- **Inside `context_dependency`**: FastAPI resolves it before Genkit runs, so Genkit's error mapping does not apply. Raise `fastapi.HTTPException(status_code=401, ...)`; a `PublicError` raised here becomes FastAPI's plain `500 Internal Server Error`.
-- **Inside Genkit, before or outside a turn**: on `getSnapshot` and `abort`, a `PublicError` from your `SessionStore` keeps its status, message, and details (`PERMISSION_DENIED` -> `403`). `AgentInitError` (an init that does not match the agent's state mode) is a `PublicError` and keeps its status too (`FAILED_PRECONDITION` -> `400`). Any other exception returns a redacted `500`. Full rules: [HTTP Error Redaction](fastapi.md#http-error-redaction--publicerror).
-- **Inside a running turn**: tool and store exceptions do not become HTTP errors. The response is `200` with `finishReason: "failed"` and `error`; the client sees `res.finish_reason == AgentFinishReason.FAILED` and `res.error`.
+- **Inside `context_dependency`**: FastAPI resolves it before Genkit runs, so
+  Genkit's error mapping does not apply. Raise
+  `fastapi.HTTPException(status_code=401, ...)`; a `PublicError` raised here
+  becomes FastAPI's plain `500 Internal Server Error`.
+- **Inside Genkit, before or outside a turn**: on `getSnapshot` and `abort`, a
+  `PublicError` from your `SessionStore` keeps its status, message, and details
+  (`PERMISSION_DENIED` -> `403`). `AgentInitError` (an init that does not match
+  the agent's state mode) is a `PublicError` and keeps its status too
+  (`FAILED_PRECONDITION` -> `400`). Any other exception returns a redacted
+  `500`. Full rules:
+  [HTTP Error Redaction](fastapi.md#http-error-redaction--publicerror).
+- **Inside a running turn**: tool and store exceptions do not become HTTP
+  errors. The response is `200` with `finishReason: "failed"` and `error`; the
+  client sees `res.finish_reason == AgentFinishReason.FAILED` and `res.error`.
 
 ```python
 from fastapi import FastAPI, Header, HTTPException
@@ -161,7 +194,12 @@ authed_client = remote_agent(
 
 ## Custom HTTP routes
 
-Use `handle_genkit_request` (`genkit_fastapi`) when a route needs path parameters or extra `Depends(...)` but should keep the Genkit JSON / SSE wire format. Use `to_sse` (`genkit.web`) to frame any stream handle (`chat.send_stream()`, `flow.stream()`) as `data: {"message": ...}` frames followed by `data: {"result": ...}`. Generic flow patterns: [Custom Route Escape Hatch](fastapi.md#3-custom-route-escape-hatch-handle_genkit_request-or-genkitweb).
+Use `handle_genkit_request` (`genkit_fastapi`) when a route needs path
+parameters or extra `Depends(...)` but should keep the Genkit JSON / SSE wire
+format. Use `to_sse` (`genkit.web`) to frame any stream handle
+(`chat.send_stream()`, `flow.stream()`) as `data: {"message": ...}` frames
+followed by `data: {"result": ...}`. Generic flow patterns:
+[Custom Route Escape Hatch](fastapi.md#3-custom-route-escape-hatch-handle_genkit_request-or-genkitweb).
 
 ```python
 from fastapi import FastAPI, Request, Response
