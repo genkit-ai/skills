@@ -477,6 +477,8 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
             text = path.read_text(encoding="utf-8")
         except Exception as e:
             return [f"{path}: Failed to read file: {e}"]
+    else:
+        text = text.replace("\r\n", "\n")
 
     # 1. Check code fences (SNIPPET_UNCLOSED)
     balanced, start_line = check_fences_balanced(text)
@@ -485,11 +487,13 @@ def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
             f"{path}:{start_line}: Unclosed CommonMark code fence starting here [SNIPPET_UNCLOSED]"
         )
 
-    # 2. Check for mid-file '---' pairs within first 1500 chars that match YAML key-value heuristic
-    # and cause devsitelinter's YamlMetadataParser to skip code fences (SNIPPET_UNCLOSED).
-    if not text.startswith("---\n") and not text.startswith("---\r\n"):
+    # 2. Check for mid-file '---' pairs where the opening '---' is within the first 1500 chars
+    # and the closing '---' is anywhere later in the file with a YAML-like 'key: value' line
+    # between them (which misleads frontmatter heuristics into skipping code fences).
+    if not text.startswith("---\n"):
         first_hr = text[:1500].find("\n---\n")
         if first_hr != -1:
+            # Only the opening delimiter is bounded to 1500 chars; the closing delimiter scans full text.
             second_hr = text.find("\n---\n", first_hr + 4)
             if second_hr != -1:
                 between = text[first_hr + 5 : second_hr]

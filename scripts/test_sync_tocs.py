@@ -59,14 +59,20 @@ class TestSyncTocs(unittest.TestCase):
         self.assertEqual(check_hygiene_for_file(fenced_caution), [])
 
     def test_checklint_rules(self):
-        # 1. Mid-file '---' block with YAML-like 'key: value' line triggers SNIPPET_UNCLOSED
+        # 1. Mid-file '---' block with opening '---' < 1500 chars and closing '---' > 1500 chars
+        #    (plus CRLF normalization when text is passed directly) triggers SNIPPET_UNCLOSED
         bogus_yaml = self.temp_dir / "bogus_yaml.md"
-        bogus_yaml.write_text(
-            "# Evals\n\n- [Sec](#sec): Lines 7-20\n\n---\n\n## Sec\n\nFields: `a`, `b`\n\n```yaml\n---\nmodel: m\n---\n```\n",
-            encoding="utf-8",
+        padding = ("```python\nx = '" + ("a" * 60) + "'\n```\n\n") * 22
+        bogus_body = (
+            "# Evals\n\n- [Sec](#sec): Lines 7-80\n\n---\n\n## Sec\n\nFields: `a`, `b`\n\n"
+            + padding
+            + "```yaml\n---\nmodel: m\n---\n```\n"
         )
+        bogus_yaml.write_text(bogus_body, encoding="utf-8")
         errs = check_hygiene_for_file(bogus_yaml)
         self.assertTrue(any("SNIPPET_UNCLOSED" in e and "Fields:" in e for e in errs), errs)
+        crlf_errs = check_hygiene_for_file(bogus_yaml, text=bogus_body.replace("\n", "\r\n"))
+        self.assertTrue(any("SNIPPET_UNCLOSED" in e and "Fields:" in e for e in crlf_errs), crlf_errs)
 
         # Bolding '**Fields:**' resolves the mid-file frontmatter false positive
         fixed_yaml = self.temp_dir / "fixed_yaml.md"
