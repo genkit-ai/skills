@@ -11,7 +11,7 @@ name) and are returned in `res.artifacts` / tracked on the client's
 
 - [Give the model artifact tools](#give-the-model-artifact-tools): Lines 20-52
 - [The Artifact shape](#the-artifact-shape): Lines 54-67
-- [Programmatic access (inside tools / custom agents)](#programmatic-access-inside-tools--custom-agents): Lines 69-83
+- [Programmatic access (inside tools and custom agents)](#programmatic-access-inside-tools-and-custom-agents): Lines 69-83
 - [Reading artifacts on the client](#reading-artifacts-on-the-client): Lines 85-98
 - [Sharing artifacts across agents](#sharing-artifacts-across-agents): Lines 100-113
 
@@ -66,7 +66,7 @@ const artifact: Artifact = {
 
 Writing the same `name` again **replaces** the artifact (dedup by name).
 
-## Programmatic access (inside tools / custom agents)
+## Programmatic access (inside tools and custom agents)
 
 Use the active session. `ai.currentSession()` throws when there's no active
 session, so only call it inside an agent turn.

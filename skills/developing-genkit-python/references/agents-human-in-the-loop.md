@@ -2,19 +2,28 @@
 
 > See [agents.md](agents.md) · [sessions](agents-sessions.md).
 
-An interrupt pauses an agent mid-turn so a human or policy check can inspect the pending tool call, then resume execution. Interrupts work both with a store (across separate HTTP requests) and without a store (in-process or round-tripped client state).
+An interrupt pauses an agent mid-turn so a human or policy check can inspect the
+pending tool call, then resume execution. Interrupts work both with a store
+(across separate HTTP requests) and without a store (in-process or round-tripped
+client state).
 
-Turn lifecycle: `chat.send(...)` -> `res.finish_reason == AgentFinishReason.INTERRUPTED` with `res.interrupts` -> human decision -> `chat.resume(...)` / `chat.resume_stream(...)`.
+Turn lifecycle: `chat.send(...)` ->
+`res.finish_reason == AgentFinishReason.INTERRUPTED` with `res.interrupts` ->
+human decision -> `chat.resume(...)` / `chat.resume_stream(...)`.
 
-- [Gate tools with ToolApproval](#gate-tools-with-toolapproval): Lines 15-60
-- [Detect and resume (restart vs respond)](#detect-and-resume-restart-vs-respond): Lines 62-116
-- [Custom tool interrupts and Interrupt (BaseException)](#custom-tool-interrupts-and-interrupt-baseexception): Lines 118-156
+- [Gate tools with ToolApproval](#gate-tools-with-toolapproval): Lines 20-69
+- [Detect and resume (restart vs respond)](#detect-and-resume-restart-vs-respond): Lines 71-138
+- [Custom tool interrupts and Interrupt (BaseException)](#custom-tool-interrupts-and-interrupt-baseexception): Lines 140-187
 
 ---
 
 ## Gate tools with `ToolApproval`
 
-`ToolApproval(allowed_tools=[...])` lets listed tools execute immediately and interrupts all other tool calls. An empty list requires approval for every tool. When pairing `ToolApproval` with `Filesystem` or `Artifacts`, list read-only tools (`list_files`, `read_file`, `read_artifact`) in `allowed_tools` if only writes (`write_file`, `edit_file`, `write_artifact`) should pause.
+`ToolApproval(allowed_tools=[...])` lets listed tools execute immediately and
+interrupts all other tool calls. An empty list requires approval for every tool.
+When pairing `ToolApproval` with `Filesystem` or `Artifacts`, list read-only
+tools (`list_files`, `read_file`, `read_artifact`) in `allowed_tools` if only
+writes (`write_file`, `edit_file`, `write_artifact`) should pause.
 
 ```python
 from uuid import uuid4
@@ -61,12 +70,24 @@ agent = ai.define_agent(
 
 ## Detect and resume (`restart` vs `respond`)
 
-Each entry in `res.interrupts` is an `AgentInterrupt` exposing `.name`, `.ref`, and `.input` for rendering your approval UI, plus two methods that build `Part` objects for `chat.resume(...)`:
+Each entry in `res.interrupts` is an `AgentInterrupt` exposing `.name`, `.ref`,
+and `.input` for rendering your approval UI, plus two methods that build `Part`
+objects for `chat.resume(...)`:
 
-- **`intr.restart(resumed_metadata={'tool_approved': True})`**: re-runs the interrupted tool on the server (`ctx.is_resumed()` becomes `True`). `ToolApproval` checks `tool_approved` (or `toolApproved`) in `resumed_metadata`. Restart inputs must exactly match the original tool request in session history; a forged or modified restart returns a failed turn (`AgentFinishReason.FAILED`, `res.error.status == 'INVALID_ARGUMENT'`) instead of running the tool.
-- **`intr.respond(output)`**: builds a tool response `Part` without executing the tool. Use this to deny an action (e.g. `intr.respond({'ok': False, 'error': 'declined by user'})`) or answer a prompt-style interrupt created with `ai.define_interrupt(...)`.
+- **`intr.restart(resumed_metadata={'tool_approved': True})`**: re-runs the
+  interrupted tool on the server (`ctx.is_resumed()` becomes `True`).
+  `ToolApproval` checks `tool_approved` (or `toolApproved`) in
+  `resumed_metadata`. Restart inputs must exactly match the original tool
+  request in session history; a forged or modified restart returns a failed turn
+  (`AgentFinishReason.FAILED`, `res.error.status == 'INVALID_ARGUMENT'`) instead
+  of running the tool.
+- **`intr.respond(output)`**: builds a tool response `Part` without executing
+  the tool. Use this to deny an action (e.g.
+  `intr.respond({'ok': False, 'error': 'declined by user'})`) or answer a
+  prompt-style interrupt created with `ai.define_interrupt(...)`.
 
-A resumed turn can call more tools that also need approval, so loop until the turn stops interrupting:
+A resumed turn can call more tools that also need approval, so loop until the
+turn stops interrupting:
 
 ```python
 async def main() -> None:
@@ -113,14 +134,23 @@ async for chunk in turn.stream:
 final = await turn.response
 ```
 
-Without a store, keep the same `chat` instance or round-trip `messages`, `state`, and `artifacts` ([without a store](agents.md#without-a-store)).
+Without a store, keep the same `chat` instance or round-trip `messages`,
+`state`, and `artifacts` ([without a store](agents.md#without-a-store)).
 
 ## Custom tool interrupts and `Interrupt` (`BaseException`)
 
-For domain-specific thresholds (such as only pausing transfers above `$1,000`), raise `Interrupt` directly inside a tool or register a dedicated prompt tool with `ai.define_interrupt(...)`:
+For domain-specific thresholds (such as only pausing transfers above `$1,000`),
+raise `Interrupt` directly inside a tool or register a dedicated prompt tool
+with `ai.define_interrupt(...)`:
 
-- **`Interrupt` subclasses `BaseException`**, not `Exception` (like `asyncio.CancelledError`). A `try ... except Exception:` block inside a tool will **not** swallow an `Interrupt` and accidentally let execution proceed without approval. Only catch `Interrupt` explicitly if intended, and always re-raise it.
-- Read `ctx.is_resumed()` and `ctx.resumed_metadata` on `ToolContext` when the caller resumes with `intr.restart(resumed_metadata=...)`. The keys are yours: the tool below expects `intr.restart(resumed_metadata={'approved': True})`.
+- **`Interrupt` subclasses `BaseException`**, not `Exception` (like
+  `asyncio.CancelledError`). A `try ... except Exception:` block inside a tool
+  will **not** swallow an `Interrupt` and accidentally let execution proceed
+  without approval. Only catch `Interrupt` explicitly if intended, and always
+  re-raise it.
+- Read `ctx.is_resumed()` and `ctx.resumed_metadata` on `ToolContext` when the
+  caller resumes with `intr.restart(resumed_metadata=...)`. The keys are yours:
+  the tool below expects `intr.restart(resumed_metadata={'approved': True})`.
 
 ```python
 from genkit import Interrupt, ToolContext
@@ -138,7 +168,8 @@ async def wire_transfer(input: TransferInput, ctx: ToolContext) -> dict[str, obj
     return {'ok': True, 'amount': input.amount, 'to': input.to_account}
 ```
 
-For pure question/confirmation tools that never run server logic themselves, use `ai.define_interrupt(...)` and resume with `intr.respond(...)`:
+For pure question/confirmation tools that never run server logic themselves, use
+`ai.define_interrupt(...)` and resume with `intr.respond(...)`:
 
 ```python
 class ConfirmInput(BaseModel):

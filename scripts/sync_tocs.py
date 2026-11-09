@@ -52,6 +52,16 @@ def is_reference_file(path: Path, skills_root: Path) -> bool:
 TOC_LINE_RE = re.compile(r"^- \[(.+)\]\(#(.+)\): Lines (\d+)-(\d+)$")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+REL_PARENT_LINK_RE = re.compile(r"\[[^\]]+\]\(\s*\.\./[^)]*\)")
+LIST_ITEM_RE = re.compile(r"^(\s*(?:>\s*)?)(-\s+|\*\s+|\+\s+|\d+\.\s+)(.*)$")
+BLOCKQUOTE_RE = re.compile(r"^(\s*>\s+)(.*)$")
+WRAP_TOKEN_RE = re.compile(r"(?:(`+)(?:(?!\1).)+\1|\[[^\]]*\]\([^)]*\)|[^\s])+")
+YAML_KEY_VALUE_RE = re.compile(r"^[a-zA-Z0-9_-]+: ", re.MULTILINE)
+INLINE_CODE_RE = re.compile(r"(`+)(?:(?!\1).)+\1")
+CURL_PIPE_SH_RE = re.compile(
+    r"\b(?:curl|wget)\b(?!.*cli\.genkit\.dev).*?\|\s*(?:sudo\s+)?(?:ba)?sh\b"
+)
+LOCAL_ANCHOR_LINK_RE = re.compile(r"\[[^\]]+\]\((?!https?://|mailto:)([^)]*#[^)]+)\)")
 CAUTION_RE = re.compile(r"\bCaution:")
 
 
@@ -217,6 +227,171 @@ def generate_reference_content(orig_text: str) -> str:
     return "\n".join(final_lines) + "\n"
 
 
+def _wrap_tokens(
+    first_prefix: str, cont_prefix: str, text: str, width: int = 80
+) -> list[str]:
+    """Wraps markdown prose tokens to width while keeping code spans and links atomic."""
+    tokens = [m.group(0) for m in WRAP_TOKEN_RE.finditer(text)]
+    if not tokens:
+        return [first_prefix + text]
+
+    lines: list[str] = []
+    curr_prefix = first_prefix
+    curr_tokens: list[str] = []
+    curr_len = len(curr_prefix)
+
+    for tok in tokens:
+        sep_len = 1 if curr_tokens else 0
+        if curr_tokens and curr_len + sep_len + len(tok) > width:
+            lines.append(curr_prefix + " ".join(curr_tokens))
+            curr_prefix = cont_prefix
+            curr_tokens = []
+            curr_len = len(curr_prefix)
+            sep_len = 0
+
+        if not curr_tokens and len(curr_prefix) + len(tok) > width and " " in tok:
+            if "](" in tok:
+                curr_tokens.append(tok)
+                curr_len += len(tok)
+                continue
+            sub_words = tok.split(" ")
+            for sw in sub_words:
+                sub_sep = 1 if curr_tokens else 0
+                if curr_tokens and curr_len + sub_sep + len(sw) > width:
+                    lines.append(curr_prefix + " ".join(curr_tokens))
+                    curr_prefix = cont_prefix
+                    curr_tokens = [sw]
+                    curr_len = len(curr_prefix) + len(sw)
+                else:
+                    curr_tokens.append(sw)
+                    curr_len += sub_sep + len(sw)
+            continue
+
+        curr_tokens.append(tok)
+        curr_len += sep_len + len(tok)
+
+    if curr_tokens:
+        lines.append(curr_prefix + " ".join(curr_tokens))
+
+    return lines
+
+
+def format_markdown_hygiene(text: str) -> str:
+    """Auto-fixes safe formatting rules: trailing spaces, duplicate blank lines, list spacing, and >80-char prose."""
+    if not text:
+        return text
+    balanced, _ = check_fences_balanced(text)
+    if not balanced:
+        return text
+
+    raw_lines = text.splitlines()
+    out_lines: list[str] = []
+    in_frontmatter = False
+    in_list = False
+    blank_streak = 0
+
+    for idx, orig_line, in_fence in iter_non_fenced(raw_lines):
+        line = orig_line
+        if idx == 0 and line == "---":
+            in_frontmatter = True
+            out_lines.append(line)
+            continue
+        if in_frontmatter:
+            if line == "---":
+                in_frontmatter = False
+            out_lines.append(line)
+            continue
+
+        stripped = line.lstrip()
+        is_fence_delimiter = (
+            stripped.startswith("```") or stripped.startswith("~~~")
+        ) and len(stripped) - len(stripped.lstrip(stripped[0])) >= 3
+
+        if in_fence:
+            blank_streak = 0
+            if is_fence_delimiter and not line.startswith("  "):
+                in_list = False
+            out_lines.append(line)
+            continue
+
+        # 1. Strip trailing whitespace (WHITESPACE_TRAILING)
+        if line.endswith(" ") and (line.strip() == "" or not line.endswith("  ")):
+            line = line.rstrip(" ")
+
+        # 2. Collapse consecutive blank lines outside code fences (WHITESPACE_LINES)
+        if line == "":
+            blank_streak += 1
+            in_list = False
+            if blank_streak >= 2:
+                continue
+            out_lines.append("")
+            continue
+        blank_streak = 0
+
+        # 3. Insert blank line before list item when missing (LIST_NO_LINE)
+        is_list_first = bool(LIST_ITEM_RE.match(line))
+        if is_list_first and out_lines:
+            prev = out_lines[-1]
+            if (
+                prev.strip() != ""
+                and not LIST_ITEM_RE.match(prev)
+                and not (prev.startswith("  ") and in_list)
+                and not (
+                    line.lstrip().startswith(">") and prev.lstrip().startswith(">")
+                )
+            ):
+                out_lines.append("")
+
+        if is_list_first:
+            in_list = True
+        elif not line.startswith("  "):
+            in_list = False
+
+        # 4. Wrap non-exempt prose/blockquote/list lines over 80 chars (LINE_OVER_80)
+        has_hard_break = line.endswith("\\")
+        chk = line.rstrip("\\").rstrip(" \t") if has_hard_break else line
+        if (
+            len(chk) <= 80
+            or chk.lstrip().startswith("|")
+            or chk.lstrip().startswith("#")
+            or TOC_LINE_RE.match(chk)
+            or chk.strip() in ("---", "***")
+            or " " not in chk.strip()
+            or any(
+                len(m.group(0)) / len(chk) > 0.5
+                for m in MARKDOWN_LINK_RE.finditer(chk)
+            )
+        ):
+            out_lines.append(line)
+            continue
+
+        if is_list_first and len(chk) < 200:
+            nxt = raw_lines[idx + 1] if idx + 1 < len(raw_lines) else ""
+            if nxt.strip() == "" or LIST_ITEM_RE.match(nxt):
+                out_lines.append(line)
+                continue
+
+        m_list = LIST_ITEM_RE.match(chk)
+        if m_list:
+            lead, marker, body = m_list.groups()
+            wrapped = _wrap_tokens(
+                lead + marker, lead + (" " * len(marker)), body, 80
+            )
+        elif m_bq := BLOCKQUOTE_RE.match(chk):
+            lead, body = m_bq.groups()
+            wrapped = _wrap_tokens(lead, lead, body, 80)
+        else:
+            lead_spaces = len(chk) - len(chk.lstrip(" "))
+            prefix = " " * lead_spaces
+            wrapped = _wrap_tokens(prefix, prefix, chk.lstrip(" "), 80)
+
+        if has_hard_break and wrapped:
+            wrapped[-1] = wrapped[-1] + "\\"
+        out_lines.extend(wrapped)
+
+    return "\n".join(out_lines) + "\n"
+
+
 def unquote_yaml_scalar(val: str) -> str:
     """Strips matching single or double outer quotes from a single-line YAML scalar."""
     if len(val) >= 2 and val[0] == val[-1] and val[0] in ("'", '"'):
@@ -295,29 +470,175 @@ def parse_skill_frontmatter(
 
 
 def check_hygiene_for_file(path: Path, text: str | None = None) -> list[str]:
-    """Validates CommonMark fences, LeakR Caution keyword, and frontmatter."""
+    """Validates CommonMark fences, CheckLint rules, LeakR Caution keyword, and frontmatter."""
     errors: list[str] = []
     if text is None:
         try:
             text = path.read_text(encoding="utf-8")
         except Exception as e:
             return [f"{path}: Failed to read file: {e}"]
+    else:
+        text = text.replace("\r\n", "\n")
 
-    # 1. Check code fences
+    # 1. Check code fences (SNIPPET_UNCLOSED)
     balanced, start_line = check_fences_balanced(text)
     if not balanced:
         errors.append(
-            f"{path}:{start_line}: Unclosed CommonMark code fence starting here"
+            f"{path}:{start_line}: Unclosed CommonMark code fence starting here [SNIPPET_UNCLOSED]"
         )
 
-    # 2. Check LeakR Caution keyword (skipping fenced code blocks)
-    for idx, line, in_fence in iter_non_fenced(text.splitlines()):
-        if not in_fence and CAUTION_RE.search(line):
+    # 2. Check for mid-file '---' pairs where the opening '---' is within the first 1500 chars
+    # and the closing '---' is anywhere later in the file with a YAML-like 'key: value' line
+    # between them (which misleads frontmatter heuristics into skipping code fences).
+    if not text.startswith("---\n"):
+        first_hr = text[:1500].find("\n---\n")
+        if first_hr != -1:
+            # Only the opening delimiter is bounded to 1500 chars; the closing delimiter scans full text.
+            second_hr = text.find("\n---\n", first_hr + 4)
+            if second_hr != -1:
+                between = text[first_hr + 5 : second_hr]
+                m_kv = YAML_KEY_VALUE_RE.search(between)
+                if m_kv:
+                    hr_line = text[: first_hr + 1].count("\n") + 1
+                    errors.append(
+                        f"{path}:{hr_line}: Mid-file '---' block contains YAML-like line "
+                        f"'{m_kv.group(0).strip()}' that hijacks frontmatter parsing [SNIPPET_UNCLOSED]"
+                    )
+
+    # 3. Line-level checks (LeakR Caution, SNIPPET_EM_DASH, LINK_RELATIVE_G3DOC,
+    #    LINK_ID, CURL_PIPE_SH, WHITESPACE_LINES, WHITESPACE_TRAILING, LIST_NO_LINE, LINE_OVER_80)
+    raw_lines = text.splitlines()
+    in_frontmatter = False
+    in_list = False
+    blank_streak = 0
+    check_h2_double_hyphen = path.parent.name == "references" or any(
+        TOC_LINE_RE.match(l) for l in raw_lines
+    )
+
+    for idx, line, in_fence in iter_non_fenced(raw_lines):
+        lno = idx + 1
+        if idx == 0 and line == "---":
+            in_frontmatter = True
+            continue
+        if in_frontmatter:
+            if line == "---":
+                in_frontmatter = False
+            continue
+
+        stripped = line.lstrip()
+        is_fence_delimiter = (
+            stripped.startswith("```") or stripped.startswith("~~~")
+        ) and len(stripped) - len(stripped.lstrip(stripped[0])) >= 3
+
+        if CURL_PIPE_SH_RE.search(line):
             errors.append(
-                f"{path}:{idx + 1}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
+                f"{path}:{lno}: Piping curl/wget output into a shell is forbidden; use signed package installation instead [CURL_PIPE_SH]"
             )
 
-    # 3. Check SKILL.md frontmatter if applicable
+        if in_fence:
+            blank_streak = 0
+            if is_fence_delimiter and not line.startswith("  "):
+                in_list = False
+            if not is_fence_delimiter and ("\u2014" in line or "\u2013" in line):
+                errors.append(
+                    f"{path}:{lno}: Found em/en-dash inside fenced code block; use '-' instead [SNIPPET_EM_DASH]"
+                )
+            continue
+
+        if line == "":
+            blank_streak += 1
+            in_list = False
+            if blank_streak >= 2:
+                errors.append(
+                    f"{path}:{lno}: Consecutive blank lines are not allowed [WHITESPACE_LINES]"
+                )
+            continue
+        blank_streak = 0
+
+        if line.startswith("## "):
+            h2_body = line[3:].strip()
+            if "{{" in h2_body:
+                errors.append(
+                    f"{path}:{lno}: H2 heading contains '{{{{...}}}}' template syntax which breaks static heading IDs [LINK_ID]"
+                )
+            if check_h2_double_hyphen and "--" in gfm_base_slug(h2_body):
+                errors.append(
+                    f"{path}:{lno}: H2 heading produces double-hyphen slug '#{gfm_base_slug(h2_body)}' "
+                    "that mismatches between GitHub and g3doc; replace standalone '&', '+', '/', or '—' with words/punctuation [LINK_ID]"
+                )
+
+        if CAUTION_RE.search(line):
+            errors.append(
+                f"{path}:{lno}: Found forbidden LeakR keyword 'Caution:'. Use 'Warning:' or 'Note:' instead."
+            )
+
+        for m_code in INLINE_CODE_RE.finditer(line):
+            code_span = m_code.group(0)
+            if "\u2014" in code_span or "\u2013" in code_span:
+                errors.append(
+                    f"{path}:{lno}: Found em/en-dash inside inline code span; use '-' instead [SNIPPET_EM_DASH]"
+                )
+
+        if line.endswith(" ") and (line.strip() == "" or not line.endswith("  ")):
+            errors.append(
+                f"{path}:{lno}: Trailing whitespace at end of line [WHITESPACE_TRAILING]"
+            )
+
+        line_without_code = INLINE_CODE_RE.sub("", line)
+        if REL_PARENT_LINK_RE.search(line_without_code):
+            errors.append(
+                f"{path}:{lno}: Relative link uses '../' parent traversal [LINK_RELATIVE_G3DOC]"
+            )
+        if not TOC_LINE_RE.match(line):
+            for m_anc in LOCAL_ANCHOR_LINK_RE.finditer(line_without_code):
+                frag = m_anc.group(1).split("#", 1)[1]
+                if "--" in frag:
+                    errors.append(
+                        f"{path}:{lno}: Anchor link '#{frag}' contains '--' which mismatches between GitHub and g3doc [LINK_ID]"
+                    )
+
+        is_list_first = bool(LIST_ITEM_RE.match(line))
+        if is_list_first and idx > 0:
+            prev = raw_lines[idx - 1]
+            if (
+                prev.strip() != ""
+                and not LIST_ITEM_RE.match(prev)
+                and not (prev.startswith("  ") and in_list)
+                and not (line.lstrip().startswith(">") and prev.lstrip().startswith(">"))
+            ):
+                errors.append(
+                    f"{path}:{lno}: List item must be preceded by a blank line [LIST_NO_LINE]"
+                )
+
+        if is_list_first:
+            in_list = True
+        elif not line.startswith("  "):
+            in_list = False
+
+        chk = line.rstrip("\\").rstrip(" \t") if line.endswith("\\") else line
+        if len(chk) > 80:
+            if (
+                chk.lstrip().startswith("|")
+                or chk.lstrip().startswith("#")
+                or TOC_LINE_RE.match(chk)
+                or chk.strip() in ("---", "***")
+                or " " not in chk.strip()
+            ):
+                continue
+            if any(
+                len(m.group(0)) / len(chk) > 0.5
+                for m in MARKDOWN_LINK_RE.finditer(chk)
+            ):
+                continue
+            if is_list_first and len(chk) < 200:
+                nxt = raw_lines[idx + 1] if idx + 1 < len(raw_lines) else ""
+                if nxt == "" or LIST_ITEM_RE.match(nxt):
+                    continue
+            errors.append(
+                f"{path}:{lno}: Line exceeds 80 characters ({len(chk)} chars) [LINE_OVER_80]"
+            )
+
+    # 4. Check SKILL.md frontmatter if applicable
     if path.name == "SKILL.md":
         fm, err = parse_skill_frontmatter(text)
         if err:
@@ -375,7 +696,7 @@ def read_staged_file(repo_root: Path, rel_posix: str) -> str | None:
 def run_fix(
     target_files: list[Path] | None = None, repo_root: Path | None = None
 ) -> int:
-    """Updates TOCs in reference files."""
+    """Auto-fixes markdown formatting hygiene across skills and updates reference TOCs."""
     root = repo_root or get_repo_root()
     skills_root = get_skills_root(root)
 
@@ -385,31 +706,33 @@ def run_fix(
             for p in missing:
                 print(f"Error: Target file not found: {p}", file=sys.stderr)
             return 1
-        files = [p for p in target_files if is_reference_file(p, skills_root)]
+        files = [p for p in target_files if p.suffix == ".md"]
     else:
-        files = sorted(skills_root.glob("*/references/*.md"))
+        files = sorted(skills_root.glob("**/*.md"))
 
     fixed_count = 0
     for path in files:
         if not path.is_file():
             continue
         orig = path.read_text(encoding="utf-8")
-        updated = generate_reference_content(orig)
+        updated = format_markdown_hygiene(orig)
+        if is_reference_file(path, skills_root):
+            updated = generate_reference_content(updated)
         if updated != orig:
             path.write_text(updated, encoding="utf-8")
             rel = path.relative_to(root).as_posix()
-            print(f"Updated TOC in {rel}")
+            print(f"Updated {rel}")
             fixed_count += 1
 
     if fixed_count == 0:
-        print("All reference TOCs are up to date.")
+        print("All skills markdown files and reference TOCs are up to date.")
     else:
         print(f"Fixed {fixed_count} file(s).")
     return 0
 
 
 def run_staged(repo_root: Path | None = None) -> int:
-    """Fixes drifted TOCs in staged reference files, restages, and checks hygiene."""
+    """Auto-fixes formatting and TOCs in staged markdown files, restages, and checks hygiene."""
     root = repo_root or get_repo_root()
     skills_root = get_skills_root(root)
     staged = get_staged_skill_md_files(root)
@@ -425,24 +748,25 @@ def run_staged(repo_root: Path | None = None) -> int:
             all_errors.append(f"{rel}: Failed to read staged file from Git index")
             continue
 
+        updated = format_markdown_hygiene(staged_text)
         if is_reference_file(path, skills_root):
-            updated = generate_reference_content(staged_text)
-            if updated != staged_text:
-                disk_text = path.read_text(encoding="utf-8") if path.is_file() else None
-                if disk_text != staged_text:
-                    all_errors.append(
-                        f"{rel}: Staged TOC is out of date, and file has unstaged changes. "
-                        "Stage all edits or run 'python3 scripts/sync_tocs.py --fix'."
-                    )
-                else:
-                    path.write_text(updated, encoding="utf-8")
-                    try:
-                        subprocess.run(["git", "add", rel], cwd=root, check=True)
-                    except (subprocess.CalledProcessError, OSError) as e:
-                        all_errors.append(f"{rel}: Failed to stage updated TOC: {e}")
-                        continue
-                    staged_text = updated
-                    print(f"[sync_tocs] Updated and restaged TOC for {rel}")
+            updated = generate_reference_content(updated)
+        if updated != staged_text:
+            disk_text = path.read_text(encoding="utf-8") if path.is_file() else None
+            if disk_text != staged_text:
+                all_errors.append(
+                    f"{rel}: Staged file needs formatting/TOC fixes, and file has unstaged changes. "
+                    "Stage all edits or run 'python3 scripts/sync_tocs.py --fix'."
+                )
+            else:
+                path.write_text(updated, encoding="utf-8")
+                try:
+                    subprocess.run(["git", "add", rel], cwd=root, check=True)
+                except (subprocess.CalledProcessError, OSError) as e:
+                    all_errors.append(f"{rel}: Failed to stage auto-fixed file: {e}")
+                    continue
+                staged_text = updated
+                print(f"[sync_tocs] Auto-formatted and restaged {rel}")
 
         errs = check_hygiene_for_file(path, text=staged_text)
         all_errors.extend(errs)
@@ -495,9 +819,21 @@ def run_check(
         print("Skills validation failed:", file=sys.stderr)
         for err in all_errors:
             print(f"  ERROR: {err}", file=sys.stderr)
-        if toc_drift:
+        autofixable = toc_drift or any(
+            any(
+                tag in err
+                for tag in (
+                    "[LINE_OVER_80]",
+                    "[LIST_NO_LINE]",
+                    "[WHITESPACE_LINES]",
+                    "[WHITESPACE_TRAILING]",
+                )
+            )
+            for err in all_errors
+        )
+        if autofixable:
             print(
-                "\nTo automatically fix TOC drift, run:\n  python3 scripts/sync_tocs.py --fix",
+                "\nTo automatically fix formatting and TOC drift, run:\n  python3 scripts/sync_tocs.py --fix",
                 file=sys.stderr,
             )
         return 1
@@ -508,18 +844,18 @@ def run_check(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Sync TOCs and validate skills markdown hygiene."
+        description="Auto-format, sync TOCs, and validate skills markdown hygiene."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
         "--fix",
         action="store_true",
-        help="Update TOCs in reference files",
+        help="Auto-fix markdown formatting and update TOCs in reference files",
     )
     group.add_argument(
         "--staged",
         action="store_true",
-        help="Fix and restage TOCs in staged files, then check hygiene",
+        help="Auto-fix and restage formatting and TOCs in staged files, then check hygiene",
     )
     group.add_argument(
         "--check",

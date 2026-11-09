@@ -1,21 +1,25 @@
 # Genkit Python Examples
 
-Minimal patterns for generation, structured output, streaming, media, flows, tools, interrupts, cancellation, and embeddings.
+Minimal patterns for generation, structured output, streaming, media, flows,
+tools, interrupts, cancellation, and embeddings.
 
-- [Public Imports & Initialization](#public-imports--initialization): Lines 16-58
-- [Structured Output](#structured-output): Lines 62-95
-- [Streaming (Text & Structured Output)](#streaming-text--structured-output): Lines 99-126
-- [Media Input & Output (Part)](#media-input--output-part): Lines 130-192
-- [Flows & Streaming Flows](#flows--streaming-flows): Lines 196-225
-- [Tools, Multipart Tool Responses, and Interrupts](#tools-multipart-tool-responses-and-interrupts): Lines 229-286
-- [Cancellation](#cancellation): Lines 290-317
-- [Embeddings](#embeddings): Lines 321-347
+- [Public Imports and Initialization](#public-imports-and-initialization): Lines 17-66
+- [Structured Output](#structured-output): Lines 70-106
+- [Streaming (Text and Structured Output)](#streaming-text-and-structured-output): Lines 110-138
+- [Media Input and Output (Part)](#media-input-and-output-part): Lines 142-206
+- [Flows and Streaming Flows](#flows-and-streaming-flows): Lines 210-244
+- [Tools, Multipart Tool Responses, and Interrupts](#tools-multipart-tool-responses-and-interrupts): Lines 248-311
+- [Cancellation](#cancellation): Lines 315-343
+- [Embeddings](#embeddings): Lines 347-374
 
 ---
 
-## Public Imports & Initialization
+## Public Imports and Initialization
 
-Import only from public modules (`genkit`, `genkit_google_genai`, `genkit_fastapi`, `genkit_middleware`, `genkit.model`, `genkit.embedder`, `genkit.middleware`, `genkit.web`, `genkit.exp`, `genkit.exp.agent`). Never import private `_` submodules.
+Import only from public modules (`genkit`, `genkit_google_genai`,
+`genkit_fastapi`, `genkit_middleware`, `genkit.model`, `genkit.embedder`,
+`genkit.middleware`, `genkit.web`, `genkit.exp`, `genkit.exp.agent`). Never
+import private `_` submodules.
 
 ```python
 from genkit import Genkit
@@ -27,11 +31,13 @@ ai = Genkit(
 )
 ```
 
-For multi-turn stateful agents, import `Genkit` from `genkit.exp` and session types from `genkit.exp.agent` (see [Agents](agents.md)).
+For multi-turn stateful agents, import `Genkit` from `genkit.exp` and session
+types from `genkit.exp.agent` (see [Agents](agents.md)).
 
 ### Provider Model Refs & Typed Config
 
-Other providers follow the same `Plugin.helper('model-id')` + `<Plugin>Config` shape (import list in [SKILL.md](../SKILL.md#imports)).
+Other providers follow the same `Plugin.helper('model-id')` + `<Plugin>Config`
+shape (import list in `SKILL.md`).
 
 ```python
 from genkit_google_genai import GeminiConfig, GoogleAI
@@ -48,20 +54,24 @@ res = await ai.generate(
     ),
 )
 
-# Per-request API key (never pass `api_key` inside `config` — that raises GenkitError)
+# Per-request API key (never pass `api_key` inside `config` - that raises GenkitError)
 tenant_res = await ai.generate(
     prompt='Summarize invoice #4821.',
     context={'secrets': {'api_key': tenant_api_key}},
 )
 ```
 
-Config defaults merge key-by-key (`ModelRef` < `Prompt` < call); pass `None` on a field to clear an inherited key. Unknown config keys raise `GenkitError` (`INVALID_ARGUMENT`) before calling the provider.
+Config defaults merge key-by-key (`ModelRef` < `Prompt` < call); pass `None` on
+a field to clear an inherited key. Unknown config keys raise `GenkitError`
+(`INVALID_ARGUMENT`) before calling the provider.
 
 ---
 
 ## Structured Output
 
-`response.output` is typed `OutputT | None`. If the model reply is cut off (`max_output_tokens`) or malformed, `response.output` is `None` and `response.error` (`Failure`) has `reason == ErrorReason.INVALID_OUTPUT`.
+`response.output` is typed `OutputT | None`. If the model reply is cut off
+(`max_output_tokens`) or malformed, `response.output` is `None` and
+`response.error` (`Failure`) has `reason == ErrorReason.INVALID_OUTPUT`.
 
 ```python
 from pydantic import BaseModel, TypeAdapter
@@ -92,11 +102,12 @@ list_res = await ai.generate(
 )
 ```
 
-Built-in `output_format` values: `'text'`, `'json'`, `'array'`, `'enum'`, `'jsonl'`.
+Built-in `output_format` values: `'text'`, `'json'`, `'array'`, `'enum'`,
+`'jsonl'`.
 
 ---
 
-## Streaming (Text & Structured Output)
+## Streaming (Text and Structured Output)
 
 ```python
 sr = ai.generate_stream(prompt='Explain sourdough fermentation.')
@@ -106,7 +117,8 @@ async for chunk in sr.stream:
 final = await sr.response
 ```
 
-Streaming structured output yields partial typed objects on `chunk.output` without raising on incomplete JSON:
+Streaming structured output yields partial typed objects on `chunk.output`
+without raising on incomplete JSON:
 
 ```python
 class RecipeCard(BaseModel):
@@ -127,9 +139,10 @@ recipe = final.output  # RecipeCard | None
 
 ---
 
-## Media Input & Output (`Part`)
+## Media Input and Output (`Part`)
 
-Construct parts with `Part.from_text(...)` and `Part.from_media(...)`. Inspect parts via `part.text` and `part.media`.
+Construct parts with `Part.from_text(...)` and `Part.from_media(...)`. Inspect
+parts via `part.text` and `part.media`.
 
 ### Sending Image / Media Input
 
@@ -153,7 +166,8 @@ response = await ai.generate(messages=[msg])
 print(response.text)
 ```
 
-Media URLs larger than **20 MB** fail instead of downloading into memory, and `Ollama` does not read local filesystem paths for media.
+Media URLs larger than **20 MB** fail instead of downloading into memory, and
+`Ollama` does not read local filesystem paths for media.
 
 ### Generating Image / Audio / Video Output
 
@@ -193,9 +207,12 @@ while not op.done:
 
 ---
 
-## Flows & Streaming Flows
+## Flows and Streaming Flows
 
-Flows validate both input and return values against their type annotations. Calling `await summarize(inp)` or `await summarize.run(inp)` raises body exceptions unwrapped in-process; over HTTP, raise `PublicError` for client-visible 4xx errors (see [FastAPI](fastapi.md)).
+Flows validate both input and return values against their type annotations.
+Calling `await summarize(inp)` or `await summarize.run(inp)` raises body
+exceptions unwrapped in-process; over HTTP, raise `PublicError` for
+client-visible 4xx errors (see [FastAPI](fastapi.md)).
 
 ```python
 from genkit import FlowContext, PublicError
@@ -222,13 +239,18 @@ async def stream_story(subject: str, ctx: FlowContext[str]) -> str:
     return ''.join(chunks)
 ```
 
-Options after the flow's single input on `.run(...)` are keyword-only: `await stream_story.run('lighthouses', on_chunk=print, context={'role': 'reader'})`.
+Options after the flow's single input on `.run(...)` are keyword-only:
+`await stream_story.run('lighthouses', on_chunk=print, context={'role':
+'reader'})`.
 
 ---
 
 ## Tools, Multipart Tool Responses, and Interrupts
 
-Use `@ai.tool()` (there is no `define_tool`). A tool takes **at most one input parameter** (scalar or Pydantic `BaseModel`) plus an optional `ctx: ToolContext[ChunkT]`. Use a `BaseModel` whenever a tool needs multiple arguments or field descriptions.
+Use `@ai.tool()` (there is no `define_tool`). A tool takes **at most one input
+parameter** (scalar or Pydantic `BaseModel`) plus an optional
+`ctx: ToolContext[ChunkT]`. Use a `BaseModel` whenever a tool needs multiple
+arguments or field descriptions.
 
 ```python
 from pydantic import BaseModel, Field
@@ -261,7 +283,10 @@ res = await ai.generate(
 
 ### Tool Interrupts (Human-in-the-Loop)
 
-Raise `Interrupt(...)` inside a tool (or register a tool via `ai.define_interrupt(...)`) to pause the generate loop. `Interrupt` subclasses `BaseException`, so `except Exception:` inside a tool will not swallow it. Resume using `intr.restart(...)` or `intr.respond(...)`:
+Raise `Interrupt(...)` inside a tool (or register a tool via
+`ai.define_interrupt(...)`) to pause the generate loop. `Interrupt` subclasses
+`BaseException`, so `except Exception:` inside a tool will not swallow it.
+Resume using `intr.restart(...)` or `intr.respond(...)`:
 
 ```python
 from genkit import Interrupt
@@ -289,7 +314,8 @@ if turn1.interrupts:
 
 ## Cancellation
 
-Cancellation uses standard `asyncio.CancelledError`; it reaches model calls, retry backoff, and running tools at any `await`:
+Cancellation uses standard `asyncio.CancelledError`; it reaches model calls,
+retry backoff, and running tools at any `await`:
 
 ```python
 import asyncio
@@ -298,7 +324,7 @@ import asyncio
 task = asyncio.create_task(ai.generate(prompt='Write a detailed migration plan.'))
 task.cancel()
 
-# 2. Stop a flow stream early — use `async with` (or `await stream.aclose()`)
+# 2. Stop a flow stream early - use `async with` (or `await stream.aclose()`)
 # so breaking out of the loop cancels the background flow immediately.
 async with stream_story.stream('glaciers') as stream:
     async for chunk in stream:
@@ -320,7 +346,8 @@ async def hold_inventory(sku: str) -> dict:
 
 ## Embeddings
 
-Build embedder refs with `.embedder(...)` and pass provider options in `config=`:
+Build embedder refs with `.embedder(...)` and pass provider options in
+`config=`:
 
 ```python
 from genkit import Document

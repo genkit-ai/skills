@@ -16,6 +16,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.sync_tocs import (
     check_hygiene_for_file,
+    format_markdown_hygiene,
     generate_reference_content,
     is_reference_file,
     parse_skill_frontmatter,
@@ -57,6 +58,87 @@ class TestSyncTocs(unittest.TestCase):
         fenced_caution.write_text("```python\n# Caution: allowed inside fence\n```\n", encoding="utf-8")
         self.assertEqual(check_hygiene_for_file(fenced_caution), [])
 
+    def test_checklint_rules(self):
+        # 1. Mid-file '---' block with opening '---' < 1500 chars and closing '---' > 1500 chars
+        #    (plus CRLF normalization when text is passed directly) triggers SNIPPET_UNCLOSED
+        bogus_yaml = self.temp_dir / "bogus_yaml.md"
+        padding = ("```python\nx = '" + ("a" * 60) + "'\n```\n\n") * 22
+        bogus_body = (
+            "# Evals\n\n- [Sec](#sec): Lines 7-80\n\n---\n\n## Sec\n\nFields: `a`, `b`\n\n"
+            + padding
+            + "```yaml\n---\nmodel: m\n---\n```\n"
+        )
+        bogus_yaml.write_text(bogus_body, encoding="utf-8")
+        errs = check_hygiene_for_file(bogus_yaml)
+        self.assertTrue(any("SNIPPET_UNCLOSED" in e and "Fields:" in e for e in errs), errs)
+        crlf_errs = check_hygiene_for_file(bogus_yaml, text=bogus_body.replace("\n", "\r\n"))
+        self.assertTrue(any("SNIPPET_UNCLOSED" in e and "Fields:" in e for e in crlf_errs), crlf_errs)
+
+        # Bolding '**Fields:**' resolves the mid-file frontmatter false positive
+        fixed_yaml = self.temp_dir / "fixed_yaml.md"
+        fixed_yaml.write_text(
+            "# Evals\n\n- [Sec](#sec): Lines 7-20\n\n---\n\n## Sec\n\n**Fields:** `a`, `b`\n\n```yaml\n---\nmodel: m\n---\n```\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(check_hygiene_for_file(fixed_yaml), [])
+
+        # 2. SNIPPET_EM_DASH in fenced code blocks and single/double-backtick inline code spans
+        em_dash_doc = self.temp_dir / "em_dash.md"
+        em_dash_doc.write_text(
+            "# Doc\n\nInline `bad \u2014 dash` and ``also `bad` \u2013 dash`` here.\n\n```python\n# comment \u2014 dash\n```\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(em_dash_doc)
+        self.assertEqual(sum("SNIPPET_EM_DASH" in e for e in errs), 3, errs)
+
+        # 3. LINK_RELATIVE_G3DOC, LIST_NO_LINE, WHITESPACE_TRAILING, and LINE_OVER_80
+        lint_doc = self.temp_dir / "lint_errors.md"
+        lint_doc.write_text(
+            "# Doc\n\n"
+            "See [SKILL.md](../SKILL.md#imports).\n\n"
+            "Trailing space here. \n\n"
+            "No blank line before list:\n"
+            "- Item one\n\n"
+            + ("word " * 18).strip()
+            + "\n\n"
+            + "- "
+            + (" single-line list item under 200 chars is exempt " * 2).strip()
+            + "\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(lint_doc)
+        self.assertTrue(any("LINK_RELATIVE_G3DOC" in e for e in errs), errs)
+        self.assertTrue(any("WHITESPACE_TRAILING" in e for e in errs), errs)
+        self.assertTrue(any("LIST_NO_LINE" in e for e in errs), errs)
+        self.assertEqual(sum("LINE_OVER_80" in e for e in errs), 1, errs)
+
+        # 4. LINK_ID (double-hyphen H2 slugs, '{{var}}' H2 headings, '--' anchor links),
+        #    LIST_NO_LINE after headings (while allowing indented code blocks with blank lines in lists),
+        #    WHITESPACE_LINES (consecutive blank lines), and CURL_PIPE_SH
+        ref_dir = self.temp_dir / "skills" / "demo" / "references"
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        extra_lint = ref_dir / "guide.md"
+        extra_lint.write_text(
+            "# Guide\n\n"
+            "## Notes & Gotchas\n"
+            "- Missing blank line after heading\n"
+            "  ```python\n"
+            "  x = 1\n\n"
+            "  y = 2\n"
+            "  ```\n"
+            "- Valid continuation bullet after indented fence\n\n\n"
+            "## `{{variable}}` Sent Literally\n\n"
+            "See [bad](other.md#bad--anchor).\n\n"
+            "- Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`\n"
+            "- Allowed native CLI: `curl -sL cli.genkit.dev | bash`\n",
+            encoding="utf-8",
+        )
+        errs = check_hygiene_for_file(extra_lint)
+        self.assertEqual(sum("LINK_ID" in e for e in errs), 3, errs)
+        self.assertEqual(sum("LIST_NO_LINE" in e for e in errs), 1, errs)
+        self.assertEqual(sum("WHITESPACE_LINES" in e for e in errs), 1, errs)
+        self.assertEqual(sum("CURL_PIPE_SH" in e for e in errs), 1, errs)
+
     def test_frontmatter_validation(self):
         valid = "---\nname: demo\ndescription: >-\n Para 1.\n\n Para 2.\n---\n"
         fm, err = parse_skill_frontmatter(valid)
@@ -87,6 +169,47 @@ class TestSyncTocs(unittest.TestCase):
         subprocess.run(["git", "add", "skills/demo/bad.md"], cwd=self.temp_dir, check=True)
         bad.write_text("```bash\nclosed\n```\n", encoding="utf-8")
         self.assertEqual(subprocess.run(script, cwd=self.temp_dir, capture_output=True, text=True).returncode, 1)
+
+    def test_autofix_formatting_and_staged_restage(self):
+        raw = (
+            "# Guide\n\n\n"
+            "## Overview\n"
+            "- Missing blank line after heading \n\n"
+            "Prose before list:\n"
+            "1. "
+            + ("overlong numbered item words `[0, 1]` ``nested `code` span`` " * 4).strip()
+            + "\n\n"
+            + ("plain prose words [Setup Guide](setup.md) " * 3).strip()
+            + " \n"
+        )
+        fixed = format_markdown_hygiene(raw)
+        # Idempotent and passes all hygiene checks
+        self.assertEqual(format_markdown_hygiene(fixed), fixed)
+        temp_md = self.temp_dir / "autofixed.md"
+        temp_md.write_text(fixed, encoding="utf-8")
+        self.assertEqual(check_hygiene_for_file(temp_md), [])
+
+        # Verify --staged auto-formats and restages formatting issues in SKILL.md and references/*.md
+        subprocess.run(["git", "init"], cwd=self.temp_dir, capture_output=True, check=True)
+        skill_md = self.temp_dir / "skills" / "demo" / "SKILL.md"
+        skill_md.parent.mkdir(parents=True, exist_ok=True)
+        skill_md.write_text(
+            "---\nname: demo\ndescription: Demo skill.\n---\n\n" + raw,
+            encoding="utf-8",
+        )
+        subprocess.run(["git", "add", "skills/demo/SKILL.md"], cwd=self.temp_dir, check=True)
+
+        script = [sys.executable, str(REPO_ROOT / "scripts" / "sync_tocs.py"), "--staged"]
+        res = subprocess.run(script, cwd=self.temp_dir, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        staged = subprocess.run(
+            ["git", "show", ":skills/demo/SKILL.md"],
+            cwd=self.temp_dir,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        self.assertEqual(check_hygiene_for_file(skill_md, text=staged), [])
 
 
 if __name__ == "__main__":

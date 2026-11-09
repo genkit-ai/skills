@@ -1,24 +1,28 @@
 # Dotprompt — Genkit Python
 
-- [What It Is](#what-it-is): Lines 15-17
-- [File Format](#file-format): Lines 19-54
-- [Python Setup](#python-setup): Lines 56-77
-- [Calling a Prompt (Prompt)](#calling-a-prompt-prompt): Lines 79-113
-- [Streaming from a Prompt](#streaming-from-a-prompt): Lines 115-132
-- [Render Without Generating](#render-without-generating): Lines 134-146
-- [Helpers](#helpers): Lines 148-168
-- [Variants & Partials](#variants--partials): Lines 170-173
-- [Prompts with Tools & Middleware](#prompts-with-tools--middleware): Lines 175-190
+- [What It Is](#what-it-is): Lines 15-20
+- [File Format](#file-format): Lines 22-65
+- [Python Setup](#python-setup): Lines 67-88
+- [Calling a Prompt (Prompt)](#calling-a-prompt-prompt): Lines 90-125
+- [Streaming from a Prompt](#streaming-from-a-prompt): Lines 127-145
+- [Render Without Generating](#render-without-generating): Lines 147-161
+- [Helpers](#helpers): Lines 163-187
+- [Variants and Partials](#variants-and-partials): Lines 189-196
+- [Prompts with Tools and Middleware](#prompts-with-tools-and-middleware): Lines 198-220
 
 ---
 
 ## What It Is
 
-`.prompt` files pair YAML frontmatter (model, config, input/output schemas, tools, middleware) with Handlebars templates. Handlebars templates **only** render inside `.prompt` files and `ai.define_prompt(...)` — strings passed to `ai.generate(prompt=..., system=...)` are sent to the model verbatim.
+`.prompt` files pair YAML frontmatter (model, config, input/output schemas,
+tools, middleware) with Handlebars templates. Handlebars templates **only**
+render inside `.prompt` files and `ai.define_prompt(...)` — strings passed to
+`ai.generate(prompt=..., system=...)` are sent to the model verbatim.
 
 ## File Format
 
-Place `.prompt` files inside `prompts/` and pass `prompt_dir=...` to `Genkit(...)`:
+Place `.prompt` files inside `prompts/` and pass `prompt_dir=...` to
+`Genkit(...)`:
 
 ```yaml
 ---
@@ -30,7 +34,7 @@ input:
     tone: practical
   schema:
     food: string
-    tone?: string                 # optional scalar — `field?: type`
+    tone?: string                 # optional scalar - `field?: type`
     ingredients?(array): string   # optional array/object uses parenthetical syntax
 output:
   schema: Recipe                  # references a schema registered via ai.define_schema()
@@ -47,11 +51,18 @@ Prefer these ingredients:
 {{/if}}
 ```
 
-Use `{{role "system"}}` and `{{role "user"}}` to emit distinct message roles; a template without `{{role ...}}` becomes a single user message.
+Use `{{role "system"}}` and `{{role "user"}}` to emit distinct message roles; a
+template without `{{role ...}}` becomes a single user message.
 
 **Input & output validation:**
-- Prompt inputs **are validated** against `input.schema` (or `input_schema=` on `define_prompt`) before calling the model, and `input.default` values from `.prompt` frontmatter are filled in automatically.
-- When `output.schema` names a Pydantic class registered with `ai.define_schema('Recipe', Recipe)`, `response.output` is validated and returned directly as `Recipe | None` (`None` when the model's JSON is truncated or malformed; check `response.finish_reason`).
+
+- Prompt inputs **are validated** against `input.schema` (or `input_schema=` on
+  `define_prompt`) before calling the model, and `input.default` values from
+  `.prompt` frontmatter are filled in automatically.
+- When `output.schema` names a Pydantic class registered with
+  `ai.define_schema('Recipe', Recipe)`, `response.output` is validated and
+  returned directly as `Recipe | None` (`None` when the model's JSON is
+  truncated or malformed; check `response.finish_reason`).
 
 ## Python Setup
 
@@ -78,7 +89,8 @@ ai.define_schema('Recipe', Recipe)
 
 ## Calling a Prompt (`Prompt`)
 
-`ai.prompt(...)` and `ai.define_prompt(...)` return a `Prompt`. There is no `.execute()` method — call and `await` the `Prompt` directly:
+`ai.prompt(...)` and `ai.define_prompt(...)` return a `Prompt`. There is no
+`.execute()` method — call and `await` the `Prompt` directly:
 
 ```python
 recipe_prompt: Prompt = ai.prompt('recipe')
@@ -114,7 +126,8 @@ res = await greet(GreetingInput(name='Ana'))
 
 ## Streaming from a Prompt
 
-`prompt.stream(...)` is synchronous (do not `await` it); iterate `.stream` and `await` `.response`:
+`prompt.stream(...)` is synchronous (do not `await` it); iterate `.stream` and
+`await` `.response`:
 
 ```python
 from genkit import FlowContext
@@ -133,7 +146,9 @@ async def stream_recipe(food: str, ctx: FlowContext[str]) -> str:
 
 ## Render Without Generating
 
-`render(...)` takes the same arguments as a call and returns the `GenerateActionOptions` (model, config, messages, output schema) without calling a model. Use it to debug templates and input defaults:
+`render(...)` takes the same arguments as a call and returns the
+`GenerateActionOptions` (model, config, messages, output schema) without calling
+a model. Use it to debug templates and input defaults:
 
 ```python
 rendered = await ai.prompt('recipe').render({'food': 'focaccia'})
@@ -147,7 +162,10 @@ for message in rendered.messages:
 
 ## Helpers
 
-Register Handlebars helpers with `ai.define_helper(name, fn)`. Dotprompt calls every helper as `fn(params, options)`: `params` is the list of positional template arguments, `options` carries hash arguments. A one-argument function raises `TypeError` at render time.
+Register Handlebars helpers with `ai.define_helper(name, fn)`. Dotprompt calls
+every helper as `fn(params, options)`: `params` is the list of positional
+template arguments, `options` carries hash arguments. A one-argument function
+raises `TypeError` at render time.
 
 ```python
 from typing import Any
@@ -163,19 +181,31 @@ def list_helper(params: list[Any], options: Any) -> str:
 ai.define_helper('list', list_helper)
 ```
 
-Built-in helpers: `role`, `json`, `media`, `history`, `section`, `ifEquals`, `unlessEquals`.
+Built-in helpers: `role`, `json`, `media`, `history`, `section`, `ifEquals`,
+`unlessEquals`.
 
 Use `{{list ingredients}}` in the `.prompt` body.
 
-## Variants & Partials
+## Variants and Partials
 
-- **Variants**: save `<name>.<variant>.prompt` (e.g. `recipe.vegan.prompt`) and load with `ai.prompt('recipe', variant='vegan')`.
-- **Partials**: prefix partial files with `_` (e.g. `prompts/_disclaimer.prompt`) or register with `ai.define_partial('disclaimer', '...')`, then include via `{{>disclaimer}}` or `{{>disclaimer region=region}}`.
+- **Variants**: save `<name>.<variant>.prompt` (e.g. `recipe.vegan.prompt`) and
+  load with `ai.prompt('recipe', variant='vegan')`.
+- **Partials**: prefix partial files with `_` (e.g.
+  `prompts/_disclaimer.prompt`) or register with
+  `ai.define_partial('disclaimer', '...')`, then include via `{{>disclaimer}}`
+  or `{{>disclaimer region=region}}`.
 
-## Prompts with Tools & Middleware
+## Prompts with Tools and Middleware
 
-- **Tools**: list registered tool names under `tools:` in YAML frontmatter, or pass `tools=[lookup_rate]` when calling `await prompt(input, tools=[lookup_rate])`. The tool loop stops after `maxTurns` (frontmatter) or `max_turns=` (call), default 50.
-- **Middleware**: pass instances at call time with `use=[Retry(max_retries=2)]`. To name middleware under `use:` in frontmatter, register it first: add `Middleware()` from `genkit_middleware` to `Genkit(plugins=[...])` (registers `retry`, `fallback`, `tool_approval`, `skills`, `filesystem`) or define your own with `@ai.middleware`. An unregistered name fails with `NOT_FOUND`.
+- **Tools**: list registered tool names under `tools:` in YAML frontmatter, or
+  pass `tools=[lookup_rate]` when calling
+  `await prompt(input, tools=[lookup_rate])`. The tool loop stops after
+  `maxTurns` (frontmatter) or `max_turns=` (call), default 50.
+- **Middleware**: pass instances at call time with `use=[Retry(max_retries=2)]`.
+  To name middleware under `use:` in frontmatter, register it first: add
+  `Middleware()` from `genkit_middleware` to `Genkit(plugins=[...])` (registers
+  `retry`, `fallback`, `tool_approval`, `skills`, `filesystem`) or define your
+  own with `@ai.middleware`. An unregistered name fails with `NOT_FOUND`.
 
 ```yaml
 ---
