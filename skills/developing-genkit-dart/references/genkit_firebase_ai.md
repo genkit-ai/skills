@@ -19,7 +19,7 @@ If your AI workflows run on a backend server that Flutter calls over HTTP, use
 - [Images, speech, and media resolution](#images-speech-and-media-resolution): Lines 259-324
 - [Errors, retries, and cancellation](#errors-retries-and-cancellation): Lines 326-345
 - [Live API (experimental)](#live-api-experimental): Lines 347-383
-- [Pre-1.0 migration breaks and Flutter Dev UI](#pre-10-migration-breaks-and-flutter-dev-ui): Lines 385-407
+- [Pre-1.0 migration breaks and Flutter Dev UI](#pre-10-migration-breaks-and-flutter-dev-ui): Lines 385-415
 
 ---
 
@@ -396,12 +396,20 @@ Live caveats:
 - Internal `toGemini*` / `fromGemini*` / `runLiveSession` helpers are no longer
   exported.
 
-To capture traces in the Genkit Developer UI while running a Flutter app, start
-`genkit start` in one terminal (noting the Telemetry API port, usually `4033`)
-and pass `--dart-define` flags to `flutter run`:
+To connect a Flutter app to the Genkit Developer UI (both live traces and the
+action/model playground via WebSocket reflection v2), use `genkit start:flutter`
+and pass any `flutter run` flags after `--`:
 
 ```bash
-genkit start
+genkit start:flutter -- -d chrome
+```
+
+If you need to launch `flutter run` separately (e.g. from an IDE or a second
+terminal), write the dev config to an env file (`genkit.env` should be
+gitignored) and pass `--dart-define-from-file`:
+
+```bash
+genkit start --write-env-file=genkit.env --experimental-reflection-v2
 # In a second terminal:
-flutter run --dart-define=GENKIT_ENV=dev --dart-define=GENKIT_TELEMETRY_SERVER=http://localhost:4033
+flutter run --dart-define-from-file=genkit.env -d chrome
 ```

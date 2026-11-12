@@ -162,16 +162,17 @@ agent playground, and browsing traces:
 ```bash
 genkit start -- dart run main.dart
 genkit start --noui -- dart run main.dart   # same, without the Dev UI (still a persistent server)
+genkit start:flutter -- -d chrome           # Flutter app (injects --dart-define + WebSocket reflection v2)
 ```
 `genkit start` runs until you stop it with Ctrl+C. That is expected and correct
 for the common cases: a server your web/mobile app calls, or an interactive CLI
 you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot
 command and will not exit on its own. Do **not** use `genkit start` as a
 blocking step in automated/non-interactive contexts; use `flow:run` (below) for
-that. For **Flutter** apps running Genkit directly (`genkit_firebase_ai`), run
-`genkit start` separately and pass `--dart-define=GENKIT_ENV=dev` and
-`--dart-define=GENKIT_TELEMETRY_SERVER=http://localhost:4033` to `flutter run`
-(see [genkit_firebase_ai.md](references/genkit_firebase_ai.md)).
+that. To run `flutter run` separately from the CLI, use
+`genkit start --write-env-file=genkit.env --experimental-reflection-v2` with
+`flutter run --dart-define-from-file=genkit.env` (see
+[genkit_firebase_ai.md](references/genkit_firebase_ai.md)).
 
 **Non-interactive use (agents/CI):** add the global `--non-interactive` flag
 before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the
