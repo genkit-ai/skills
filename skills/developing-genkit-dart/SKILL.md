@@ -44,9 +44,15 @@ training data use pre-1.0 names that no longer compile; the common ones:
   -> `prompt(input, config: ...)` (named options, like `generate`),
   `defineMiddleware` ->
   `ai.defineGenerateMiddleware` (app) / `generateMiddleware` (plugins).
-- Provider config types are prefixed: `GeminiThinkingConfig`,
+- Provider config types are prefixed in server plugins: `GeminiThinkingConfig`,
   `GeminiSafetySettings`, `GeminiGoogleSearch`, `GeminiSpeechConfig`,
-  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`.
+  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`. Exception:
+  `genkit_firebase_ai` uses unprefixed `ThinkingConfig`, `SpeechConfig`,
+  `FunctionCallingConfig`, and `LiveGenerationConfig` alongside `GeminiOptions`,
+  and renamed `FirebaseAiProvider.vertexAI` ->
+  `FirebaseAiProvider.agentPlatform`
+  (dropping `appCheck`/`auth` params and `GeminiOptions.responseSchema`; see
+  [genkit_firebase_ai.md](references/genkit_firebase_ai.md)).
 - Removed: `ToolInterruptException` / `ctx.interrupt()` (return
   `.interrupt(...)`),
   `GoogleAiModels` / `OpenAIModels` constants (use `googleAI.gemini('...')`,
@@ -162,7 +168,10 @@ for the common cases: a server your web/mobile app calls, or an interactive CLI
 you exit yourself. `--noui` only drops the Dev UI; it is **not** a one-shot
 command and will not exit on its own. Do **not** use `genkit start` as a
 blocking step in automated/non-interactive contexts; use `flow:run` (below) for
-that.
+that. For **Flutter** apps running Genkit directly (`genkit_firebase_ai`), run
+`genkit start` separately and pass `--dart-define=GENKIT_ENV=dev` and
+`--dart-define=GENKIT_TELEMETRY_SERVER=http://localhost:4033` to `flutter run`
+(see [genkit_firebase_ai.md](references/genkit_firebase_ai.md)).
 
 **Non-interactive use (agents/CI):** add the global `--non-interactive` flag
 before `--` so the CLI uses defaults and never blocks on a prompt (e.g. the
@@ -230,7 +239,7 @@ for the plugin:
 | `genkit_mcp` | [references/genkit_mcp.md](references/genkit_mcp.md) | Load for Model Context Protocol integration (Server, Host, and Client capabilities). |
 | `genkit_chrome` | [references/genkit_chrome.md](references/genkit_chrome.md) | Load for Running Gemini Nano locally inside the Chrome browser using the Prompt API. |
 | `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for serving flows/models/agents over HTTP: `GenkitRouter` (core `package:genkit/io.dart`, standalone `dart:io`) and mounting it into Shelf apps. |
-| `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for Firebase AI plugin interface (Gemini API via Vertex AI). |
+| `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for calling Gemini directly from Flutter apps via Firebase AI Logic (App Check, Google AI and Agent Platform backends, grounding, image/TTS, Live audio). |
 | `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on the client with `genui`. |
 
 ## External Dependencies
