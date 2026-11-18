@@ -41,34 +41,6 @@ Activate App Check **before the first model call**. The plugin reads App Check
 and Firebase Auth from the `FirebaseApp` (there are no `appCheck` / `auth`
 plugin params). Use debug providers only in debug builds:
 
-- [Setup](#setup): Lines 24-68
-- [Basic usage](#basic-usage): Lines 70-84
-- [Models](#models): Lines 86-115
-- [Configuration](#configuration): Lines 117-151
-- [Model options (GeminiOptions)](#model-options-geminioptions): Lines 153-252
-- [Structured output and tools](#structured-output-and-tools): Lines 254-271
-- [Errors and cancellation](#errors-and-cancellation): Lines 273-301
-- [Live API (experimental)](#live-api-experimental): Lines 303-331
-- [Dev UI and traces](#dev-ui-and-traces): Lines 333-349
-- [Migrating from 0.x](#migrating-from-0x): Lines 351-378
-
-## Setup
-
-1. [Set up Firebase AI Logic](https://firebase.google.com/docs/ai-logic/get-started?platform=flutter)
-   and run `flutterfire configure`.
-2. Set up [App Check](https://firebase.google.com/docs/ai-logic/app-check).
-   Firebase **enforces App Check for AI Logic starting November 2, 2026**
-   (delayable in the console, but not past January 21, 2027). Requests without
-   a valid token are blocked, including already-released app versions.
-
-```bash
-flutter pub add genkit genkit_firebase_ai firebase_core firebase_ai firebase_app_check
-```
-
-Activate App Check **before the first model call**. The plugin reads App Check
-and Firebase Auth from the `FirebaseApp` (there are no `appCheck` / `auth`
-plugin params). Use debug providers only in debug builds:
-
 ```dart
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
