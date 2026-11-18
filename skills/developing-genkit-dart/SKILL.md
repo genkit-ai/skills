@@ -46,7 +46,12 @@ training data use pre-1.0 names that no longer compile; the common ones:
   `ai.defineGenerateMiddleware` (app) / `generateMiddleware` (plugins).
 - Provider config types are prefixed: `GeminiThinkingConfig`,
   `GeminiSafetySettings`, `GeminiGoogleSearch`, `GeminiSpeechConfig`,
-  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`.
+  `GoogleGenAiEmbedderOptions`, `AnthropicThinkingConfig`. Exception:
+  `genkit_firebase_ai` keeps `ThinkingConfig` / `SpeechConfig` unprefixed.
+- `genkit_firebase_ai`: `FirebaseAiProvider.vertexAI` is now
+  `.agentPlatform` (default location `'global'`), and the `appCheck` / `auth`
+  plugin params are gone
+  ([genkit_firebase_ai.md](references/genkit_firebase_ai.md)).
 - Removed: `ToolInterruptException` / `ctx.interrupt()` (return
   `.interrupt(...)`),
   `GoogleAiModels` / `OpenAIModels` constants (use `googleAI.gemini('...')`,
@@ -114,19 +119,21 @@ For more details see:
 
 ## Generative UI (A2UI)
 
-Genkit Dart has an **A2UI** (Agent-to-UI) plugin (`genkit_a2ui`)
-that lets an agent stream interactive UI **surfaces** (cards, lists, forms,
-buttons), not just prose. The whole server-side integration is the `a2ui()`
-model
-middleware in an agent's (or `ai.generate`'s) `use` list; the Flutter client
-renders surfaces with the [`genui`](https://pub.dev/packages/genui) package plus
-the helpers in `package:genkit_a2ui/client.dart`. Dart specific: you must
-register `A2uiPlugin()` in `Genkit(plugins: [...])` (unlike JS, middleware is
-resolved by name from the registry).
+Genkit Dart has an **A2UI** (Agent-to-UI) plugin (`genkit_a2ui` 0.6, A2UI
+protocol v1.0 by default) that lets an agent stream interactive UI **surfaces**
+(cards, lists, forms, buttons), not just prose. The whole server-side
+integration is the `a2ui()` model middleware in an agent's (or
+`ai.generate`'s) `use` list. Dart specific: you must register `A2uiPlugin()` in
+`Genkit(plugins: [...])` (unlike JS, middleware is resolved by name from the
+registry). The Flutter client does **not** depend on `genkit_a2ui`: it renders
+with [`a2ui_flutter`](https://pub.dev/packages/a2ui_flutter) + `a2ui_core` and
+two small copy-in helpers. `genui` and `package:genkit_a2ui/client.dart` are
+gone; don't use them. The Dart wire format (`data.messages`, v1.0) is not yet
+compatible with the JS/Go/Python A2UI plugins and clients.
 
--   [A2UI](references/a2ui.md): server middleware, options, Flutter/genui client
-    rendering, user actions/forms, custom catalogs, and the security/trust
-    boundary.
+-   [A2UI](references/a2ui.md): server middleware, options, surfaces and
+    self-repair, Flutter/`a2ui_flutter` client rendering, user actions/forms,
+    custom catalogs, security, and upgrading from 0.4/0.5.
 
 ## Genkit CLI (recommended)
 
@@ -156,6 +163,7 @@ agent playground, and browsing traces:
 ```bash
 genkit start -- dart run main.dart
 genkit start --noui -- dart run main.dart   # same, without the Dev UI (still a persistent server)
+genkit start:flutter -- -d chrome           # Flutter apps: wires up the --dart-define flags for traces
 ```
 `genkit start` runs until you stop it with Ctrl+C. That is expected and correct
 for the common cases: a server your web/mobile app calls, or an interactive CLI
@@ -230,8 +238,8 @@ for the plugin:
 | `genkit_mcp` | [references/genkit_mcp.md](references/genkit_mcp.md) | Load for Model Context Protocol integration (Server, Host, and Client capabilities). |
 | `genkit_chrome` | [references/genkit_chrome.md](references/genkit_chrome.md) | Load for Running Gemini Nano locally inside the Chrome browser using the Prompt API. |
 | `genkit_shelf` | [references/genkit_shelf.md](references/genkit_shelf.md) | Load for serving flows/models/agents over HTTP: `GenkitRouter` (core `package:genkit/io.dart`, standalone `dart:io`) and mounting it into Shelf apps. |
-| `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for Firebase AI plugin interface (Gemini API via Vertex AI). |
-| `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on the client with `genui`. |
+| `genkit_firebase_ai` | [references/genkit_firebase_ai.md](references/genkit_firebase_ai.md) | Load for calling Gemini directly from Flutter apps via Firebase AI Logic (App Check, Remote Config model names, grounding, image/TTS, Live API, `genkit start:flutter`). |
+| `genkit_a2ui` | [references/a2ui.md](references/a2ui.md) | Load for A2UI (Agent-to-UI): streaming generative UI surfaces via the `a2ui()` middleware, rendered on Flutter with `a2ui_flutter`. |
 
 ## External Dependencies
 Whenever you define schemas mapping inside of Tools, Flows, and Prompts, you
