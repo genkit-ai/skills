@@ -117,13 +117,13 @@ lets an agent stream interactive UI **surfaces** (cards, lists, forms, buttons),
 not just prose. The whole integration is the `&a2uix.Surfaces{}` model
 middleware added via `ai.WithUse`
 on a generate call or agent inline prompt. **Go is server-only: it has no A2UI
-client/renderer.** Render surfaces with a JS or Dart/Flutter client that talks
-to
-your Go agent over HTTP (the server and clients are wire-compatible).
+client/renderer.** Render surfaces with a JS web client that talks to your Go
+agent over HTTP (the server and the JS client are wire-compatible). The Genkit
+Dart Flutter client is not compatible with Go agents yet.
 
 -   [A2UI](references/a2ui.md): server middleware, options, custom catalogs, and
     security. For the client (rendering surfaces), refer to the A2UI reference
-    in the Genkit JS or Dart skill.
+    in the Genkit JS skill.
 
 ## Genkit CLI (recommended)
 

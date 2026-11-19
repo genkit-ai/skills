@@ -29,24 +29,24 @@ changes.
 
 **Go has no A2UI client/renderer.** The Go plugin is the server half: it injects
 catalog capabilities into the prompt and rewrites the model's a2ui blocks into
-a2ui data parts on the stream. To actually render surfaces in a browser or app,
-use a JS or Dart/Flutter client that talks to your Go agent over HTTP. The Go
-server and the JS/Dart client are wire-compatible (same `application/a2ui+json`
-data parts, same catalog ids), so mix and match freely.
+a2ui data parts on the stream. To actually render surfaces in a browser, use a
+JS client that talks to your Go agent over HTTP. The Go server and the JS client
+are wire-compatible (same `application/a2ui+json` data parts carrying v0.9
+`envelopes`, same catalog ids).
 
-For the client half, refer to the A2UI reference in the Genkit **JS** or
-**Dart**
-skill (the `a2ui.md` reference in `developing-genkit-js` /
-`developing-genkit-dart`).
-Read their client sections and ignore their server/`a2ui()` middleware sections
-(that is the JS/Dart server, replaced by the Go server below):
+**No Flutter client for Go agents yet.** The Genkit Dart A2UI stack
+(`genkit_a2ui` 0.5+, `a2ui_flutter`) moved to A2UI v1.0 under `data.messages`
+and sends actions in that shape, which the Go plugin does not read. Do not
+point the Dart skill's Flutter client at a Go agent.
+
+For the client half, refer to the A2UI reference in the Genkit **JS** skill (the
+`a2ui.md` reference in `developing-genkit-js`). Read its client sections and
+ignore its server/`a2ui()` middleware sections (that is the JS server, replaced
+by the Go server below):
 
 - **JS**: browser rendering with an `@a2ui/*` renderer (Lit/React/Angular) plus
   the `@genkit-ai/a2ui/client` helpers (`remoteAgent`, `a2uiEnvelopesFromParts`,
   `actionToMessage`).
-- **Dart/Flutter**: rendering with the
-  [`genui`](https://pub.dev/packages/genui) package plus the
-  `package:genkit_a2ui/client.dart` helpers.
 
 The client points `remoteAgent` at the Go endpoint (for example
 `remoteAgent({ url: '/api/uiAgent' })`), and the client's renderer registers a
@@ -226,9 +226,9 @@ middleware falls back to it either way). `LoadCatalog` is idempotent per id.
 
 The **client must register a matching renderer under the same catalog id**, and
 each component `Name` must match on both sides. Otherwise the model emits a
-component the client cannot render. See the A2UI reference in the JS or Dart
-skill for how to register a custom component (a genui `CatalogItem` in Dart, an
-`@a2ui/*` renderer in JS). Catalogs live in the registry under value type
+component the client cannot render. See the A2UI reference in the JS skill for
+how to register a custom component with an `@a2ui/*` renderer. Catalogs live in
+the registry under value type
 `a2uix.CatalogValueType`
 (`"a2ui-catalog"`); the Dev UI lists them at
 `GET /api/values?type=a2ui-catalog`.
